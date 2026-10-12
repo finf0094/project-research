@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>banx — online bank</title>
+
+    <!-- Bootstrap (local copy from the dist folder, no CDN) -->
+    <link rel="stylesheet" href="dist/css/bootstrap.min.css">
+    <!-- Own styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ===== Navbar ===== -->
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <img src="img/logo.png" alt="banx" width="90">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainMenu"
+                aria-controls="mainMenu" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainMenu">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link active" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#offices">Offices</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                </ul>
+                <div class="d-flex gap-2">
+                    <a href="#" class="btn btn-outline-banx">Log in</a>
+                    <a href="#open" class="btn btn-banx">Open account</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== Hero with form ===== -->
+    <header class="hero py-5">
+        <div class="container py-lg-5">
+            <div class="row align-items-center gx-4 gy-5">
+                <div class="col-lg-7">
+                    <span class="badge badge-banx mb-3">Online bank of the city</span>
+                    <h1 class="display-4 hero-title mb-4">Your money works <br class="d-none d-md-block">while you sleep</h1>
+                    <p class="lead text-banx-muted mb-4">Free account, instant transfers and up to 8% per year on
+                        savings. Open your banx account online in 5 minutes.</p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="#open" class="btn btn-banx btn-lg px-4">Get started</a>
+                        <a href="#services" class="btn btn-light btn-lg px-4">Learn more</a>
+                    </div>
+                </div>
+
+                <div class="col-lg-5" id="open">
+                    <div class="card border-0 shadow-lg rounded-4">
+                        <div class="card-body p-4 p-md-5">
+                            <h2 class="h4 mb-4">Open an account</h2>
+                            <form>
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full name</label>
+                                    <input type="text" class="form-control" id="name" placeholder="Alex Smith">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" placeholder="name@example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="type" class="form-label">Account type</label>
+                                    <select class="form-select" id="type">
+                                        <option selected>Personal</option>
+                                        <option>Business</option>
+                                        <option>Student</option>
+                                    </select>
+                                </div>
+                                <div class="form-check mb-4">
+                                    <input class="form-check-input" type="checkbox" id="agree">
+                                    <label class="form-check-label small" for="agree">I agree with the terms of service</label>
+                                </div>
+                                <button type="submit" class="btn btn-banx w-100 py-2">Create account</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== Numbers ===== -->
+    <section class="stats text-white py-4">
+        <div class="container">
+            <div class="row text-center g-3">
+                <div class="col-6 col-md-3">
+                    <div class="fs-2 fw-semibold">1.2M</div>
+                    <div class="small text-white-50 text-uppercase">clients</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fs-2 fw-semibold">48</div>
+                    <div class="small text-white-50 text-uppercase">offices</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fs-2 fw-semibold">8%</div>
+                    <div class="small text-white-50 text-uppercase">on savings</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fs-2 fw-semibold">24/7</div>
+                    <div class="small text-white-50 text-uppercase">support</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Services ===== -->
+    <section class="py-5" id="services">
+        <div class="container py-lg-4">
+            <div class="text-center mb-5">
+                <h2 class="section-title">Our services</h2>
+                <p class="text-banx-muted">Everything you need in one application</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-sm-6 col-lg-3">
+                    <div class="service h-100 p-4 rounded-4 bg-white shadow-sm">
+                        <div class="service-icon mb-3">$</div>
+                        <h3 class="h5">Accounts</h3>
+                        <p class="text-banx-muted mb-0">Free current account with a virtual and a plastic card.</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="service h-100 p-4 rounded-4 bg-white shadow-sm">
+                        <div class="service-icon mb-3">%</div>
+                        <h3 class="h5">Deposits</h3>
+                        <p class="text-banx-muted mb-0">Up to 8% per year with the ability to withdraw at any time.</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="service h-100 p-4 rounded-4 bg-white shadow-sm">
+                        <div class="service-icon mb-3">⇄</div>
+                        <h3 class="h5">Transfers</h3>
+                        <p class="text-banx-muted mb-0">Instant transfers by phone number without commission.</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="service h-100 p-4 rounded-4 bg-white shadow-sm">
+                        <div class="service-icon mb-3">⌂</div>
+                        <h3 class="h5">Mortgage</h3>
+                        <p class="text-banx-muted mb-0">Buy a flat in the city with a low rate and a fast decision.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Offices (cards) ===== -->
+    <section class="py-5 bg-banx-light" id="offices">
+        <div class="container py-lg-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-3">
+                <div>
+                    <h2 class="section-title mb-1">Our offices</h2>
+                    <p class="text-banx-muted mb-0">Visit us in the most famous buildings of the city</p>
+                </div>
+                <a href="#" class="btn btn-outline-banx">All offices</a>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <img src="img/chrysler.jpg" class="card-img-top office-img" alt="Chrysler Building">
+                        <div class="card-body">
+                            <h3 class="card-title h6">Chrysler Office</h3>
+                            <p class="card-text small text-banx-muted">405 Lexington Ave, Mon–Fri 9:00–19:00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <img src="img/woolworth.jpg" class="card-img-top office-img" alt="Woolworth Building">
+                        <div class="card-body">
+                            <h3 class="card-title h6">Woolworth Office</h3>
+                            <p class="card-text small text-banx-muted">233 Broadway, Mon–Sat 9:00–18:00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <img src="img/old-building.jpg" class="card-img-top office-img" alt="Old city building">
+                        <div class="card-body">
+                            <h3 class="card-title h6">Central Office</h3>
+                            <p class="card-text small text-banx-muted">1 Park Row, Mon–Fri 10:00–20:00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <img src="img/skyline.jpg" class="card-img-top office-img" alt="Manhattan skyline">
+                        <div class="card-body">
+                            <h3 class="card-title h6">Downtown Office</h3>
+                            <p class="card-text small text-banx-muted">20 Battery Pl, every day 9:00–21:00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FAQ (Bootstrap accordion, uses JS) ===== -->
+    <section class="py-5" id="faq">
+        <div class="container py-lg-4">
+            <div class="row gx-4 gy-5">
+                <div class="col-lg-4">
+                    <h2 class="section-title">Questions?</h2>
+                    <p class="text-banx-muted">Answers to the most popular questions of our clients.</p>
+                </div>
+                <div class="col-lg-8">
+                    <div class="accordion" id="faqList">
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1">
+                                    How long does it take to open an account?
+                                </button>
+                            </h3>
+                            <div id="q1" class="accordion-collapse collapse show" data-bs-parent="#faqList">
+                                <div class="accordion-body text-banx-muted">About 5 minutes. Fill in the form, confirm your email and your account is ready.</div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2">
+                                    Is it free?
+                                </button>
+                            </h3>
+                            <div id="q2" class="accordion-collapse collapse" data-bs-parent="#faqList">
+                                <div class="accordion-body text-banx-muted">Yes, the account and the virtual card are completely free.</div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q3">
+                                    Where can I get a plastic card?
+                                </button>
+                            </h3>
+                            <div id="q3" class="accordion-collapse collapse" data-bs-parent="#faqList">
+                                <div class="accordion-body text-banx-muted">In any of our offices or by courier delivery to your home.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Contact form ===== -->
+    <section class="contact py-5 text-white" id="contact">
+        <div class="container py-lg-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="section-title text-white">Stay in touch</h2>
+                    <p class="text-white-50 mb-4">Subscribe to get news and special offers from banx.</p>
+                    <form class="row g-2 justify-content-center">
+                        <div class="col-sm-7">
+                            <input type="email" class="form-control form-control-lg" placeholder="Your email">
+                        </div>
+                        <div class="col-sm-auto">
+                            <button type="submit" class="btn btn-light btn-lg w-100 px-4">Subscribe</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Footer ===== -->
+    <footer class="footer py-4">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <img src="img/logo.png" alt="banx" width="70" class="footer-logo">
+            <span class="small">&copy; 2026 banx. All rights reserved.</span>
+            <span class="small">Made by <strong>Alex Smith</strong> with Bootstrap 5</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS (local copy) before the closing body tag -->
+    <script src="dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

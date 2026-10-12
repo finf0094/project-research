@@ -1,0 +1,120 @@
+body {
+    margin: 0;
+    padding: 30px 15px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
+    background: linear-gradient(135deg, #eef2ff, #f7eefe);
+}
+
+.page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px 40px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(80, 80, 160, 0.15);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eef0fb;
+}
+
+.avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 4px solid #6c8cff;
+}
+
+h1 {
+    margin: 0;
+    font-size: 40px;
+    color: #4b3fbf;
+}
+
+h2 {
+    margin: 5px 0 10px;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+h3 {
+    margin: 0 0 10px;
+    padding-left: 10px;
+    font-size: 22px;
+    color: #4b3fbf;
+    border-left: 4px solid #a66cff;
+}
+
+h4 {
+    margin: 15px 0 5px;
+    color: #555;
+}
+
+h5, h6 {
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: #777;
+}
+
+.section {
+    padding: 20px 0;
+    border-bottom: 1px solid #eef0fb;
+}
+
+.accent {
+    color: #a66cff;
+    font-weight: bold;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #dcdff5;
+}
+
+th {
+    color: #fff;
+    background-color: #6c8cff;
+}
+
+tr:nth-child(odd) td {
+    background-color: #f6f7ff;
+}
+
+a {
+    color: #4b3fbf;
+}
+
+a:hover {
+    color: #a66cff;
+}
+
+.footer {
+    padding-top: 15px;
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+}
+
+@media (max-width: 600px) {
+    .page {
+        padding: 20px;
+    }
+
+    .header {
+        flex-direction: column;
+        text-align: center;
+    }
+}

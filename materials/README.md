@@ -22,3 +22,6 @@
 - `images/8_old_building.jpg` — старое здание с флагштоком (превью)
 - `images/9_woolworth_building.jpg` — Вулворт-билдинг (превью)
 - `images/10_manhattan_skyline.jpg` — панорама Манхэттена с воды (превью)
+
+## Макет лабы 3
+- `lab3-design/` — три скриншота макета SevenOaks, извлечённые из `docs/03_flexbox_layout.docx`

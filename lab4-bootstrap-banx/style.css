@@ -1,0 +1,140 @@
+/* Additional styles on top of Bootstrap */
+
+:root {
+    --banx-dark: #3b3955;
+    --banx-main: #4f4d6a;
+    --banx-accent: #b07aa8;
+    --banx-muted: #77748f;
+    --banx-light: #f3f0f7;
+}
+
+body {
+    color: var(--banx-dark);
+    background-color: #fbfafd;
+}
+
+.text-banx-muted {
+    color: var(--banx-muted);
+}
+
+.bg-banx-light {
+    background-color: var(--banx-light);
+}
+
+/* ----- Buttons ----- */
+.btn-banx {
+    color: #fff;
+    background-color: var(--banx-main);
+    border-color: var(--banx-main);
+}
+
+.btn-banx:hover,
+.btn-banx:focus {
+    color: #fff;
+    background-color: var(--banx-dark);
+    border-color: var(--banx-dark);
+}
+
+.btn-outline-banx {
+    color: var(--banx-main);
+    border-color: var(--banx-main);
+}
+
+.btn-outline-banx:hover {
+    color: #fff;
+    background-color: var(--banx-main);
+}
+
+.badge-banx {
+    padding: 0.5em 1em;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background-color: var(--banx-accent);
+}
+
+/* ----- Navbar ----- */
+.navbar .nav-link {
+    margin: 0 0.4rem;
+    color: var(--banx-main);
+}
+
+.navbar .nav-link.active,
+.navbar .nav-link:hover {
+    color: var(--banx-accent);
+}
+
+/* ----- Hero ----- */
+.hero {
+    background:
+        linear-gradient(90deg, rgba(251, 250, 253, 0.95) 0%, rgba(251, 250, 253, 0.7) 50%, rgba(251, 250, 253, 0.2) 100%),
+        url(img/city-bg.jpg) center / cover no-repeat;
+}
+
+.hero-title {
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--banx-dark);
+}
+
+/* ----- Sections ----- */
+.section-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 2.2rem;
+}
+
+.stats {
+    background-color: var(--banx-main);
+}
+
+.service {
+    border-top: 4px solid var(--banx-accent);
+    transition: transform 0.2s;
+}
+
+.service:hover {
+    transform: translateY(-5px);
+}
+
+.service-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 52px;
+    height: 52px;
+    font-size: 1.5rem;
+    color: #fff;
+    background-color: var(--banx-main);
+    border-radius: 50%;
+}
+
+.office-img {
+    height: 200px;
+    object-fit: cover;
+}
+
+.accordion-button:not(.collapsed) {
+    color: var(--banx-dark);
+    background-color: var(--banx-light);
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+}
+
+.contact {
+    background:
+        linear-gradient(rgba(59, 57, 85, 0.85), rgba(59, 57, 85, 0.85)),
+        url(img/city-bg.jpg) center / cover no-repeat;
+}
+
+/* ----- Footer ----- */
+.footer {
+    color: #c9c6dc;
+    background-color: var(--banx-dark);
+}
+
+.footer-logo {
+    padding: 4px 8px;
+    background-color: #fff;
+    border-radius: 4px;
+}
