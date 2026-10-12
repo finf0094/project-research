@@ -1,0 +1,371 @@
+/* ===== Fonts (saved locally) ===== */
+@font-face {
+    font-family: "Roboto Condensed";
+    font-weight: 400;
+    src: url(fonts/roboto-condensed-400.woff2) format("woff2");
+}
+
+@font-face {
+    font-family: "Roboto Condensed";
+    font-weight: 700;
+    src: url(fonts/roboto-condensed-700.woff2) format("woff2");
+}
+
+@font-face {
+    font-family: "Roboto";
+    font-weight: 300;
+    src: url(fonts/roboto-300.woff2) format("woff2");
+}
+
+@font-face {
+    font-family: "Roboto";
+    font-weight: 700;
+    src: url(fonts/roboto-700.woff2) format("woff2");
+}
+
+/* ===== Base ===== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Roboto Condensed", Arial, sans-serif;
+    font-size: 15px;
+    color: #fff;
+    background-color: #2a606c;
+}
+
+h1, h2, h3, p {
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.container {
+    width: 100%;
+    max-width: 1170px;
+    margin: 0 auto;
+}
+
+/* ===== 1. Header ===== */
+.header {
+    background-color: #204b52;
+}
+
+.header__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 80px;
+    padding: 0 10px 0 30px;
+}
+
+.logo {
+    font-size: 23px;
+    font-weight: 700;
+}
+
+.menu {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.menu__link {
+    display: block;
+    margin-left: 38px;
+    font-size: 16px;
+    transition: color 0.2s;
+}
+
+.menu__link:hover {
+    color: #fdbd1f;
+}
+
+/* ===== 2. Hero ===== */
+.hero {
+    position: relative;
+    height: 440px;
+    margin-bottom: -40px;
+    background-image: url(img/hero-bg.jpg);
+    background-position: center 30%;
+    background-size: cover;
+}
+
+/* teal colour layer over the photo */
+.hero::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(42, 96, 108, 0.82);
+}
+
+.hero__content {
+    position: absolute;
+    top: 135px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+}
+
+.hero__title {
+    margin-bottom: 18px;
+    font-family: "Roboto", Arial, sans-serif;
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+}
+
+.hero__subtitle {
+    margin-bottom: 26px;
+    font-family: "Roboto", Arial, sans-serif;
+    font-size: 29px;
+    font-weight: 300;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+}
+
+.btn-outline {
+    display: inline-block;
+    padding: 10px 26px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: 2px solid #fff;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-outline:hover {
+    color: #2a606c;
+    background-color: #fff;
+}
+
+/* ===== 3. Features 2 x 2 ===== */
+.features {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50%;
+    height: 335px;
+    padding-top: 59px;
+    text-align: center;
+}
+
+.feature--red {
+    background-color: #e84c3d;
+}
+
+.feature--yellow {
+    background-color: #fdbd1f;
+}
+
+.feature--green {
+    background-color: #1bbc9b;
+}
+
+.feature--purple {
+    background-color: #9b58b5;
+}
+
+.feature__icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 99px;
+    height: 99px;
+    margin-bottom: 26px;
+    background-color: #fff;
+    border-radius: 50%;
+}
+
+.feature__title {
+    margin-bottom: 10px;
+    font-size: 30px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.feature__text {
+    font-size: 15px;
+    line-height: 1.3;
+}
+
+/* ===== 4. Section heading ===== */
+.section-heading {
+    padding: 80px 0 65px;
+    text-align: center;
+}
+
+.section-heading__title {
+    margin-bottom: 14px;
+    font-size: 30px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.section-heading__subtitle {
+    position: relative;
+    width: 675px;
+    margin: 0 auto;
+    font-size: 20px;
+    text-transform: uppercase;
+}
+
+/* decorative horizontal line behind the subtitle */
+.section-heading__subtitle::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: #3f8893;
+}
+
+.section-heading__subtitle span {
+    position: relative;
+    padding: 0 2px;
+    background-color: #2a606c;
+}
+
+/* ===== 5. Cards ===== */
+.cards {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    padding-bottom: 72px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 370px;
+    height: 497px;
+    padding: 45px 38px 0;
+    text-align: center;
+    background-color: #204b52;
+    border-top: 6px solid;
+}
+
+.card--red {
+    border-top-color: #e84c3d;
+}
+
+.card--yellow {
+    border-top-color: #fdbd1f;
+}
+
+.card--green {
+    border-top-color: #1bbc9b;
+}
+
+.card__photo {
+    width: 181px;
+    height: 181px;
+    margin-bottom: 38px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.card__text {
+    margin-bottom: 37px;
+    font-size: 15px;
+    line-height: 26px;
+    color: #8fb3ba;
+}
+
+.btn {
+    padding: 9px 19px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+
+.btn--red {
+    background-color: #e84c3d;
+}
+
+.btn--yellow {
+    background-color: #fdbd1f;
+}
+
+.btn--green {
+    background-color: #1bbc9b;
+}
+
+/* ===== 6. Footer ===== */
+.footer {
+    padding: 50px 15px;
+    font-size: 15px;
+    text-align: center;
+    background-color: #204b52;
+}
+
+.footer__author {
+    color: #fdbd1f;
+}
+
+/* ===== Small screens ===== */
+@media (max-width: 1180px) {
+    .container {
+        padding: 0 15px;
+    }
+
+    .cards {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 760px) {
+    .menu__link {
+        margin-left: 16px;
+    }
+
+    .hero__title {
+        font-size: 26px;
+        letter-spacing: 3px;
+    }
+
+    .hero__subtitle {
+        font-size: 18px;
+    }
+
+    .feature {
+        width: 100%;
+        height: auto;
+        padding: 40px 15px;
+    }
+
+    .feature__text br {
+        display: none;
+    }
+
+    .section-heading__subtitle {
+        width: auto;
+        font-size: 16px;
+    }
+}

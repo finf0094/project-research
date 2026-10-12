@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom</title>
+
+    <!-- Bootstrap 5 and Bootstrap Icons via CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Own styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ===== Navbar ===== -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-freedom">
+        <div class="container">
+            <a class="navbar-brand py-0" href="#">
+                <img src="images/logo.png" alt="Freedom" class="logo">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
+                aria-controls="menu" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menu">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#portfolio">Portfolio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#footer">Contact</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+                </ul>
+                <a href="#" class="nav-link nav-user" aria-label="Account"><i class="bi bi-person"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== Carousel ===== -->
+    <div id="mainCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="0" class="active"
+                aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+        </div>
+
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="images/slide_pic.jpg" class="d-block w-100 slide-img" alt="Desk with a notebook">
+            </div>
+            <!-- slides 2 and 3: the small provided pictures placed in a row -->
+            <div class="carousel-item">
+                <div class="d-flex">
+                    <img src="images/pic-1.jpg" class="w-25 slide-img" alt="Sunset in the grass">
+                    <img src="images/pic-2.jpg" class="w-25 slide-img" alt="Grass and sun">
+                    <img src="images/pic-3.jpg" class="w-25 slide-img" alt="Rio de Janeiro">
+                    <img src="images/pic-4.jpg" class="w-25 slide-img" alt="Dog with a stick">
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="d-flex">
+                    <img src="images/pic-5.jpg" class="w-25 slide-img" alt="Eagle">
+                    <img src="images/pic-6.jpg" class="w-25 slide-img" alt="Robots on a bench">
+                    <img src="images/pic-7.jpg" class="w-25 slide-img" alt="Gannet bird">
+                    <img src="images/pic-8.jpg" class="w-25 slide-img" alt="Butterfly">
+                </div>
+            </div>
+        </div>
+
+        <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
+            <span class="carousel-arrow"><i class="bi bi-chevron-left"></i></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
+            <span class="carousel-arrow"><i class="bi bi-chevron-right"></i></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+
+    <!-- ===== La Liberté guidant le peuple ===== -->
+    <section class="section-intro text-center">
+        <div class="container">
+            <h1 class="section-title mb-4">La Liberté guidant le peuple</h1>
+            <p class="intro-text mx-auto mb-0">La Liberté guidant le peuple est une huile sur toile d'Eugène Delacroix
+                réalisée en 1830, inspirée de la révolution des Trois Glorieuses qui s'est passée en 1830. Présentée
+                au public au Salon de Paris de 1831 sous le titre Scènes de barricades</p>
+        </div>
+    </section>
+
+    <!-- ===== Postérité de l'œuvre ===== -->
+    <section class="section-posterity text-center">
+        <div class="container">
+            <h2 class="section-title mb-5">Postérité de l'œuvre</h2>
+            <div class="row justify-content-center g-4">
+                <div class="col-md-4">
+                    <div class="feature-icon mx-auto"><i class="bi bi-gear"></i></div>
+                    <p class="feature-text">Située dans la salle Mollien, au musée du Louvre, l'œuvre est plusieurs
+                        fois déplacée pour être prêtée à des expositions temporaires : une première fois à Tokyo
+                        (Japon) en 1999 et une autre à Strasbourg en 2004.</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-icon mx-auto"><i class="bi bi-eye"></i></div>
+                    <p class="feature-text">Située dans la salle Mollien, au musée du Louvre, l'œuvre est plusieurs
+                        fois déplacée pour être prêtée à des expositions temporaires : une première fois à Tokyo
+                        (Japon) en 1999 et une autre à Strasbourg en 2004.</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-icon mx-auto"><i class="bi bi-arrow-repeat"></i></div>
+                    <p class="feature-text">Située dans la salle Mollien, au musée du Louvre, l'œuvre est plusieurs
+                        fois déplacée pour être prêtée à des expositions temporaires : une première fois à Tokyo
+                        (Japon) en 1999 et une autre à Strasbourg en 2004.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Notre Equipe ===== -->
+    <section class="section-team">
+        <div class="container">
+            <h2 class="section-title text-center">Notre Equipe</h2>
+            <div class="row g-4 justify-content-center">
+                <div class="col-sm-8 col-md-4">
+                    <div class="member">
+                        <img src="images/photo-1.jpg" class="img-fluid w-100 member-photo" alt="Craig Garner">
+                        <h3 class="member-name">Craig Garner <small>CEO</small></h3>
+                        <p class="member-text">Amazone blessée du type de Sôsiklès. Copie romaine d'après un
+                            original grec Elle rassemble le peuple, les faubourgs et la</p>
+                        <div class="d-flex">
+                            <a href="#" class="social social-fb" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                            <a href="#" class="social social-gplus" aria-label="Google"><i class="bi bi-google"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-8 col-md-4">
+                    <div class="member">
+                        <img src="images/photo-2.jpg" class="img-fluid w-100 member-photo" alt="Bridge Roberts">
+                        <h3 class="member-name">Bridge Roberts <small>Creative genius</small></h3>
+                        <p class="member-text">Amazone blessée du type de Sôsiklès. Copie romaine d'après un
+                            original grec Elle rassemble le peuple</p>
+                        <div class="d-flex">
+                            <a href="#" class="social social-fb" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                            <a href="#" class="social social-dribbble" aria-label="Dribbble"><i class="bi bi-dribbble"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-8 col-md-4">
+                    <div class="member">
+                        <img src="images/photo-3.jpg" class="img-fluid w-100 member-photo" alt="Malade Garner">
+                        <h3 class="member-name">Malade Garner <small>Chef de projet</small></h3>
+                        <p class="member-text">Amazone blessée du type de Sôsiklès. Copie romaine d'après un
+                            original grec Elle rass</p>
+                        <div class="d-flex">
+                            <a href="#" class="social social-tw" aria-label="Twitter"><i class="bi bi-twitter"></i></a>
+                            <a href="#" class="social social-yt" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Portfolio ===== -->
+    <section class="section-portfolio" id="portfolio">
+        <div class="container">
+            <h2 class="section-title text-center text-uppercase">Portfolio</h2>
+            <div class="row g-0">
+                <div class="col-6 col-md-3"><img src="images/pic-1.jpg" class="portfolio-img" alt="Sunset in the grass"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-2.jpg" class="portfolio-img" alt="Grass and sun"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-3.jpg" class="portfolio-img" alt="Rio de Janeiro"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-4.jpg" class="portfolio-img" alt="Dog with a stick"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-5.jpg" class="portfolio-img" alt="Eagle"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-6.jpg" class="portfolio-img" alt="Robots on a bench"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-7.jpg" class="portfolio-img" alt="Gannet bird"></div>
+                <div class="col-6 col-md-3"><img src="images/pic-8.jpg" class="portfolio-img" alt="Butterfly"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Footer ===== -->
+    <footer class="footer" id="footer">
+        <div class="container">
+            <p class="mb-0">Copyright &copy; All Rights Reserved. Bridgetech-ma.com.com</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS (needed for the carousel and the mobile menu) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

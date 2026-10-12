@@ -5,6 +5,7 @@
 - `docs/02_layout_by_reference_homework_4.docx` — вёрстка по референсу `homework_4.jpg`
 - `docs/03_flexbox_layout.docx` — вёрстка по макету на HTML5/CSS3 с Flexbox
 - `docs/04_bootstrap_hw_design.docx` — вёрстка по `hw_design.jpg` с локальным Bootstrap (`dist/`)
+- `docs/05_bootstrap_freedom.docx` — Bootstrap 5 через CDN: navbar, carousel, сетка, Bootstrap Icons
 
 ## Изображения
 - `images/1_hands_bible.jpg` — руки в молитве над Библией (баннер 1396×420)
@@ -25,3 +26,10 @@
 
 ## Макет лабы 3
 - `lab3-design/` — три скриншота макета SevenOaks, извлечённые из `docs/03_flexbox_layout.docx`
+
+## Референс лабы 2
+- `lab2-reference/homework_4.jpg` — макет страницы
+- `lab2-reference/homework_images.zip` — иконки и фото из задания
+
+## Макет лабы 5
+- `lab5-reference/freedom.jpg` — макет страницы «Freedom» (картинки к ней лежат в `lab5-bootstrap-freedom/images/`)

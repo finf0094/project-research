@@ -1,0 +1,308 @@
+/* Custom styles on top of Bootstrap 5 */
+
+:root {
+    --purple: #775ca3;
+    --mint: #9cc8b5;
+    --mint-dark: #8cbfa8;
+    --green: #53865d;
+    --text: #444;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+}
+
+/* the design uses a slightly narrower container */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1170px;
+    }
+}
+
+/* ===== Navbar ===== */
+.navbar-freedom {
+    min-height: 75px;
+    background-color: var(--purple);
+}
+
+.logo {
+    height: 56px;
+}
+
+.navbar-freedom .navbar-nav {
+    margin-left: 105px;
+}
+
+.navbar-freedom .nav-link {
+    padding: 0 16px;
+    font-size: 14px;
+    text-transform: uppercase;
+    color: #fff;
+    transition: color 0.2s;
+}
+
+/* hover: the text colour of the links changes */
+.navbar-freedom .nav-link:hover,
+.navbar-freedom .nav-link:focus {
+    color: var(--mint);
+}
+
+.navbar-freedom .nav-user {
+    padding: 0;
+    font-size: 28px;
+    line-height: 1;
+}
+
+/* ===== Carousel ===== */
+.slide-img {
+    height: 524px;
+    object-fit: cover;
+}
+
+.carousel-indicators [data-bs-target] {
+    width: 14px;
+    height: 14px;
+    margin: 0 6px;
+    background-color: transparent;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    opacity: 1;
+}
+
+/* the active indicator is filled */
+.carousel-indicators .active {
+    background-color: var(--purple);
+    border-color: var(--purple);
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    width: 10%;
+    opacity: 1;
+}
+
+/* arrows inside circles */
+.carousel-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.carousel-control-prev:hover .carousel-arrow,
+.carousel-control-next:hover .carousel-arrow {
+    background-color: var(--purple);
+    border-color: var(--purple);
+}
+
+/* ===== Common ===== */
+.section-title {
+    font-size: 40px;
+    font-weight: 400;
+    color: var(--purple);
+}
+
+/* ===== La Liberté guidant le peuple ===== */
+.section-intro {
+    padding: 105px 0 110px;
+}
+
+.intro-text {
+    max-width: 1140px;
+    font-size: 21px;
+    line-height: 1.72;
+}
+
+/* ===== Postérité de l'œuvre ===== */
+.section-posterity {
+    padding: 80px 0 90px;
+    background-color: #fcfcfc;
+    border-top: 1px solid var(--mint);
+    border-bottom: 1px solid var(--mint);
+}
+
+.feature-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 80px;
+    font-size: 46px;
+    color: #44414c;
+    border: 2px solid #44414c;
+    border-radius: 50%;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.feature-icon:hover {
+    color: var(--purple);
+    border-color: var(--purple);
+}
+
+.feature-text {
+    padding: 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* ===== Notre Equipe ===== */
+.section-team {
+    padding: 95px 0 70px;
+}
+
+.section-team .section-title {
+    margin-bottom: 45px;
+}
+
+.member-photo {
+    height: 372px;
+    object-fit: cover;
+    border-bottom: 3px solid var(--mint);
+}
+
+.member-name {
+    margin: 0;
+    padding: 12px 4px 8px;
+    font-size: 15px;
+    font-weight: 400;
+    text-transform: uppercase;
+    color: var(--mint-dark);
+    border-bottom: 3px solid var(--mint);
+}
+
+.member-name small {
+    margin-left: 4px;
+    font-size: 12px;
+}
+
+.member-text {
+    min-height: 82px;
+    margin: 0;
+    padding: 18px 0 10px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.social {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50%;
+    height: 58px;
+    font-size: 28px;
+    color: #fff;
+    transition: opacity 0.2s;
+}
+
+.social:hover {
+    color: #fff;
+    opacity: 0.85;
+}
+
+.social-fb {
+    background-color: #3b5997;
+}
+
+.social-gplus {
+    background-color: #d14433;
+}
+
+.social-dribbble {
+    background-color: #ea4c87;
+}
+
+.social-tw {
+    background-color: #00acee;
+}
+
+.social-yt {
+    background-color: #c60c0d;
+}
+
+/* ===== Portfolio ===== */
+.section-portfolio {
+    padding: 40px 0 48px;
+}
+
+.section-portfolio .section-title {
+    margin-bottom: 30px;
+}
+
+.portfolio-img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 289 / 263;
+    object-fit: cover;
+    transition: filter 0.2s;
+}
+
+.portfolio-img:hover {
+    filter: brightness(1.1);
+}
+
+/* ===== Footer ===== */
+.footer {
+    padding: 22px 0;
+    font-size: 14px;
+    color: #fff;
+    background-color: var(--green);
+}
+
+/* ===== Tablet / mobile ===== */
+@media (max-width: 991.98px) {
+    .navbar-freedom .navbar-nav {
+        margin-left: 0;
+        padding-top: 10px;
+    }
+
+    .navbar-freedom .nav-link {
+        padding: 8px 0;
+    }
+
+    .navbar-freedom .nav-user {
+        padding-bottom: 12px;
+    }
+
+    .slide-img {
+        height: 340px;
+    }
+
+    .section-title {
+        font-size: 32px;
+    }
+
+    .intro-text {
+        font-size: 18px;
+    }
+
+    .feature-icon {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .slide-img {
+        height: 220px;
+    }
+
+    .carousel-arrow {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .section-intro,
+    .section-posterity,
+    .section-team {
+        padding: 60px 0;
+    }
+}
