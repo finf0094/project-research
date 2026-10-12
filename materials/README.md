@@ -14,3 +14,10 @@
 
 ## Ссылки
 - Canva: https://canva.link/nwb9v8a7p52mfw1
+
+### Второй набор (banx / город)
+- `images/5_city_background.jpg` — фон: Нью-Йорк сверху в светлых тонах
+- `images/6_banx_logo.png` — логотип «banx»
+- `images/7_chrysler_building.jpg` — Крайслер-билдинг (превью)
+- `images/8_old_building.jpg` — старое здание с флагштоком (превью)
+- `images/9_woolworth_building.jpg` — Вулворт-билдинг (превью)
