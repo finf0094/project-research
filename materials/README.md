@@ -6,6 +6,7 @@
 - `docs/03_flexbox_layout.docx` — вёрстка по макету на HTML5/CSS3 с Flexbox
 - `docs/04_bootstrap_hw_design.docx` — вёрстка по `hw_design.jpg` с локальным Bootstrap (`dist/`)
 - `docs/05_bootstrap_freedom.docx` — Bootstrap 5 через CDN: navbar, carousel, сетка, Bootstrap Icons
+- `docs/06_python_variables_input_calculations.docx` — Practical Work 6: переменные, типы данных, ввод, вычисления
 
 ## Изображения
 - `images/1_hands_bible.jpg` — руки в молитве над Библией (баннер 1396×420)
