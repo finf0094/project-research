@@ -1,0 +1,7 @@
+Model,Accuracy,Precision,Recall,F1-score
+Logistic Regression,0.909,0.875,1.0,0.933
+Naive Bayes,0.818,0.857,0.857,0.857
+K-Nearest Neighbors,0.727,0.7,1.0,0.824
+Support Vector Machine,0.727,0.7,1.0,0.824
+Random Forest,0.727,0.833,0.714,0.769
+Decision Tree,0.455,0.571,0.571,0.571
