@@ -1,0 +1,5 @@
+{
+  "env": {
+    "GEO_CHROMIUM": "/opt/pw-browsers/chromium"
+  }
+}
