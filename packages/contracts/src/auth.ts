@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Id } from './common.ts'
 
-export const Role = z.enum(['student', 'examiner'])
+export const Role = z.enum(['student', 'examiner', 'admin'])
 export type Role = z.infer<typeof Role>
 
 export const User = z.object({
