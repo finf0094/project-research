@@ -58,6 +58,16 @@
     --shadow-2: 0 14px 34px -12px rgb(21 20 43 / 0.22), 0 4px 10px rgb(21 20 43 / 0.05);
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-fast: 140ms;
+    --dur: 240ms;
+    --dur-slow: 480ms;
+
+    /* Soft tile colours (mockup: peach, sky, lime) for stat tiles and state cards. */
+    --peach: light-dark(#ffe7d4, #3a2518);
+    --on-peach: light-dark(#5c2f10, #ffd9bb);
+    --sky: light-dark(#dfebff, #172742);
+    --on-sky: light-dark(#173467, #cfe0ff);
+    --lime-tint: light-dark(#effbcf, #263014);
   }
 
   :root[data-theme='light'] {

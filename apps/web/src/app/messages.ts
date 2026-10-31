@@ -3,6 +3,7 @@ import { defineMessages } from '@/shared/i18n'
 export const appMessages = defineMessages({
   ru: {
     app: {
+      nav: { label: 'Разделы', exams: 'Экзамены', users: 'Пользователи' },
       home: 'На главную',
       logout: 'Выйти',
       notFound: 'Такой страницы нет',
@@ -11,6 +12,7 @@ export const appMessages = defineMessages({
   },
   kk: {
     app: {
+      nav: { label: 'Бөлімдер', exams: 'Емтихандар', users: 'Пайдаланушылар' },
       home: 'Басты бетке',
       logout: 'Шығу',
       notFound: 'Мұндай бет жоқ',
@@ -19,6 +21,7 @@ export const appMessages = defineMessages({
   },
   en: {
     app: {
+      nav: { label: 'Sections', exams: 'Exams', users: 'Users' },
       home: 'Home',
       logout: 'Sign out',
       notFound: 'Page not found',

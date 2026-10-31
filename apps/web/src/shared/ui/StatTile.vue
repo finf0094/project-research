@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import CountUp from './CountUp.vue'
+
 withDefaults(
   defineProps<{
     label: string
@@ -15,7 +17,9 @@ withDefaults(
 <template>
   <div class="tile" :class="tone">
     <p class="label">{{ label }}</p>
-    <p class="value">{{ value }}</p>
+    <p class="value">
+      <CountUp v-if="typeof value === 'number'" :value="value" /><template v-else>{{ value }}</template>
+    </p>
     <p v-if="note" class="note">{{ note }}</p>
   </div>
 </template>
@@ -48,10 +52,12 @@ withDefaults(
   color: var(--on-lime);
 }
 .peach {
-  background: var(--warn-tint);
+  background: var(--peach);
+  color: var(--on-peach);
 }
 .sky {
-  background: var(--accent-tint);
+  background: var(--sky);
+  color: var(--on-sky);
 }
 .ink {
   background: var(--ink);

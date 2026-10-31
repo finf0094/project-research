@@ -12,8 +12,8 @@ declare module 'vue-router' {
     public?: boolean
     /** Only this role may open the page. */
     role?: Role
-    /** Rendered inside the app shell with the top bar. */
-    shell?: boolean
+    /** The frame around the page: the student's top bar or the staff sidebar; none for full-screen pages. */
+    shell?: 'student' | 'staff'
   }
 }
 

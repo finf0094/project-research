@@ -1,13 +1,14 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ wordmark?: boolean }>(), { wordmark: true })
+/** `inverted`: for dark surfaces (the staff sidebar): a lime mark, the word in the surrounding colour. */
+withDefaults(defineProps<{ wordmark?: boolean; inverted?: boolean }>(), { wordmark: true })
 </script>
 
 <template>
-  <span class="logo">
+  <span class="logo" :class="{ inverted }">
     <span class="mark" aria-hidden="true">
       <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
-        <rect x="2" y="8" width="15" height="14" rx="4.5" stroke="var(--lime)" stroke-width="2.8" />
-        <rect x="13" y="8" width="15" height="14" rx="4.5" stroke="var(--on-ink)" stroke-width="2.8" />
+        <rect x="2" y="8" width="15" height="14" rx="4.5" class="left" stroke-width="2.8" />
+        <rect x="13" y="8" width="15" height="14" rx="4.5" class="right" stroke-width="2.8" />
       </svg>
     </span>
     <span v-if="wordmark" class="word">exam</span>
@@ -32,5 +33,22 @@ withDefaults(defineProps<{ wordmark?: boolean }>(), { wordmark: true })
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--text-lg);
+}
+.left {
+  stroke: var(--lime);
+}
+.right {
+  stroke: var(--on-ink);
+}
+.inverted {
+  .mark {
+    background: var(--lime);
+  }
+  .left {
+    stroke: var(--ink);
+  }
+  .right {
+    stroke: var(--accent);
+  }
 }
 </style>

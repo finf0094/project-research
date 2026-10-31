@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { ArrowRight, Plus } from 'lucide-vue-next'
+
 withDefaults(
   defineProps<{
     variant?: 'primary' | 'secondary' | 'lime' | 'ink' | 'ghost' | 'danger'
+    /** A trailing round icon (the mockup's call-to-action style): it nudges forward on hover. */
+    icon?: 'arrow' | 'plus'
     type?: 'button' | 'submit'
     block?: boolean
     loading?: boolean
@@ -20,6 +24,10 @@ withDefaults(
     :aria-busy="loading || undefined"
   >
     <slot />
+    <span v-if="icon" class="chip" aria-hidden="true">
+      <ArrowRight v-if="icon === 'arrow'" :size="18" />
+      <Plus v-else :size="18" />
+    </span>
   </button>
 </template>
 
@@ -59,6 +67,28 @@ withDefaults(
 
 .block {
   width: 100%;
+}
+
+/* Trailing icon chip: a circle a shade darker than the button; padding shrinks so it sits at the edge. */
+.button:has(.chip) {
+  padding-inline-end: var(--space-1);
+  gap: var(--space-3);
+}
+.chip {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
+  background: color-mix(in oklab, currentColor 16%, transparent);
+  transition: translate var(--dur) var(--ease-spring);
+}
+.lime .chip {
+  background: var(--ink);
+  color: var(--lime);
+}
+.button:hover:not(:disabled) .chip {
+  translate: 3px 0;
 }
 
 .primary {
