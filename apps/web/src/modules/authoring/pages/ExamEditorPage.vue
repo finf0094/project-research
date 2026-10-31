@@ -15,7 +15,7 @@ import { describeIssues } from '../issues'
 /** Creates a new exam (/examiner/exams/new) or edits one (/examiner/exams/:examId/edit). */
 const route = useRoute()
 const router = useRouter()
-// The same page instance serves /new and /:examId/edit (after creating, the route changes under it).
+// /new and /:examId/edit are separate page instances; the watch also covers a route reused in place.
 const examId = computed(() => (route.params.examId ? String(route.params.examId) : null))
 const draft = ref<ExamDefinition | null>(null)
 const participants = ref<string[]>([])

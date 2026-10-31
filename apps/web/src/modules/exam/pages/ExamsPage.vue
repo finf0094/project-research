@@ -50,7 +50,6 @@ onMounted(load)
   gap: var(--space-6);
   width: min(1120px, 100%);
   margin-inline: auto;
-  padding: var(--space-8) var(--space-4);
 }
 .grid {
   display: grid;

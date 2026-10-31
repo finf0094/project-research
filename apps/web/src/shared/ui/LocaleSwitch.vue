@@ -2,7 +2,7 @@
 import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LOCALE_NAMES, LOCALES, type Locale } from '@/shared/i18n'
-import { placeUnderOpener } from '@/shared/lib/popover'
+import { placeNextToOpener } from '@/shared/lib/popover'
 
 /**
  * The interface language. `pills`: RU / KK / EN side by side (sign-in, preflight). `compact`: a round
@@ -28,6 +28,7 @@ function choose(code: Locale, menu?: HTMLElement | null) {
       :lang="code"
       :aria-pressed="locale === code"
       :title="LOCALE_NAMES[code]"
+      :aria-label="LOCALE_NAMES[code]"
       @click="choose(code)"
     >
       {{ code.toUpperCase() }}
@@ -35,16 +36,20 @@ function choose(code: Locale, menu?: HTMLElement | null) {
   </div>
 
   <div v-else class="compact">
-    <button type="button" class="round" :popovertarget="id" :aria-label="t('common.language')">
+    <button
+      type="button"
+      class="round"
+      :popovertarget="id"
+      :aria-label="`${t('common.language')}: ${LOCALE_NAMES[locale as Locale]}`"
+    >
       {{ locale.toUpperCase() }}
     </button>
-    <div :id="id" popover class="menu" role="menu" @beforetoggle="placeUnderOpener">
+    <div :id="id" popover class="menu" @toggle="placeNextToOpener">
       <button
         v-for="code in LOCALES"
         :key="code"
         type="button"
-        role="menuitemradio"
-        :aria-checked="locale === code"
+        :aria-pressed="locale === code"
         :lang="code"
         @click="choose(code, ($event.currentTarget as HTMLElement).closest<HTMLElement>('[popover]'))"
       >
@@ -134,12 +139,17 @@ function choose(code: Locale, menu?: HTMLElement | null) {
     text-align: start;
     white-space: nowrap;
     &:hover,
-    &[aria-checked='true'] {
+    &[aria-pressed='true'] {
       background: var(--surface-2);
     }
-    &[aria-checked='true'] {
+    &[aria-pressed='true'] {
       font-weight: 700;
     }
+  }
+}
+@supports not selector(:popover-open) {
+  .menu {
+    display: none;
   }
 }
 </style>

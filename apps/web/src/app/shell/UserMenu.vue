@@ -3,7 +3,7 @@ import { LogOut } from 'lucide-vue-next'
 import { useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
-import { placeUnderOpener } from '@/shared/lib/popover'
+import { placeNextToOpener } from '@/shared/lib/popover'
 import { Avatar } from '@/shared/ui'
 
 /** The signed-in person: their initials open a small menu with their name, role and sign-out. */
@@ -19,10 +19,15 @@ async function logout() {
 
 <template>
   <div v-if="auth.user" class="user">
-    <button type="button" class="opener" :popovertarget="id" :aria-label="auth.user.name">
+    <button
+      type="button"
+      class="opener"
+      :popovertarget="id"
+      :aria-label="$t('app.account', { name: auth.user.name })"
+    >
       <Avatar :name="auth.user.name" :size="44" />
     </button>
-    <div :id="id" popover class="menu" @beforetoggle="placeUnderOpener">
+    <div :id="id" popover class="menu" @toggle="placeNextToOpener">
       <p class="name">{{ auth.user.name }}</p>
       <p class="muted role">{{ $t(`admin.roles.${auth.user.role}`) }}</p>
       <button type="button" class="logout" @click="logout">
@@ -88,5 +93,10 @@ async function logout() {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   font-weight: 600;
+}
+@supports not selector(:popover-open) {
+  .menu {
+    display: none;
+  }
 }
 </style>

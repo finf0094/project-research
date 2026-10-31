@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FileText, Users } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
 import { AppLogo, LocaleSwitch } from '@/shared/ui'
 import UserMenu from './UserMenu.vue'
@@ -10,6 +11,9 @@ import UserMenu from './UserMenu.vue'
  * beside it. On narrow screens the sidebar becomes a bar on top.
  */
 const auth = useAuthStore()
+const route = useRoute()
+/** A section stays highlighted on its sub-pages (an exam, an attempt, the editor). */
+const inSection = (to: string) => route.path === to || route.path.startsWith(`${to}/`)
 const nav = computed(() =>
   auth.role === 'admin'
     ? [{ to: '/admin', label: 'app.nav.users', icon: Users }]
@@ -19,19 +23,26 @@ const nav = computed(() =>
 
 <template>
   <div class="shell">
-    <aside class="side">
+    <div class="side">
       <RouterLink to="/" class="home" :aria-label="$t('app.home')"><AppLogo inverted /></RouterLink>
       <nav :aria-label="$t('app.nav.label')">
-        <RouterLink v-for="item in nav" :key="item.to" :to="item.to" class="item">
+        <RouterLink
+          v-for="item in nav"
+          :key="item.to"
+          :to="item.to"
+          class="item"
+          :class="{ active: inSection(item.to) }"
+          :aria-current="route.path === item.to ? 'page' : inSection(item.to) ? 'true' : undefined"
+        >
           <component :is="item.icon" :size="20" aria-hidden="true" />
-          {{ $t(item.label) }}
+          <span class="label">{{ $t(item.label) }}</span>
         </RouterLink>
       </nav>
       <div class="foot">
         <LocaleSwitch variant="compact" />
         <UserMenu />
       </div>
-    </aside>
+    </div>
     <div class="content"><slot /></div>
   </div>
 </template>
@@ -82,8 +93,7 @@ nav {
     background: rgb(255 255 255 / 0.08);
     color: var(--on-ink);
   }
-  /* The section of the current page, including its sub-pages. */
-  &.router-link-active {
+  &.active {
     background: var(--lime);
     color: var(--on-lime);
   }
@@ -106,6 +116,7 @@ nav {
     position: static;
     flex-direction: row;
     align-items: center;
+    gap: var(--space-3);
     block-size: auto;
     padding: var(--space-3) var(--space-4);
   }
@@ -114,6 +125,16 @@ nav {
   }
   .foot {
     margin: 0 0 0 auto;
+  }
+}
+@media (width < 600px) {
+  /* Icons only; the names stay for screen readers. */
+  .label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 }
 </style>
