@@ -6,3 +6,4 @@ apps/api/storage/
 coverage/
 test-results/
 playwright-report/
+apps/api/models/*.onnx

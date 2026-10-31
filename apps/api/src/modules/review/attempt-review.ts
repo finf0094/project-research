@@ -48,6 +48,8 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       startAt: m.startAt,
       endAt: m.endAt,
       status: m.status,
+      source: m.source,
+      discrepancy: m.discrepancy,
       chunks: m.chunks,
     })),
     decision: decision

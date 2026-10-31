@@ -11,9 +11,16 @@ export type MarkerKind = z.infer<typeof MarkerKind>
 export const MarkerStatus = z.enum(['pending', 'confirmed', 'dismissed', 'context'])
 export type MarkerStatus = z.infer<typeof MarkerStatus>
 
+/** Who observed it: the student's device, or the server (its own models, or the chain and upload checks). */
+export const MarkerSource = z.enum(['client', 'server'])
+export type MarkerSource = z.infer<typeof MarkerSource>
+
 export const Marker = z.object({
   id: Id,
   kind: MarkerKind,
+  source: MarkerSource,
+  /** The server's models saw this, but the student's device reported nothing at that time. */
+  discrepancy: z.boolean(),
   startAt: Timestamp,
   endAt: Timestamp,
   status: MarkerStatus,

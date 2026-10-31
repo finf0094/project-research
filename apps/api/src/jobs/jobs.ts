@@ -4,6 +4,7 @@ import { answers, attempts, blobs, commands, decisions, events, markers, session
 import type { Deps } from '../deps.ts'
 import { examQuestions } from '../modules/exams/service.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
+import { analyzeRecordings } from '../ml/recordings.ts'
 import { blobKey } from '../shared/storage.ts'
 import { buildMarkers, riskScore } from './analysis.ts'
 
@@ -107,11 +108,18 @@ async function analyze(deps: Deps, tx: Tx, attempt: typeof attempts.$inferSelect
   // could never be answered; they must not count against the student.
   const finishedAt = log.find((e) => e.type === 'session.submitted')?.receivedAt.getTime() ?? Infinity
 
+  const uploadedSet = new Set(uploaded.map((b) => b.hash))
+  const fragments = log.flatMap((e) =>
+    e.type === 'evidence.fragment' ? [e.data as { tStart: number; chunks: string[] }] : [],
+  )
+  const serverFindings = await analyzeRecordings(deps.storage, attempt.id, fragments, uploadedSet)
+
   const drafts = buildMarkers(log, {
     endAt: Math.min(attempt.submittedAt?.getTime() ?? deps.now(), attempt.deadline.getTime()),
-    uploaded: new Set(uploaded.map((b) => b.hash)),
+    uploaded: uploadedSet,
     chainBrokenAt: attempt.chainBrokenAt,
     captureRequests: captures.map((c) => c.at.getTime()).filter((at) => at < finishedAt),
+    serverFindings,
   })
   await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
   if (drafts.length) await tx.insert(markers).values(drafts.map((m) => ({ ...m, attemptId: attempt.id })))

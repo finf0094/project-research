@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   index,
   integer,
   jsonb,
@@ -16,6 +17,7 @@ import type {
   AttemptStatus,
   ExamProfile,
   MarkerKind,
+  MarkerSource,
   MarkerStatus,
   NetState,
   QuestionType,
@@ -202,6 +204,8 @@ export const markers = pgTable(
     startAt: epochMs('start_at').notNull(),
     endAt: epochMs('end_at').notNull(),
     status: text('status').$type<MarkerStatus>().notNull(),
+    source: text('source').$type<MarkerSource>().notNull().default('client'),
+    discrepancy: boolean('discrepancy').notNull().default(false),
     chunks: text('chunks')
       .array()
       .notNull()

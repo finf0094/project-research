@@ -19,7 +19,15 @@ describe('buildMarkers', () => {
       { endAt: 9000, uploaded: none, chainBrokenAt: null },
     )
     expect(markers).toEqual([
-      { kind: 'tab_hidden', startAt: 1000, endAt: 5000, status: 'pending', chunks: [] },
+      {
+        kind: 'tab_hidden',
+        startAt: 1000,
+        endAt: 5000,
+        status: 'pending',
+        source: 'client',
+        discrepancy: false,
+        chunks: [],
+      },
     ])
   })
 
@@ -81,5 +89,41 @@ describe('buildMarkers', () => {
     })
     expect(markers.some((m) => m.kind === 'chain_broken')).toBe(true)
     expect(riskScore(markers)).toBe(100)
+  })
+})
+
+describe('reconciliation with server findings', () => {
+  const signal = (kind: string, from: number, to: number) => [
+    ev(1, 'proctor.signal', { kind, active: true }, from),
+    ev(2, 'proctor.signal', { kind, active: false }, to),
+  ]
+
+  it('marks a server finding the device also reported as no discrepancy', () => {
+    const markers = buildMarkers(signal('multiple_faces', 1000, 9000), {
+      endAt: 20_000,
+      uploaded: none,
+      chainBrokenAt: null,
+      serverFindings: [{ kind: 'multiple_faces', startAt: 2000, endAt: 6000 }],
+    })
+    expect(markers.find((m) => m.source === 'server')).toMatchObject({ discrepancy: false })
+  })
+
+  it('flags a discrepancy when only the server saw it, and weighs it double', () => {
+    const findings = [{ kind: 'object_detected' as const, startAt: 2000, endAt: 62_000 }]
+    const silent = buildMarkers([], {
+      endAt: 70_000,
+      uploaded: none,
+      chainBrokenAt: null,
+      serverFindings: findings,
+    })
+    expect(silent).toEqual([
+      expect.objectContaining({ kind: 'object_detected', source: 'server', discrepancy: true }),
+    ])
+    const reported = buildMarkers(signal('object_detected', 2000, 62_000), {
+      endAt: 70_000,
+      uploaded: none,
+      chainBrokenAt: null,
+    })
+    expect(riskScore(silent)).toBe(2 * riskScore(reported))
   })
 })

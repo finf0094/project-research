@@ -18,6 +18,8 @@ const emit = defineEmits<{ select: [id: string]; judge: [id: string, status: 'co
           {{ m.chunks.length ? `фрагментов: ${m.chunks.length}` : 'без записи' }}
         </span>
       </button>
+      <StatusPill v-if="m.discrepancy" tone="danger">Сервер увидел, устройство — нет</StatusPill>
+      <StatusPill v-else-if="m.source === 'server'" tone="accent">Проверка сервером</StatusPill>
       <StatusPill v-if="m.status === 'context'">Контекст, не нарушение</StatusPill>
       <StatusPill v-else-if="m.status === 'confirmed'" tone="danger">Подтверждено</StatusPill>
       <StatusPill v-else-if="m.status === 'dismissed'" tone="ok">Отклонено</StatusPill>

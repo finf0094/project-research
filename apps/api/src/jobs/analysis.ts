@@ -1,4 +1,5 @@
-import type { MarkerKind, MarkerStatus, SignalKind } from '@exam/contracts'
+import type { MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
+import type { Interval } from '../ml/observations.ts'
 
 export interface StoredEvent {
   seq: number
@@ -12,6 +13,8 @@ export interface MarkerDraft {
   startAt: number
   endAt: number
   status: MarkerStatus
+  source: MarkerSource
+  discrepancy: boolean
   chunks: string[]
 }
 
@@ -49,6 +52,8 @@ export function buildMarkers(
     uploaded: ReadonlySet<string>
     chainBrokenAt: number | null
     captureRequests?: number[]
+    /** What the server's own models found in the recordings; null when that analysis did not run. */
+    serverFindings?: Interval[] | null
   },
 ): MarkerDraft[] {
   const fragments = events.flatMap((e) =>
@@ -62,8 +67,32 @@ export function buildMarkers(
       .flatMap((f) => f.chunks.filter((c) => opts.uploaded.has(c)))
 
   const markers: MarkerDraft[] = []
-  const add = (kind: MarkerKind, startAt: number, endAt: number, status: MarkerStatus) =>
-    markers.push({ kind, startAt, endAt, status, chunks: chunksFor(startAt, endAt) })
+  const add = (
+    kind: MarkerKind,
+    startAt: number,
+    endAt: number,
+    status: MarkerStatus,
+    source: MarkerSource = 'client',
+  ) =>
+    markers.push({
+      kind,
+      startAt,
+      endAt,
+      status,
+      source,
+      discrepancy: false,
+      chunks: chunksFor(startAt, endAt),
+    })
+  const system = (kind: MarkerKind, at: number) =>
+    markers.push({
+      kind,
+      startAt: at,
+      endAt: at,
+      status: 'pending',
+      source: 'server',
+      discrepancy: false,
+      chunks: [],
+    })
 
   const openSignals = new Map<SignalKind, number>()
   let offlineSince: number | null = null
@@ -94,10 +123,11 @@ export function buildMarkers(
 
   if (opts.chainBrokenAt !== null) {
     const at = events.at(-1)?.clientAt ?? opts.endAt
-    markers.push({ kind: 'chain_broken', startAt: at, endAt: at, status: 'pending', chunks: [] })
+    system('chain_broken', at)
   }
   for (const f of fragments) {
-    if (f.chunks.some((c) => !opts.uploaded.has(c))) add('missing_fragment', f.tStart, f.tEnd, 'pending')
+    if (f.chunks.some((c) => !opts.uploaded.has(c)))
+      add('missing_fragment', f.tStart, f.tEnd, 'pending', 'server')
   }
   for (const requestedAt of opts.captureRequests ?? []) {
     const answered = fragments.some(
@@ -106,14 +136,28 @@ export function buildMarkers(
         f.tStart >= requestedAt - 60_000 &&
         f.tStart <= requestedAt + CONTROL_ANSWER_WINDOW_MS,
     )
-    if (!answered)
-      markers.push({
-        kind: 'missing_fragment',
-        startAt: requestedAt,
-        endAt: requestedAt,
-        status: 'pending',
-        chunks: [],
-      })
+    if (!answered) system('missing_fragment', requestedAt)
+  }
+
+  // Reconciliation (architecture, section 17.4): the server's finding is a second opinion. When the device
+  // reported the same thing it confirms it; when the device stayed silent it is a discrepancy, the strongest
+  // hint that client-side proctoring was tampered with or blind.
+  const clientSaw = (finding: Interval) =>
+    markers.some(
+      (m) =>
+        m.source === 'client' &&
+        m.kind === finding.kind &&
+        m.startAt <= finding.endAt &&
+        m.endAt >= finding.startAt,
+    )
+  for (const finding of opts.serverFindings ?? []) {
+    markers.push({
+      ...finding,
+      status: 'pending',
+      source: 'server',
+      discrepancy: !clientSaw(finding),
+      chunks: chunksFor(finding.startAt, finding.endAt),
+    })
   }
   return markers.sort((a, b) => a.startAt - b.startAt)
 }
@@ -123,7 +167,7 @@ export function riskScore(markers: MarkerDraft[]): number {
   for (const m of markers) {
     if (m.status === 'context') continue
     const minutes = Math.max((m.endAt - m.startAt) / 60_000, 0.25)
-    score += (WEIGHTS[m.kind] ?? 0) * Math.min(minutes, 3)
+    score += (WEIGHTS[m.kind] ?? 0) * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)
   }
   return Math.min(100, Math.round(score))
 }
