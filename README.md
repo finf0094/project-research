@@ -109,6 +109,7 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
 - Languages: Russian (default), Kazakh and English through vue-i18n; each module owns its texts
   (`modules/*/messages.ts`) and the other languages must match the Russian keys at compile time.
   Kazakh dates are spelled by the app, since browsers often ship no Kazakh calendar data.
+- API docs: OpenAPI generated from the Zod contracts (`@fastify/swagger`), browsable at `/api/docs`.
 - Exam authoring: examiners create and edit their own exams (settings, questions with correct answers, the
   oral ticket size) and choose participants by email. Once a student has started, questions and settings are
   frozen (answers, tickets and sealed logs refer to them); participants can still change. The administrator's
@@ -117,4 +118,4 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
 
 **Not implemented yet**
 
-- Swagger docs, the room hub for classrooms.
+- The room hub for classrooms (section 25.1, beyond this version).

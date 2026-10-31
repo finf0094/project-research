@@ -3,6 +3,7 @@ import rateLimit from '@fastify/rate-limit'
 import Fastify from 'fastify'
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod'
 import type { Deps } from './deps.ts'
+import { registerDocs } from './docs.ts'
 import { HttpError } from './shared/errors.ts'
 import { installAuth } from './modules/auth/guard.ts'
 import { authRoutes } from './modules/auth/routes.ts'
@@ -34,6 +35,7 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
     return reply.code(status).send({ message: error.message })
   })
 
+  await registerDocs(app)
   await app.register(cookie)
   await app.register(rateLimit, { global: false })
   installAuth(app, deps)
