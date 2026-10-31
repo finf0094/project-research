@@ -103,11 +103,15 @@ async function analyze(deps: Deps, tx: Tx, attempt: typeof attempts.$inferSelect
       and(eq(commands.attemptId, attempt.id), eq(commands.type, 'capture'), isNotNull(commands.deliveredAt)),
     )
 
+  // Requests made after the student finished (the sync carrying session.submitted can still schedule one)
+  // could never be answered; they must not count against the student.
+  const finishedAt = log.find((e) => e.type === 'session.submitted')?.receivedAt.getTime() ?? Infinity
+
   const drafts = buildMarkers(log, {
     endAt: Math.min(attempt.submittedAt?.getTime() ?? deps.now(), attempt.deadline.getTime()),
     uploaded: new Set(uploaded.map((b) => b.hash)),
     chainBrokenAt: attempt.chainBrokenAt,
-    captureRequests: captures.map((c) => c.at.getTime()),
+    captureRequests: captures.map((c) => c.at.getTime()).filter((at) => at < finishedAt),
   })
   await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
   if (drafts.length) await tx.insert(markers).values(drafts.map((m) => ({ ...m, attemptId: attempt.id })))

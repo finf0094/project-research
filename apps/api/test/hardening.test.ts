@@ -217,3 +217,17 @@ describe('retention', () => {
     expect(await ctx.deps.db.select().from(events)).toHaveLength(1)
   })
 })
+
+describe('control fragments after finishing', () => {
+  it('stops asking for control fragments once the student has finished', async () => {
+    const s = await session()
+    const chain = await clientChain(s)
+    ctx.clock.now += 13 * 60_000
+    const res: SyncResponse = (
+      await sync(s.attemptId, [await chain.next('session.submitted', {}, ctx.clock.now)])
+    ).json()
+    expect(res.commands).toEqual([])
+    const [row] = await ctx.deps.db.select().from(attempts).where(eq(attempts.id, s.attemptId))
+    expect(row!.nextCaptureAt).toBeNull()
+  })
+})

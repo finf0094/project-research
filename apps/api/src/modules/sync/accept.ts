@@ -25,7 +25,7 @@ export async function acceptEvents(
     const now = deps.now()
     const open = OPEN_STATUSES.includes(attempt.status)
     let head: ChainHead = { seq: attempt.lastSeq, hash: attempt.lastHash }
-    let { connection, chainBrokenAt } = attempt
+    let { connection, chainBrokenAt, nextCaptureAt } = attempt
 
     if (open && chainBrokenAt === null) {
       const key = await importHmacKey(new Uint8Array(attemptKey(deps, attempt)))
@@ -57,6 +57,8 @@ export async function acceptEvents(
           now,
         })
         if (event.type === 'network.changed') connection = event.data.to
+        // Once the student has finished, proctoring is off: never ask for a fragment that cannot come.
+        if (event.type === 'session.submitted') nextCaptureAt = null
         head = { seq: event.seq, hash: event.hash }
       }
     }
@@ -67,15 +69,16 @@ export async function acceptEvents(
       .set({ lastSeq: head.seq, lastHash: head.hash, lastSeenAt: new Date(now), connection, chainBrokenAt })
       .where(eq(attempts.id, attemptId))
 
-    if (attempt.status === 'active' && attempt.nextCaptureAt && now >= attempt.nextCaptureAt.getTime()) {
-      await tx
-        .insert(commands)
-        .values({ attemptId, type: 'capture', payload: { seconds: CONTROL_FRAGMENT_SECONDS } })
-      await tx
-        .update(attempts)
-        .set({ nextCaptureAt: nextCaptureTime(now) })
-        .where(eq(attempts.id, attemptId))
+    if (attempt.status === 'active' && nextCaptureAt && now >= nextCaptureAt.getTime()) {
+      await tx.insert(commands).values({
+        attemptId,
+        type: 'capture',
+        payload: { seconds: CONTROL_FRAGMENT_SECONDS },
+        createdAt: new Date(now),
+      })
+      nextCaptureAt = nextCaptureTime(now)
     }
+    await tx.update(attempts).set({ nextCaptureAt }).where(eq(attempts.id, attemptId))
 
     return {
       ackedSeq: head.seq,

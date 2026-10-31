@@ -10,5 +10,7 @@ COPY apps/api ./apps/api
 RUN pnpm install --frozen-lockfile --prod --filter "@exam/api..."
 WORKDIR /repo/apps/api
 ENV NODE_ENV=production
+# The recordings volume is mounted here; it must be writable by the unprivileged user.
+RUN mkdir -p /data/recordings && chown node:node /data/recordings
 USER node
 CMD ["node", "src/main.ts"]

@@ -93,6 +93,7 @@ export const useExamStore = defineStore('exam', () => {
 
     // The chain records the session before anything else, including a possible auto-finish below.
     if (!locked.value) await log.append(local.head.seq === 0 ? 'session.started' : 'session.resumed', {})
+    if (gen !== generation) return releaseLock()
 
     const syncStore = useSyncStore()
     const sync = startSync({
@@ -207,7 +208,7 @@ export const useExamStore = defineStore('exam', () => {
       if (handledCommands.has(command.id)) continue
       handledCommands.add(command.id)
       if (command.type === 'warn') warning.value = command.message
-      if (command.type === 'capture') proctoring.capture(command.seconds)
+      if (command.type === 'capture' && !locked.value) proctoring.capture(command.seconds)
       await rt.log.append('command.received', { commandId: command.id })
     }
 
