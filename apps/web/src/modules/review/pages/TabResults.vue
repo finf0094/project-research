@@ -1,0 +1,108 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useAction } from '@/shared/lib/use-action'
+import { StatTile } from '@/shared/ui'
+import { publishResults } from '../api'
+import GradeSheet from '../components/GradeSheet.vue'
+import PublishCard from '../components/PublishCard.vue'
+import ScoreChart from '../components/ScoreChart.vue'
+import { useExamHub } from '../exam-hub'
+import { PASS_SCORE } from '../exam-state'
+import { distribution, gradeSheetCsv, outcome } from '../grade-sheet'
+
+/** After the exam: averages, the distribution, publishing to students and the grade sheet. */
+defineProps<{ now: number }>()
+const { examId, exam, attempts, refresh } = useExamHub()
+const { t } = useI18n()
+const publishing = useAction()
+
+const scored = computed(() =>
+  attempts.value.flatMap((a) => (a.result?.score != null ? [a.result.score] : [])),
+)
+const average = computed(() =>
+  scored.value.length ? Math.round(scored.value.reduce((s, x) => s + x, 0) / scored.value.length) : 0,
+)
+const passed = computed(() => attempts.value.filter((a) => outcome(a) === 'pass').length)
+const waiting = computed(() => attempts.value.filter((a) => a.status === 'ready_for_review').length)
+const violations = computed(() => attempts.value.filter((a) => a.result?.verdict === 'violation').length)
+
+const publish = () => publishing.run(async () => (await publishResults(examId), await refresh()))
+
+function download() {
+  const csv = gradeSheetCsv(attempts.value, {
+    columns: ['student', 'auto', 'score', 'result'].map((c) => t(`hub.results.columns.${c}`)),
+    outcome: {
+      pass: t('hub.results.verdict.pass'),
+      fail: t('hub.results.verdict.fail'),
+      pending: t('hub.results.verdict.pending'),
+    },
+  })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  link.download = `${exam.value?.title ?? 'exam'}.csv`
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+</script>
+
+<template>
+  <div v-if="exam" class="results">
+    <section class="tiles stagger">
+      <StatTile
+        :label="$t('hub.results.average')"
+        :value="average"
+        :note="$t('hub.results.averageNote')"
+        tone="ink"
+      />
+      <StatTile
+        :label="$t('hub.results.passed')"
+        :value="passed"
+        :note="`${$t('hub.results.of', { n: attempts.length })} · ${$t('hub.results.passedNote', { score: PASS_SCORE })}`"
+        tone="lime"
+      />
+      <StatTile :label="$t('hub.results.waiting')" :value="waiting" tone="peach" />
+      <StatTile
+        :label="$t('hub.results.violations')"
+        :value="violations"
+        :note="$t('hub.results.violationsNote')"
+      />
+    </section>
+    <div class="middle">
+      <ScoreChart :counts="distribution(attempts)" :total="scored.length" />
+      <PublishCard
+        :published-at="exam.publishedAt"
+        :publishing="publishing.busy.value"
+        @publish="publish"
+        @download="download"
+      />
+    </div>
+    <p v-if="publishing.error.value" class="error" role="alert">{{ $t(publishing.error.value) }}</p>
+    <GradeSheet :attempts="attempts" />
+  </div>
+</template>
+
+<style scoped>
+.results {
+  display: grid;
+  gap: var(--space-4);
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+.middle {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: var(--space-4);
+}
+.error {
+  color: var(--danger);
+}
+@media (width < 1000px) {
+  .middle {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

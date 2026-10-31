@@ -33,7 +33,6 @@ async function reviewableAttempt() {
     questionId: seeded.single.id,
     value: 'a',
     seq: 1,
-    clientAt: ctx.clock.now,
   })
   const marker = { attemptId, startAt: 0, endAt: 1000, status: 'pending' as const, chunks: [] }
   await ctx.deps.db.insert(markers).values([

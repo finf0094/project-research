@@ -1,50 +1,63 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
-import { onMounted, ref } from 'vue'
-import { formatDateTime } from '@/shared/lib/format'
-import { AppCard, StatusPill } from '@/shared/ui'
+import { computed, onMounted, ref } from 'vue'
+import { useAction } from '@/shared/lib/use-action'
+import { AppButton, PillTabs } from '@/shared/ui'
 import { listExams } from '../api'
+import ExamHero from '../components/ExamHero.vue'
+import ExamTile from '../components/ExamTile.vue'
+import { examState, type ExamState } from '../exam-state'
 
+/** The examiner's home: the exam running now on top, every other exam as a card, filtered by state. */
 const exams = ref<ExaminerExam[] | null>(null)
-const failed = ref(false)
-onMounted(async () => {
-  try {
-    exams.value = await listExams()
-  } catch {
-    failed.value = true
-  }
-})
+const filter = ref<ExamState | 'all'>('all')
+const load = useAction()
+const now = Date.now()
+onMounted(() => load.run(async () => (exams.value = await listExams())))
+
+const withState = computed(() => (exams.value ?? []).map((exam) => ({ exam, state: examState(exam, now) })))
+const count = (state: ExamState) => withState.value.filter((e) => e.state === state).length
+const hero = computed(() => withState.value.find((e) => e.state === 'running')?.exam ?? null)
+const cards = computed(() =>
+  withState.value.filter(
+    (e) => e.exam !== hero.value && (filter.value === 'all' || e.state === filter.value),
+  ),
+)
+const filters = computed(() => [
+  { value: 'all' as const, label: 'hub.list.all', count: withState.value.length },
+  ...(['running', 'review', 'scheduled', 'finished'] as const).map((state) => ({
+    value: state,
+    label: `hub.state.${state}`,
+    count: count(state),
+  })),
+])
 </script>
 
 <template>
   <main class="page">
     <header class="head">
-      <h1>{{ $t('review.exams.title') }}</h1>
-      <RouterLink to="/examiner/exams/new" class="create">+ {{ $t('review.exams.create') }}</RouterLink>
+      <div>
+        <h1>{{ $t('review.exams.title') }}</h1>
+        <p class="muted">
+          {{ $t('hub.list.subtitle', { running: count('running'), review: count('review') }) }}
+        </p>
+      </div>
+      <AppButton icon="plus" to="/examiner/exams/new">{{ $t('review.exams.create') }}</AppButton>
     </header>
-    <p v-if="failed" class="muted">{{ $t('review.exams.loadFailed') }}</p>
-    <ul v-else class="grid">
-      <li v-for="exam in exams" :key="exam.id">
-        <AppCard class="card">
-          <h2>
-            <RouterLink :to="`/examiner/exams/${exam.id}`" class="card-link">{{ exam.title }}</RouterLink>
-          </h2>
-          <p class="muted">{{ formatDateTime(exam.opensAt) }} — {{ formatDateTime(exam.closesAt) }}</p>
-          <div class="counts">
-            <StatusPill tone="accent">{{
-              $t('review.exams.writing', { n: exam.attempts.active })
-            }}</StatusPill>
-            <StatusPill :tone="exam.attempts.toReview ? 'warn' : 'off'">{{
-              $t('review.exams.toReview', { n: exam.attempts.toReview })
-            }}</StatusPill>
-            <StatusPill>{{ $t('review.exams.total', { n: exam.attempts.total }) }}</StatusPill>
-          </div>
-          <RouterLink :to="`/examiner/exams/${exam.id}/edit`" class="edit">{{
-            $t('review.exams.edit')
-          }}</RouterLink>
-        </AppCard>
-      </li>
-    </ul>
+    <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
+
+    <template v-if="exams">
+      <PillTabs
+        v-model="filter"
+        :label="$t('hub.list.filter')"
+        :items="filters.map((f) => ({ ...f, label: $t(f.label) }))"
+      />
+      <ExamHero v-if="hero && (filter === 'all' || filter === 'running')" :exam="hero" />
+      <p v-if="!exams.length" class="empty muted">{{ $t('hub.list.empty') }}</p>
+      <div class="grid stagger">
+        <ExamTile v-for="{ exam, state } in cards" :key="exam.id" :exam="exam" :state="state" />
+      </div>
+    </template>
   </main>
 </template>
 
@@ -53,56 +66,25 @@ onMounted(async () => {
   display: grid;
   gap: var(--space-6);
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: var(--space-4);
-  padding: 0;
-  list-style: none;
-}
 .head {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
-.create {
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-.card-link {
-  color: inherit;
-  text-decoration: none;
-  /* The whole card opens monitoring; the edit link sits above this layer. */
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-  }
-}
-.edit {
-  position: relative;
-  z-index: 1;
-  justify-self: start;
-  font-size: var(--text-sm);
-}
-.card {
-  position: relative;
+.grid {
   display: grid;
-  gap: var(--space-3);
-  transition: transform 0.16s var(--ease);
-  &:hover {
-    transform: translateY(-2px);
-  }
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
 }
-.counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.empty {
+  padding: var(--space-8);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.error {
+  color: var(--danger);
 }
 </style>

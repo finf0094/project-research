@@ -22,9 +22,17 @@ const KK_MONTHS = [
   'желтоқсан',
 ]
 
+/** A countdown split for display: whole days apart, the rest as "23:12:17". */
+export function countdownParts(ms: number): { days: number; clock: string } {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const days = Math.floor(total / 86_400)
+  return { days, clock: formatDuration((total % 86_400) * 1000) }
+}
+
 let locale = 'ru'
 let timeFormat: Intl.DateTimeFormat
 let dateFormat: Intl.DateTimeFormat
+let dayFormat: Intl.DateTimeFormat
 
 /** Dates follow the interface language; the app calls this whenever the language changes. */
 export function setFormatLocale(next: string) {
@@ -36,6 +44,7 @@ export function setFormatLocale(next: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
+  dayFormat = new Intl.DateTimeFormat(next, { day: 'numeric', month: 'long' })
 }
 setFormatLocale('ru')
 
@@ -45,4 +54,11 @@ export function formatDateTime(ts: number): string {
   if (locale !== 'kk') return dateFormat.format(ts)
   const d = new Date(ts)
   return `${d.getDate()} ${KK_MONTHS[d.getMonth()]}, ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** "4 ноября": the day alone, for tiles and headers. */
+export function formatDay(ts: number): string {
+  if (locale !== 'kk') return dayFormat.format(ts)
+  const d = new Date(ts)
+  return `${d.getDate()} ${KK_MONTHS[d.getMonth()]}`
 }

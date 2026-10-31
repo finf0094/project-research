@@ -1,8 +1,10 @@
-// Demo data for local development: one examiner, two students and an open exam.
+// Demo data for local development: an examiner, students, an open written and an oral exam, and a
+// finished exam with a whole class (see demo.ts), so every page has something to show.
 import { loadConfig } from '../src/config.ts'
 import { createDb } from '../src/db/client.ts'
 import { examParticipants, exams, questions, users } from '../src/db/schema.ts'
 import { hashPassword } from '../src/modules/auth/service.ts'
+import { seedDemoClass } from './demo.ts'
 
 const PASSWORD = 'password'
 const { db, close } = createDb(loadConfig().DATABASE_URL)
@@ -120,6 +122,7 @@ await db.insert(questions).values(
 await db
   .insert(examParticipants)
   .values([exam!, oral!].flatMap((e) => students.map((s) => ({ examId: e.id, userId: s.id }))))
+await seedDemoClass(db, teacher!.id, passwordHash, now)
 await close()
 console.log(
   `Seeded. Sign in as teacher@example.edu, student1@example.edu or admin@example.edu with password "${PASSWORD}".`,

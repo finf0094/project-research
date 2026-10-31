@@ -7,7 +7,7 @@ import { examMessages } from '@/modules/exam'
 import { offlineMessages } from '@/modules/offline'
 import { oralMessages } from '@/modules/oral'
 import { proctoringMessages } from '@/modules/proctoring'
-import { reviewMessages } from '@/modules/review'
+import { hubMessages, reviewMessages } from '@/modules/review'
 import { LOCALES, russianPlural, type Locale } from '@/shared/i18n'
 import { commonMessages } from '@/shared/i18n/messages'
 import { setFormatLocale } from '@/shared/lib/format'
@@ -24,6 +24,7 @@ const parts = [
   oralMessages,
   proctoringMessages,
   reviewMessages,
+  hubMessages,
 ]
 const forLocale = (locale: Locale) => Object.assign({}, ...parts.map((p) => p[locale])) as Schema
 type Schema = typeof commonMessages.ru &
@@ -35,7 +36,8 @@ type Schema = typeof commonMessages.ru &
   typeof offlineMessages.ru &
   typeof oralMessages.ru &
   typeof proctoringMessages.ru &
-  typeof reviewMessages.ru
+  typeof reviewMessages.ru &
+  typeof hubMessages.ru
 
 // Gives key completion in editors; vue-i18n still accepts any string, so i18n.test.ts checks the keys.
 declare module 'vue-i18n' {

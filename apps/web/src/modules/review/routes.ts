@@ -7,9 +7,16 @@ export const reviewRoutes: RouteRecordRaw[] = [
     meta: { role: 'examiner', shell: 'staff' },
   },
   {
+    // One exam: a header with its sections; each section is a child route sharing the exam's data.
     path: '/examiner/exams/:examId',
-    component: () => import('./pages/MonitoringPage.vue'),
+    component: () => import('./pages/ExamHubPage.vue'),
     meta: { role: 'examiner', shell: 'staff' },
+    children: [
+      { path: '', name: 'hub-overview', component: () => import('./pages/TabOverview.vue') },
+      { path: 'monitoring', name: 'hub-monitoring', component: () => import('./pages/TabMonitoring.vue') },
+      { path: 'review', name: 'hub-review', component: () => import('./pages/TabReview.vue') },
+      { path: 'results', name: 'hub-results', component: () => import('./pages/TabResults.vue') },
+    ],
   },
   {
     path: '/examiner/attempts/:attemptId',
