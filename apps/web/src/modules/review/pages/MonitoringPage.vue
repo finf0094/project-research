@@ -48,7 +48,9 @@ async function send(body: ExaminerCommandBody) {
   const target = acting.value
   if (!target || action.busy.value) return
   const sent = await action.run(() => sendCommand(target.id, body))
-  if (sent) acting.value = null
+  // The examiner may have moved on to another student meanwhile: the result belongs to this one only.
+  if (acting.value !== target) action.error.value = null
+  else if (sent) acting.value = null
   await refresh()
 }
 </script>
