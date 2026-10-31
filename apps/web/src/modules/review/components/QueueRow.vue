@@ -19,7 +19,7 @@ defineProps<{ attempt: AttemptSummary }>()
         </span>
       </span>
     </span>
-    <span class="points">
+    <span v-if="attempt.points" class="points">
       <span class="muted label">{{ $t('hub.queue.auto') }}</span>
       <b>{{ attempt.points.auto }} / {{ attempt.points.max }}</b>
       <span v-if="attempt.points.open" class="muted"> {{ $t('hub.queue.open') }}</span>

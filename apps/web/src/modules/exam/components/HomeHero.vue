@@ -23,7 +23,7 @@ const left = computed(() => countdownParts(props.exam.closesAt - props.now))
       <ul class="chips">
         <li>{{ $t(exam.mode === 'oral' ? 'student.oral' : 'student.written') }}</li>
         <li>{{ $t('exam.list.minutes', { n: exam.durationMin }, exam.durationMin) }}</li>
-        <li>{{ $t('student.questions', { n: exam.questionCount }) }}</li>
+        <li>{{ $t('student.questions', { n: exam.questionCount }, exam.questionCount) }}</li>
         <li>{{ $t('student.camera') }}</li>
       </ul>
     </div>

@@ -115,7 +115,10 @@ export async function updateMarker(
   await deps.db.update(markers).set({ status }).where(eq(markers.id, markerId))
 }
 
-/** Every verdict is appended (audit trail); the latest one is the current decision. */
+/**
+ * Every verdict is appended (audit trail); the latest one is the current decision. "Needs review" is not
+ * a decision for the student: the attempt stays in the queue until it is accepted or a violation confirmed.
+ */
 export async function decide(deps: Deps, ownerId: string, attemptId: string, body: DecisionBody) {
   await deps.db.transaction(async (tx) => {
     const { attempt, exam } = await ownAttemptOf(tx, ownerId, attemptId, true)
@@ -132,7 +135,8 @@ export async function decide(deps: Deps, ownerId: string, attemptId: string, bod
       score: body.score,
       decidedAt: new Date(deps.now()),
     })
-    await tx.update(attempts).set({ status: 'decided' }).where(eq(attempts.id, attemptId))
+    const status = body.verdict === 'needs_review' ? 'ready_for_review' : 'decided'
+    await tx.update(attempts).set({ status }).where(eq(attempts.id, attemptId))
   })
 }
 

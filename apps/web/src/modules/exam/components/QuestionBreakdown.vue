@@ -47,8 +47,8 @@ const TONE = { correct: 'ok', wrong: 'danger', unanswered: 'warn', examiner: 'ac
         <div class="body">
           <p class="text">{{ q.text }}</p>
           <span class="status" :class="TONE[q.status]">{{ $t(`student.result.status.${q.status}`) }}</span>
-          <p v-if="q.status === 'wrong' || (q.answer && q.status === 'examiner')" class="answer">
-            {{ $t('student.result.yourAnswer', { answer: q.answer }) }}
+          <p v-if="q.status !== 'correct' && (q.answer || q.correct)" class="answer">
+            <template v-if="q.answer">{{ $t('student.result.yourAnswer', { answer: q.answer }) }}</template>
             <template v-if="q.correct">
               {{ $t('student.result.rightAnswer', { answer: q.correct }) }}</template
             >

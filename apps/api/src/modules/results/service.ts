@@ -23,7 +23,7 @@ export async function studentResult(db: Db, userId: string, attemptId: string): 
     .orderBy(desc(decisions.seq))
     .limit(1)
   // Not published or not decided yet look the same to the student: "no result yet".
-  if (!exam?.publishedAt || !decision) throw notFound('No result yet')
+  if (!exam?.publishedAt || !decision || attempt.status !== 'decided') throw notFound('No result yet')
 
   const asked = await attemptQuestions(db, attempt.examId, attempt.ticket)
   const given = new Map(

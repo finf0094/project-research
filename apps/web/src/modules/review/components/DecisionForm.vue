@@ -54,7 +54,9 @@ const VERDICTS: Verdict[] = ['clean', 'violation', 'needs_review']
         rows="4"
         maxlength="5000"
         :placeholder="$t('review.decision.commentPlaceholder')"
+        aria-describedby="comment-note"
       />
+      <span id="comment-note" class="note">{{ $t('review.decision.commentNote') }}</span>
     </label>
     <AppButton type="submit" block :disabled="!verdict" :loading="saving">{{
       $t('review.decision.save')
@@ -100,6 +102,10 @@ legend {
   gap: var(--space-2);
   font-size: var(--text-sm);
   font-weight: 600;
+}
+.note {
+  color: var(--text-2);
+  font-weight: 400;
 }
 textarea,
 input[type='number'] {

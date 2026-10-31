@@ -7,7 +7,7 @@ import { AppButton } from '@/shared/ui'
  * Releasing the results to students, and the grade sheet for the dean's office. `pending`: attempts still
  * written or waiting for review; their results reach the students once decided.
  */
-defineProps<{ publishedAt: number | null; publishing: boolean; pending: number }>()
+defineProps<{ publishedAt: number | null; publishing: boolean; pending: number; canPublish: boolean }>()
 defineEmits<{ publish: []; download: [] }>()
 </script>
 
@@ -22,11 +22,13 @@ defineEmits<{ publish: []; download: [] }>()
     </p>
     <h2>{{ $t('hub.results.publishTitle') }}</h2>
     <p class="text">{{ $t('hub.results.publishText') }}</p>
-    <p v-if="pending" class="pending">{{ $t('hub.results.pendingNote', { n: pending }, pending) }}</p>
+    <p v-if="!publishedAt && !canPublish" class="pending">{{ $t('hub.results.notOver') }}</p>
+    <p v-else-if="pending" class="pending">{{ $t('hub.results.pendingNote', { n: pending }, pending) }}</p>
     <div class="actions">
       <AppButton
         v-if="!publishedAt"
         variant="lime"
+        :disabled="!canPublish"
         icon="arrow"
         :loading="publishing"
         @click="$emit('publish')"

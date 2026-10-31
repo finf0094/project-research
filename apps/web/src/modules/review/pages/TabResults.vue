@@ -12,9 +12,14 @@ import { PASS_SCORE } from '@exam/contracts'
 import { distribution, gradeSheetCsv, outcome } from '../grade-sheet'
 
 /** After the exam: averages, the distribution, publishing to students and the grade sheet. */
-const { examId, exam, attempts, refresh } = useExamHub()
+const { examId, exam, attempts, now, refresh } = useExamHub()
 const { t, locale } = useI18n()
-const publishing = useAction()
+const publishing = useAction({ 409: 'hub.results.notOver' as const })
+// The review shows correct answers, so results go out only once nobody is writing (the server also waits
+// out the offline window and says so).
+const over = computed(
+  () => !!exam.value && now.value >= exam.value.closesAt && exam.value.attempts.active === 0,
+)
 
 const scored = computed(() =>
   attempts.value.flatMap((a) => (a.result?.score != null ? [a.result.score] : [])),
@@ -79,6 +84,7 @@ function download() {
         :published-at="exam.publishedAt"
         :pending="exam.attempts.active + waiting"
         :publishing="publishing.busy.value"
+        :can-publish="over"
         @publish="publish"
         @download="download"
       />

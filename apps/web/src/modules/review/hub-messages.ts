@@ -119,6 +119,7 @@ export const hubMessages = defineMessages({
         averageNote: 'по проверенным попыткам',
         passed: 'Зачтено',
         passedNote: 'от {score}%',
+        notOver: 'Опубликовать можно, когда экзамен закончится: в разборе видны правильные ответы.',
         pendingNote:
           '{n} работа ещё не решена — студент увидит результат после проверки. | {n} работы ещё не решены — студенты увидят результаты после проверки. | {n} работ ещё не решены — студенты увидят результаты после проверки.',
         of: 'из {n}',
@@ -273,6 +274,7 @@ export const hubMessages = defineMessages({
         averageNote: 'тексерілген талпыныстар бойынша',
         passed: 'Сынақтан өтті',
         passedNote: '{score}% бастап',
+        notOver: 'Емтихан аяқталғанда жариялауға болады: талдауда дұрыс жауаптар көрінеді.',
         pendingNote: '{n} жұмыс әлі шешілмеген — студенттер нәтижені тексерістен кейін көреді.',
         of: '{n} ішінен',
         waiting: 'Тексеруді күтуде',
@@ -425,6 +427,7 @@ export const hubMessages = defineMessages({
         averageNote: 'over reviewed attempts',
         passed: 'Passed',
         passedNote: 'from {score}%',
+        notOver: 'You can publish once the exam is over: the review shows the correct answers.',
         pendingNote:
           '{n} attempt is not decided yet — the student sees the result once it is reviewed. | {n} attempts are not decided yet — students see their results once reviewed.',
         of: 'of {n}',

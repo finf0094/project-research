@@ -89,7 +89,9 @@ describe('examiner views', () => {
     ).toBe(80)
   })
 
-  it('publishes results for students', async () => {
+  it('publishes results for students once the exam is over', async () => {
+    ctx.clock.now = seeded.exam.closesAt.getTime() + ctx.deps.config.OFFLINE_WINDOW_MIN * 60_000
+    examiner = await signIn(ctx.app, 'teacher@test.edu') // yesterday's session has expired
     const res = await ctx.app.inject({
       method: 'POST',
       url: `/api/examiner/exams/${seeded.exam.id}/publish`,

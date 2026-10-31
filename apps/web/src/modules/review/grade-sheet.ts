@@ -44,7 +44,13 @@ export function gradeSheetCsv(
   }
   const row = (cells: (string | number | null)[]) => cells.map(cell).join(separator)
   const rows = attempts.map((a) =>
-    row([a.student.name, a.points.auto, a.points.max, a.result?.score ?? null, labels.outcome[outcome(a)]]),
+    row([
+      a.student.name,
+      a.points?.auto ?? null,
+      a.points?.max ?? null,
+      a.result?.score ?? null,
+      labels.outcome[outcome(a)],
+    ]),
   )
   return '\ufeff' + [row(labels.columns), ...rows].join('\r\n')
 }

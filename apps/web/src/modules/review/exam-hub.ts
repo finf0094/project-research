@@ -41,18 +41,20 @@ export function provideExamHub(examId: string): ExamHub {
   // Only the newest refresh is applied: the stream, the poll and commands all refresh, and answers may
   // arrive out of order.
   let latest = 0
+  let loaded = false // the first load is the baseline, not news
   async function refresh() {
     if (missing.value) return
     const mine = ++latest
     try {
       const [freshExam, freshAttempts] = await Promise.all([getExam(examId), listAttempts(examId)])
       if (mine !== latest) return
-      if (attempts.value.length) {
+      if (loaded) {
         const changes = alertsBetween(attempts.value, freshAttempts, Date.now()).reverse()
         if (changes.length) alerts.value = [...changes, ...alerts.value].slice(0, ALERTS_KEPT)
       }
       exam.value = freshExam
       attempts.value = freshAttempts
+      loaded = true
       stale.value = false
     } catch (error) {
       if (mine !== latest) return

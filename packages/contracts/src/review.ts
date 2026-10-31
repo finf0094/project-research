@@ -50,8 +50,13 @@ export type AttemptBase = z.infer<typeof AttemptBase>
 export const AttemptSummary = AttemptBase.extend({
   /** The most frequent marker kinds (not context), for the review queue. */
   topMarkers: z.array(z.object({ kind: MarkerKind, count: z.number().int().positive() })),
-  /** Automatic points so far, out of the attempt's questions; `open`: some answers await the examiner. */
-  points: z.object({ auto: z.number().nonnegative(), max: z.number().nonnegative(), open: z.boolean() }),
+  /**
+   * Automatic points so far, out of the attempt's questions; `open`: some answers await the examiner.
+   * Null for an oral exam: it is answered aloud and only the examiner's score counts.
+   */
+  points: z
+    .object({ auto: z.number().nonnegative(), max: z.number().nonnegative(), open: z.boolean() })
+    .nullable(),
   /** The latest decision; `score` in percent (the examiner's, or the automatic one when nothing is open). */
   result: z.object({ verdict: Verdict, score: z.number().int().min(0).max(100).nullable() }).nullable(),
 })

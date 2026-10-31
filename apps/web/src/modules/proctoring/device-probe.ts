@@ -24,10 +24,12 @@ export function useDeviceProbe() {
   const timings: number[] = []
   const poses: Pose[] = []
 
+  const hasMic = computed(() => !!stream.value?.getAudioTracks().some((track) => track.readyState === 'live'))
   const checks = computed(
     () =>
       [
         { id: 'camera', ok: state.value === 'running', hint: 'camera' },
+        { id: 'mic', ok: state.value === 'running' && hasMic.value, hint: 'mic' },
         { id: 'face', ok: faces.value === 1, hint: faces.value && faces.value > 1 ? 'faceMany' : 'faceNone' },
         { id: 'light', ok: brightness.value >= DARK_BRIGHTNESS, hint: 'light' },
       ] as const,
@@ -81,7 +83,7 @@ export function useDeviceProbe() {
     disposed = true
     release()
   })
-  return { state, stream, checks, ready, start }
+  return { state, stream, faces, brightness, checks, ready, start }
 }
 
 function median(values: number[]) {

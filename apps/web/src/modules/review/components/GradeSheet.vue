@@ -61,8 +61,9 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
               <span class="who"><Avatar :name="a.student.name" :size="32" />{{ a.student.name }}</span>
             </th>
             <td class="num">
-              {{ a.points.auto }}/{{ a.points.max
-              }}<span v-if="a.points.open" class="muted" :title="$t('hub.queue.open')"
+              <span v-if="!a.points" class="muted">—</span>
+              <template v-else>{{ a.points.auto }}/{{ a.points.max }}</template
+              ><span v-if="a.points?.open" class="muted" :title="$t('hub.queue.open')"
                 ><span aria-hidden="true"> +</span
                 ><span class="visually-hidden">{{ $t('hub.queue.open') }}</span></span
               >

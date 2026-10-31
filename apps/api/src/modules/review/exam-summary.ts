@@ -2,6 +2,7 @@ import type { ExaminerExam } from '@exam/contracts'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { attempts, examParticipants, exams, questions } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
+import { conflict } from '../../shared/errors.ts'
 import { ownExam } from './access.ts'
 
 /**
@@ -84,9 +85,14 @@ export async function examSummary(deps: Deps, ownerId: string, examId: string): 
   return (await listExams(deps, ownerId, examId))[0]!
 }
 
-/** Lets students see their results (scores and the per-question review); attempts not yet decided show later. */
-export async function publishResults({ db, now }: Deps, ownerId: string, examId: string) {
-  await ownExam(db, ownerId, examId)
+/**
+ * Lets students see their results (scores and the per-question review); attempts not yet decided show
+ * later. Only once nobody can still write: the review shows the correct answers.
+ */
+export async function publishResults({ db, now, config }: Deps, ownerId: string, examId: string) {
+  const exam = await ownExam(db, ownerId, examId)
+  if (now() < exam.closesAt.getTime() + config.OFFLINE_WINDOW_MIN * 60_000)
+    throw conflict('Results can be published once the exam is over')
   // Publishing again keeps the first date: students were told then.
   await db
     .update(exams)

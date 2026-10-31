@@ -52,7 +52,7 @@ export async function listAttempts(deps: Deps, ownerId: string, examId: string):
   return rows.map(({ attempt, studentName }) => {
     const given = new Map((answersOf.get(attempt.id) ?? []).map((a) => [a.questionId, a.value]))
     const asked = attempt.ticket ? examQuestions.filter((q) => attempt.ticket!.includes(q.id)) : examQuestions
-    const points = oral ? { auto: 0, max: 100, open: true } : scorePoints(asked, given)
+    const points = oral ? null : scorePoints(asked, given)
     const kinds = (markersOf.get(attempt.id) ?? []).toSorted((a, b) => b.n - a.n)
     return {
       ...toSummary(
@@ -82,9 +82,11 @@ function scorePoints(asked: (typeof questions.$inferSelect)[], given: Map<string
 
 function resultOf(
   decision: { verdict: Verdict; score: number | null } | undefined,
-  points: { auto: number; max: number; open: boolean },
+  points: { auto: number; max: number; open: boolean } | null,
 ) {
-  return decision ? { verdict: decision.verdict, score: finalScore(decision.score, points) } : null
+  // An oral exam has no automatic points: only the examiner's score stands.
+  const score = points ? finalScore(decision?.score ?? null, points) : (decision?.score ?? null)
+  return decision ? { verdict: decision.verdict, score } : null
 }
 
 function group<T extends { attemptId: string }>(list: T[]) {

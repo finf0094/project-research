@@ -77,6 +77,15 @@ export const examMessages = defineMessages({
         back: 'К моим экзаменам',
       },
       preflight: {
+        needChecks: 'Сначала пройдите проверку',
+        needConsent: 'Подтвердите согласие',
+        steps: { label: 'Шаги подготовки', check: 'Проверка', consent: 'Согласие', start: 'Старт' },
+        status: { ok: 'в порядке', bad: 'нужно исправить', pending: 'проверяется' },
+        online: {
+          title: 'Интернет',
+          ok: 'Подключение есть',
+          hint: 'Нет сети: для начала экзамена нужен интернет, дальше можно без него.',
+        },
         title: 'Подготовимся к экзамену',
         checks: 'Проверка',
         checking: 'Проверяем…',
@@ -97,14 +106,17 @@ export const examMessages = defineMessages({
         notOpen: 'Экзамен сейчас не открыт. Проверьте время начала.',
         browser: {
           title: 'Браузер',
+          ok: 'Поддерживается',
           hint: 'Откройте экзамен в свежей версии Chrome, Edge, Firefox или Safari.',
         },
         storage: {
           title: 'Место для ответов на устройстве',
+          ok: 'Места достаточно',
           hint: 'Освободите место на диске: ответы и запись хранятся на устройстве, пока не отправятся.',
         },
         persist: {
           title: 'Надёжное хранение',
+          ok: 'Данные не сотрутся',
           hint: 'Браузер может очистить данные при нехватке места — не закрывайте вкладку до отправки.',
         },
       },
@@ -189,6 +201,15 @@ export const examMessages = defineMessages({
         back: 'Менің емтихандарыма',
       },
       preflight: {
+        needChecks: 'Алдымен тексеруден өтіңіз',
+        needConsent: 'Келісіміңізді растаңыз',
+        steps: { label: 'Дайындық қадамдары', check: 'Тексеру', consent: 'Келісім', start: 'Бастау' },
+        status: { ok: 'дұрыс', bad: 'түзету керек', pending: 'тексерілуде' },
+        online: {
+          title: 'Интернет',
+          ok: 'Байланыс бар',
+          hint: 'Желі жоқ: емтиханды бастау үшін интернет керек, кейін онсыз да болады.',
+        },
         title: 'Емтиханға дайындалайық',
         checks: 'Тексеру',
         checking: 'Тексеріп жатырмыз…',
@@ -209,14 +230,17 @@ export const examMessages = defineMessages({
         notOpen: 'Емтихан қазір ашық емес. Басталу уақытын тексеріңіз.',
         browser: {
           title: 'Браузер',
+          ok: 'Қолдау бар',
           hint: 'Емтиханды Chrome, Edge, Firefox немесе Safari-дің жаңа нұсқасында ашыңыз.',
         },
         storage: {
           title: 'Құрылғыдағы жауаптарға арналған орын',
+          ok: 'Орын жеткілікті',
           hint: 'Дискіде орын босатыңыз: жауаптар мен жазба жіберілгенге дейін құрылғыда сақталады.',
         },
         persist: {
           title: 'Сенімді сақтау',
+          ok: 'Деректер өшпейді',
           hint: 'Орын жетпесе, браузер деректерді тазалауы мүмкін — жіберілгенге дейін қойындыны жаппаңыз.',
         },
       },
@@ -303,6 +327,15 @@ export const examMessages = defineMessages({
         back: 'Back to my exams',
       },
       preflight: {
+        needChecks: 'Pass the check first',
+        needConsent: 'Confirm your consent',
+        steps: { label: 'Preparation steps', check: 'Check', consent: 'Consent', start: 'Start' },
+        status: { ok: 'fine', bad: 'needs fixing', pending: 'checking' },
+        online: {
+          title: 'Internet',
+          ok: 'Connected',
+          hint: 'No network: starting the exam needs the internet, after that it works without.',
+        },
         title: 'Getting ready for the exam',
         checks: 'Checks',
         checking: 'Checking…',
@@ -323,14 +356,17 @@ export const examMessages = defineMessages({
         notOpen: 'The exam is not open right now. Check the start time.',
         browser: {
           title: 'Browser',
+          ok: 'Supported',
           hint: 'Open the exam in a recent version of Chrome, Edge, Firefox or Safari.',
         },
         storage: {
           title: 'Space for answers on this device',
+          ok: 'Enough space',
           hint: 'Free up disk space: answers and the recording stay on the device until they are sent.',
         },
         persist: {
           title: 'Reliable storage',
+          ok: 'Your data will not be wiped',
           hint: 'The browser may clear data when space runs low — keep the tab open until everything is sent.',
         },
       },

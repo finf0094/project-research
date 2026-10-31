@@ -20,10 +20,13 @@ const left = computed(() =>
 async function copyLink() {
   // Students sign in and find the exam in their list; the link takes them straight there.
   // The clipboard may be refused (no permission, insecure context): then say so instead of failing silently.
-  copied.value = await navigator.clipboard
-    .writeText(`${location.origin}/exams`)
-    .then(() => 'copied' as const)
-    .catch(() => 'copyFailed' as const)
+  // (`navigator.clipboard` itself is missing over plain HTTP.)
+  try {
+    await navigator.clipboard.writeText(`${location.origin}/exams`)
+    copied.value = 'copied'
+  } catch {
+    copied.value = 'copyFailed'
+  }
   setTimeout(() => (copied.value = null), 2500)
 }
 </script>

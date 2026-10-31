@@ -12,9 +12,11 @@ const level = computed(() => riskLevel(props.risk))
 
 <template>
   <span v-if="risk === null" class="muted">—</span>
-  <span v-else class="risk" :class="level">
+  <span v-else class="risk" :class="level" :title="$t('review.table.risk')">
     <span class="bar" aria-hidden="true"><span :style="{ inlineSize: `${Math.min(100, risk)}%` }" /></span>
-    <b>{{ risk }}</b>
+    <b
+      ><span class="visually-hidden">{{ $t('review.table.risk') }}: </span>{{ risk }}</b
+    >
   </span>
 </template>
 

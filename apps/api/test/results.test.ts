@@ -17,6 +17,13 @@ beforeEach(async () => {
 })
 afterEach(() => ctx.close())
 
+/** Moves past the exam and its offline window; sessions from the day before have expired by then. */
+async function afterTheExam() {
+  ctx.clock.now = seeded.exam.closesAt.getTime() + ctx.deps.config.OFFLINE_WINDOW_MIN * 60_000
+  student = await signIn(ctx.app, 'student@test.edu')
+  examiner = await signIn(ctx.app, 'teacher@test.edu')
+}
+
 const call = (method: 'GET' | 'POST' | 'PUT', url: string, headers: { cookie: string }, payload?: object) =>
   ctx.app.inject({ method, url: `/api${url}`, headers, payload })
 
@@ -36,7 +43,10 @@ describe('student results', () => {
       score: 64,
     })
     expect((await call('GET', `/attempts/${attemptId}/result`, student)).statusCode).toBe(404) // not published
-    await call('POST', `/examiner/exams/${seeded.exam.id}/publish`, examiner)
+    // The review shows correct answers: publishing waits until nobody can still write.
+    expect((await call('POST', `/examiner/exams/${seeded.exam.id}/publish`, examiner)).statusCode).toBe(409)
+    await afterTheExam()
+    expect((await call('POST', `/examiner/exams/${seeded.exam.id}/publish`, examiner)).statusCode).toBe(204)
 
     const list: StudentExamListItem[] = (await call('GET', '/exams', student)).json()
     expect(list[0]!.attempt).toMatchObject({ status: 'decided', resultReady: true })
@@ -52,6 +62,21 @@ describe('student results', () => {
         { status: 'examiner', earned: null, answer: 'Индекс — это дерево', correct: null, points: 5 },
       ],
     })
+  })
+
+  it('wait while the examiner marked the attempt as needing more review', async () => {
+    const { attemptId } = (await call('POST', '/attempts', student, { examId: seeded.exam.id })).json()
+    await ctx.deps.db.update(attempts).set({ status: 'ready_for_review' }).where(eq(attempts.id, attemptId))
+    await call('PUT', `/examiner/attempts/${attemptId}/decision`, examiner, {
+      verdict: 'needs_review',
+      comment: '',
+      score: 70,
+    })
+    await afterTheExam()
+    await call('POST', `/examiner/exams/${seeded.exam.id}/publish`, examiner)
+    const list: StudentExamListItem[] = (await call('GET', '/exams', student)).json()
+    expect(list[0]!.attempt).toMatchObject({ status: 'ready_for_review', resultReady: false })
+    expect((await call('GET', `/attempts/${attemptId}/result`, student)).statusCode).toBe(404)
   })
 
   it('are private to the student', async () => {

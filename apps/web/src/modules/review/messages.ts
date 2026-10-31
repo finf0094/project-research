@@ -108,7 +108,8 @@ export const reviewMessages = defineMessages({
         needs_review: 'Нужна дополнительная проверка',
         score: 'Баллы (0–100)',
         comment: 'Комментарий',
-        commentPlaceholder: 'Что вы увидели и почему так решили',
+        commentPlaceholder: 'Что хорошо и что стоит повторить',
+        commentNote: 'Студент увидит этот комментарий вместе с результатом.',
         save: 'Сохранить решение',
       },
       room: {
@@ -232,7 +233,8 @@ export const reviewMessages = defineMessages({
         needs_review: 'Қосымша тексеру қажет',
         score: 'Ұпай (0–100)',
         comment: 'Түсініктеме',
-        commentPlaceholder: 'Не көрдіңіз және неге осылай шештіңіз',
+        commentPlaceholder: 'Не жақсы және нені қайталау керек',
+        commentNote: 'Студент бұл түсініктемені нәтижемен бірге көреді.',
         save: 'Шешімді сақтау',
       },
       room: {
@@ -356,7 +358,8 @@ export const reviewMessages = defineMessages({
         needs_review: 'Needs further review',
         score: 'Score (0–100)',
         comment: 'Comment',
-        commentPlaceholder: 'What you saw and why you decided so',
+        commentPlaceholder: 'What went well and what to revise',
+        commentNote: 'The student sees this comment with the result.',
         save: 'Save decision',
       },
       room: {
