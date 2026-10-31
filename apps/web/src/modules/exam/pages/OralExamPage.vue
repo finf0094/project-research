@@ -36,21 +36,21 @@ watch(() => proctoring.stream, call.setLocal, { immediate: true })
     @finish="finish"
   >
     <div class="body">
-      <AppCard class="main">
-        <RoomVideo
-          :stream="call.remote.value"
-          :state="call.state.value"
-          :audio-blocked="call.audioBlocked.value"
-          :who="$t('exam.page.examiner')"
-          @retry="join"
-          @start-audio="call.startAudio"
-        />
-        <TicketList :questions="exam.questions" />
-      </AppCard>
-      <AppCard as="aside" class="side">
-        <CameraPreview />
+      <RoomVideo
+        :stream="call.remote.value"
+        :local="proctoring.stream"
+        :state="call.state.value"
+        :audio-blocked="call.audioBlocked.value"
+        :who="$t('exam.page.examiner')"
+        recording
+        @retry="join"
+        @start-audio="call.startAudio"
+      />
+      <aside class="side">
+        <AppCard><TicketList :questions="exam.questions" /></AppCard>
+        <CameraPreview v-if="proctoring.camera !== 'on'" />
         <p class="muted note">{{ $t('exam.page.oralHint') }}</p>
-      </AppCard>
+      </aside>
     </div>
   </ExamLayout>
 </template>
@@ -58,14 +58,9 @@ watch(() => proctoring.stream, call.setLocal, { immediate: true })
 <style scoped>
 .body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: var(--space-4);
   align-items: start;
-}
-.main {
-  display: grid;
-  gap: var(--space-6);
-  padding: var(--space-6);
 }
 .side {
   display: grid;
@@ -76,7 +71,7 @@ watch(() => proctoring.stream, call.setLocal, { immediate: true })
 }
 @media (width < 900px) {
   .body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

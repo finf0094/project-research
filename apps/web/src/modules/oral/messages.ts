@@ -7,6 +7,9 @@ export const oralMessages = defineMessages({
       waiting: 'Ждём собеседника',
       reconnect: 'Подключиться снова',
       enableSound: 'Включить звук',
+      onAir: 'В эфире',
+      recording: 'Ответ записывается',
+      stillRecording: 'Ничего не потеряется: ответ записывается на устройстве и отправится сам.',
       state: {
         idle: 'Видеосвязь не подключена',
         connecting: 'Подключаем видеосвязь…',
@@ -23,6 +26,9 @@ export const oralMessages = defineMessages({
       waiting: 'Әңгімелесушіні күтудеміз',
       reconnect: 'Қайта қосылу',
       enableSound: 'Дыбысты қосу',
+      onAir: 'Эфирде',
+      recording: 'Жауап жазылуда',
+      stillRecording: 'Ештеңе жоғалмайды: жауап құрылғыда жазылып, өзі жіберіледі.',
       state: {
         idle: 'Бейнебайланыс қосылмаған',
         connecting: 'Бейнебайланыс қосылуда…',
@@ -39,6 +45,9 @@ export const oralMessages = defineMessages({
       waiting: 'Waiting for the other side',
       reconnect: 'Reconnect',
       enableSound: 'Turn on sound',
+      onAir: 'On air',
+      recording: 'Answer is being recorded',
+      stillRecording: 'Nothing is lost: the answer is recorded on this device and sent by itself.',
       state: {
         idle: 'Video call not connected',
         connecting: 'Connecting the video call…',

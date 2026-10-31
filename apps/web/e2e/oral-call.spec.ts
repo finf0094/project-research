@@ -30,7 +30,7 @@ async function expectLiveSound(page: Page) {
 
 /** The remote <video> plays real frames: it has a size and its time moves on. */
 async function expectLiveVideo(page: Page) {
-  const video = page.locator('.room video')
+  const video = page.locator('.room video.remote')
   await expect
     .poll(() => video.evaluate((v: HTMLVideoElement) => v.videoWidth), { timeout: 30_000 })
     .toBeGreaterThan(0)
