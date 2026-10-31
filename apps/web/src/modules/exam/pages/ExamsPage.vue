@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { AppButton } from '@/shared/ui'
 import { listExams } from '../api'
 import ExamCard from '../components/ExamCard.vue'
+import { attemptPath } from '../routes'
 
 const router = useRouter()
 const exams = ref<StudentExamListItem[] | null>(null)
@@ -36,7 +37,7 @@ onMounted(load)
         :exam="exam"
         :now="now"
         @start="router.push(`/exams/${exam.id}/preflight`)"
-        @continue="router.push(`/attempts/${$event}`)"
+        @continue="router.push(attemptPath($event, exam.mode))"
       />
     </div>
   </main>

@@ -3,8 +3,13 @@ import type { AttemptSummary } from '@exam/contracts'
 import { StatusPill } from '@/shared/ui'
 import { CONNECTION_LABEL, STATUS_LABEL } from '../labels'
 
-defineProps<{ attempts: AttemptSummary[] }>()
-defineEmits<{ act: [attempt: AttemptSummary]; review: [attempt: AttemptSummary] }>()
+/** `oral`: running attempts are live calls the examiner joins. */
+defineProps<{ attempts: AttemptSummary[]; oral?: boolean }>()
+defineEmits<{
+  act: [attempt: AttemptSummary]
+  review: [attempt: AttemptSummary]
+  room: [attempt: AttemptSummary]
+}>()
 </script>
 
 <template>
@@ -42,6 +47,9 @@ defineEmits<{ act: [attempt: AttemptSummary]; review: [attempt: AttemptSummary] 
             >
           </td>
           <td class="actions">
+            <button v-if="oral && a.status === 'active'" type="button" class="link" @click="$emit('room', a)">
+              Войти в комнату
+            </button>
             <button v-if="a.status === 'active'" type="button" class="link" @click="$emit('act', a)">
               Действия
             </button>

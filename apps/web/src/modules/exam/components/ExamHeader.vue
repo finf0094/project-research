@@ -3,7 +3,7 @@ import { SyncStatusBadge } from '@/modules/offline'
 import { AppButton, AppLogo } from '@/shared/ui'
 import ExamTimer from './ExamTimer.vue'
 
-defineProps<{ title: string; index: number; total: number; remainingMs: number; finishing: boolean }>()
+defineProps<{ title: string; step: string; remainingMs: number; finishing: boolean }>()
 defineEmits<{ finish: [] }>()
 </script>
 
@@ -13,7 +13,7 @@ defineEmits<{ finish: [] }>()
       <AppLogo :wordmark="false" />
       <div>
         <p class="name">{{ title }}</p>
-        <p class="muted step">Вопрос {{ index + 1 }} из {{ total }}</p>
+        <p class="muted step">{{ step }}</p>
       </div>
     </div>
     <SyncStatusBadge />

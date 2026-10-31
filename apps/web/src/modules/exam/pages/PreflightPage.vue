@@ -7,6 +7,7 @@ import { ApiError } from '@/shared/lib/http'
 import { AppButton, AppCard } from '@/shared/ui'
 import { beginAttempt } from '../local-attempt'
 import { runBrowserChecks, type Check } from '../preflight'
+import { attemptPath } from '../routes'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,7 +25,7 @@ async function start() {
   starting.value = true
   try {
     const attempt = await beginAttempt(String(route.params.examId))
-    await router.replace(`/attempts/${attempt.id}`)
+    await router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
   } catch (e) {
     error.value =
       e instanceof ApiError ? e.message : 'Нет связи с сервером. Для начала экзамена нужен интернет.'

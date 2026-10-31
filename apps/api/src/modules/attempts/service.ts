@@ -39,6 +39,7 @@ export async function startAttempt(deps: Deps, userId: string, examId: string): 
       exam.profile.mode === 'oral'
         ? shuffle((await examQuestions(tx, examId)).map((q) => q.id)).slice(0, exam.profile.ticketSize ?? 3)
         : null
+    if (ticket?.length === 0) throw conflict('The exam has no questions to draw a ticket from')
     const [row] = await tx
       .insert(attempts)
       .values({

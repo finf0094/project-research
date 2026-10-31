@@ -5,6 +5,8 @@ export interface Observation {
   at: number
   faces: number
   object: boolean
+  /** Too dark to see anyone: a missing face then says nothing about the student. */
+  dark: boolean
 }
 
 export interface Interval {
@@ -22,7 +24,7 @@ const MIN_SECONDS: Partial<Record<MarkerKind, number>> = {
 
 const CONDITIONS: [MarkerKind, (o: Observation) => boolean][] = [
   ['multiple_faces', (o) => o.faces >= 2],
-  ['face_missing', (o) => o.faces === 0],
+  ['face_missing', (o) => o.faces === 0 && !o.dark],
   ['object_detected', (o) => o.object],
 ]
 

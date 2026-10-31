@@ -16,4 +16,9 @@ export const reviewRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/AttemptReviewPage.vue'),
     meta: { role: 'examiner', shell: true },
   },
+  {
+    path: '/examiner/attempts/:attemptId/room',
+    component: () => import('./pages/OralRoomPage.vue'),
+    meta: { role: 'examiner', shell: true },
+  },
 ]

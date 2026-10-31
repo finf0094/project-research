@@ -77,6 +77,7 @@ describe('analyzeRecordings', () => {
       new Set(['alone', 'together']),
     )
     expect(report.status).toBe('ok')
+    expect([...report.checked].sort()).toEqual(['alone', 'together'])
     expect(report.findings).toEqual([{ kind: 'multiple_faces', startAt: 400_000, endAt: 403_000 }])
   })
 })

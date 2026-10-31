@@ -75,8 +75,11 @@ export const TimelineEvent = z.object({
 })
 export type TimelineEvent = z.infer<typeof TimelineEvent>
 
-/** Did the server's own models check the recordings? `unavailable`/`failed` mean nothing was checked. */
-export const ServerAnalysis = z.enum(['ok', 'unavailable', 'failed'])
+/**
+ * Did the server's own models check the recordings? `partial`: some chunks could not be checked;
+ * `unavailable`/`failed`: nothing was checked.
+ */
+export const ServerAnalysis = z.enum(['ok', 'partial', 'unavailable', 'failed'])
 export type ServerAnalysis = z.infer<typeof ServerAnalysis>
 
 export const AttemptDetail = z.object({
@@ -105,7 +108,7 @@ export type UpdateMarkerBody = z.infer<typeof UpdateMarkerBody>
 export const DecisionBody = z.object({
   verdict: Verdict,
   comment: safeText(5000),
-  /** Points given by the examiner, e.g. for an oral answer; null when the automatic score stands. */
+  /** The examiner's grade in percent (0–100), e.g. for an oral answer; null when the automatic score stands. */
   score: z.number().int().min(0).max(100).nullable().default(null),
 })
 export type DecisionBody = z.infer<typeof DecisionBody>

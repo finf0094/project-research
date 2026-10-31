@@ -80,13 +80,16 @@ describe('oral room tokens', () => {
     expect(decodeJwt(theirs.token).sub).toBe(`examiner:${seeded.examiner.id}`)
   })
 
-  it('keeps other people out and closes the room after the attempt ends', async () => {
+  it('keeps other people out and closes the room after the deadline or termination', async () => {
     configureLiveKit()
     const { attemptId } = await start()
     const outsider = await signIn(ctx.app, 'outsider@test.edu')
     expect((await token(`/api/attempts/${attemptId}/oral/token`, outsider)).statusCode).toBe(404)
     expect((await token(`/api/examiner/attempts/${attemptId}/oral/token`, student)).statusCode).toBe(403)
-    await ctx.deps.db.update(attempts).set({ status: 'submitted' }).where(eq(attempts.id, attemptId))
+    ctx.clock.now += 61 * 60_000 // past the 60-minute deadline, before the worker closes it
+    expect((await token(`/api/attempts/${attemptId}/oral/token`, student)).statusCode).toBe(409)
+    ctx.clock.now -= 61 * 60_000
+    await ctx.deps.db.update(attempts).set({ status: 'terminated' }).where(eq(attempts.id, attemptId))
     expect((await token(`/api/attempts/${attemptId}/oral/token`, student)).statusCode).toBe(409)
   })
 })

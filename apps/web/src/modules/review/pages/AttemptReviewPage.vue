@@ -78,8 +78,12 @@ async function save(body: DecisionBody) {
         <StatusPill
           v-if="detail.serverAnalysis && detail.serverAnalysis !== 'ok'"
           tone="warn"
-          title="Метки ниже — только от устройства студента; сервер записи не проверял"
-          >Запись сервером не проверена</StatusPill
+          title="Часть меток может отсутствовать: сервер не просмотрел эти записи сам"
+          >{{
+            detail.serverAnalysis === 'partial'
+              ? 'Запись проверена сервером частично'
+              : 'Запись сервером не проверена'
+          }}</StatusPill
         >
       </div>
     </header>

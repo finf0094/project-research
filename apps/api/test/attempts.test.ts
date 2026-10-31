@@ -254,8 +254,8 @@ describe('submit, recording and review', () => {
     ).json()
     expect(detail.summary).toMatchObject({ status: 'ready_for_review', answered: 1, markerCount: 1 })
     expect(detail.answers[0]).toMatchObject({ value: 'a', autoScore: 2 })
-    // The models ran; the fake chunk does not decode, which costs nothing but that chunk.
-    expect(detail.serverAnalysis).toBe('ok')
+    // The models ran, but the fake chunk does not decode: the reviewer is told it was not checked.
+    expect(detail.serverAnalysis).toBe('partial')
     expect(detail.markers).toEqual([
       expect.objectContaining({ kind: 'multiple_faces', status: 'pending', chunks: [chunkHash] }),
     ])

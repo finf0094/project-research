@@ -71,7 +71,12 @@ export const Event = z.discriminatedUnion('type', [
         chunkStarts: z.array(Timestamp).min(1).max(30),
       })
       .refine((d) => d.tStart <= d.tEnd, 'tStart must not be after tEnd')
-      .refine((d) => d.chunkStarts.length === d.chunks.length, 'one start time per chunk'),
+      .refine((d) => d.chunkStarts.length === d.chunks.length, 'one start time per chunk')
+      .refine(
+        (d) =>
+          d.chunkStarts.every((t, i) => t >= d.tStart && t <= d.tEnd && t >= (d.chunkStarts[i - 1] ?? t)),
+        'chunk starts must lie inside the fragment, in order',
+      ),
   ),
   event('command.received', z.strictObject({ commandId: Id })),
   event('proctoring.mode', z.strictObject({ tier: DeviceTier })),

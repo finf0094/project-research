@@ -32,6 +32,11 @@ describe('Event schema', () => {
     expect(fragment({ reason: 'risk', tStart: 5, tEnd: 10, chunks: [hash], chunkStarts: [5] })).toBe(true)
     expect(fragment({ reason: 'risk', tStart: 10, tEnd: 5, chunks: [hash], chunkStarts: [10] })).toBe(false)
     expect(fragment({ reason: 'risk', tStart: 5, tEnd: 10, chunks: [hash], chunkStarts: [5, 6] })).toBe(false)
+    // A chunk placed outside its fragment would dodge the control-fragment reconciliation.
+    expect(fragment({ reason: 'risk', tStart: 5, tEnd: 10, chunks: [hash], chunkStarts: [50] })).toBe(false)
+    expect(fragment({ reason: 'risk', tStart: 5, tEnd: 10, chunks: [hash, hash], chunkStarts: [8, 6] })).toBe(
+      false,
+    )
   })
 
   it('rejects text that would poison storage or hashing', () => {

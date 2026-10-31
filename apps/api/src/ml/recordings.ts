@@ -2,7 +2,7 @@ import type { ServerAnalysis } from '@exam/contracts'
 import type { BlobStorage } from '../shared/storage.ts'
 import { blobKey } from '../shared/storage.ts'
 import { loadFaceCounter } from './faces.ts'
-import { extractFrames } from './media.ts'
+import { extractFrames, isDark } from './media.ts'
 import { MODELS, readModel } from './models.ts'
 import { loadObjectDetector } from './objects.ts'
 import { toIntervals, type Interval, type Observation } from './observations.ts'
@@ -16,6 +16,8 @@ export interface Fragment {
 export interface RecordingsReport {
   status: ServerAnalysis
   findings: Interval[]
+  /** Chunks the models actually looked at. */
+  checked: ReadonlySet<string>
 }
 
 interface Models {
@@ -24,17 +26,21 @@ interface Models {
 }
 let cached: Promise<Models | null> | null = null
 
-/** Loaded once per worker process (checksums verified); a failed load is retried next time. */
-export function loadModels(): Promise<Models | null> {
+/** Loaded once per worker process (checksums verified); missing files or a failed load are retried next time. */
+export async function loadModels(): Promise<Models | null> {
   cached ??= (async () => {
     const [faces, objects] = await Promise.all([readModel(MODELS.faces), readModel(MODELS.objects)])
     if (!faces || !objects) return null
     return { faces: await loadFaceCounter(faces), objects: await loadObjectDetector(objects) }
-  })().catch((error: unknown) => {
-    cached = null
+  })()
+  const loading = cached
+  const forget = () => cached === loading && (cached = null)
+  try {
+    return (await loading) ?? (forget(), null)
+  } catch (error) {
+    forget()
     throw error
-  })
-  return cached
+  }
 }
 
 /**
@@ -47,10 +53,13 @@ export async function analyzeRecordings(
   attemptId: string,
   fragments: Fragment[],
   uploaded: ReadonlySet<string>,
+  /** Called after every chunk, so a long analysis can keep its claim on the attempt. */
+  heartbeat: () => Promise<void> = async () => undefined,
 ): Promise<RecordingsReport> {
+  const checked = new Set<string>()
   try {
     const models = await loadModels()
-    if (!models) return { status: 'unavailable', findings: [] }
+    if (!models) return { status: 'unavailable', findings: [], checked }
     const starts = new Map<string, number>()
     for (const f of fragments) f.chunks.forEach((hash, i) => starts.set(hash, f.chunkStarts[i]!))
 
@@ -58,22 +67,26 @@ export async function analyzeRecordings(
     for (const [hash, chunkStart] of starts) {
       if (!uploaded.has(hash)) continue
       const video = await storage.get(blobKey(attemptId, hash))
-      if (!video) continue
-      const frames = await extractFrames(video).catch((error: unknown) => {
-        console.error(`could not decode chunk ${hash}`, error)
-        return []
-      })
-      for (const [second, frame] of frames.entries()) {
+      const frames = video
+        ? await extractFrames(video).catch((error: unknown) => {
+            console.error(`could not decode chunk ${hash}`, error)
+            return null
+          })
+        : null
+      for (const [second, frame] of (frames ?? []).entries()) {
         observations.push({
           at: chunkStart + second * 1000,
           faces: await models.faces(frame),
           object: await models.objects(frame),
+          dark: isDark(frame),
         })
       }
+      if (frames) checked.add(hash)
+      await heartbeat()
     }
-    return { status: 'ok', findings: toIntervals(observations) }
+    return { status: 'ok', findings: toIntervals(observations), checked }
   } catch (error) {
     console.error(`server analysis of attempt ${attemptId} failed`, error)
-    return { status: 'failed', findings: [] }
+    return { status: 'failed', findings: [], checked }
   }
 }

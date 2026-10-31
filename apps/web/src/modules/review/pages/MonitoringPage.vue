@@ -76,7 +76,9 @@ async function send(body: ExaminerCommandBody) {
       </p>
       <AttemptsTable
         :attempts="attempts"
+        :oral="exam?.mode === 'oral'"
         @act="acting = $event"
+        @room="router.push(`/examiner/attempts/${$event.id}/room`)"
         @review="router.push(`/examiner/attempts/${$event.id}`)"
       />
     </AppCard>

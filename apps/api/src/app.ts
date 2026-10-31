@@ -24,9 +24,9 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
   // Client errors keep their message; server errors are logged and never leak SQL or data to the client.
   app.setErrorHandler((error: { statusCode?: number; message: string }, request, reply) => {
     const status = error.statusCode ?? 500
+    if (status >= 500) request.log.error(error)
     // Our own HttpErrors carry a safe message (even a 503); anything else that fails is hidden.
     if (status >= 500 && !(error instanceof HttpError)) {
-      request.log.error(error)
       return reply.code(500).send({ message: 'Internal server error' })
     }
     return reply.code(status).send({ message: error.message })

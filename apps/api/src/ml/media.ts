@@ -15,7 +15,7 @@ export function extractFrames(video: Buffer): Promise<Buffer[]> {
     const ffmpeg = spawn(
       'ffmpeg',
       [
-        ...['-loglevel', 'error', '-nostdin'],
+        ...['-loglevel', 'error', '-nostdin', '-threads', '1'],
         // Read only the pipe: no demuxer may open URLs or files named inside the upload.
         ...['-protocol_whitelist', 'pipe', '-i', 'pipe:0'],
         ...['-t', String(MAX_SECONDS), '-vf', `fps=1,scale=${FRAME_W}:${FRAME_H}`],
@@ -56,15 +56,28 @@ export function extractFrames(video: Buffer): Promise<Buffer[]> {
 export function halve(rgb: Buffer): Buffer {
   const w = FRAME_W / 2
   const h = FRAME_H / 2
+  const row = FRAME_W * 3
   const out = Buffer.alloc(w * h * 3)
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      for (let c = 0; c < 3; c++) {
-        const at = (yy: number, xx: number) => rgb[(yy * FRAME_W + xx) * 3 + c]!
-        out[(y * w + x) * 3 + c] =
-          (at(2 * y, 2 * x) + at(2 * y, 2 * x + 1) + at(2 * y + 1, 2 * x) + at(2 * y + 1, 2 * x + 1) + 2) >> 2
-      }
+      const top = 2 * y * row + 2 * x * 3
+      const bottom = top + row
+      const to = (y * w + x) * 3
+      for (let c = 0; c < 3; c++)
+        out[to + c] = (rgb[top + c]! + rgb[top + 3 + c]! + rgb[bottom + c]! + rgb[bottom + 3 + c]! + 2) >> 2
     }
   }
   return out
+}
+
+/** Below this mean brightness (0..255) a frame is too dark to judge; the device uses the same threshold. */
+const DARK_BRIGHTNESS = 45
+
+export function isDark(rgb: Buffer): boolean {
+  let sum = 0
+  let count = 0
+  // Every 16th pixel is plenty for an average.
+  for (let i = 0; i + 2 < rgb.length; i += 48, count++)
+    sum += 0.299 * rgb[i]! + 0.587 * rgb[i + 1]! + 0.114 * rgb[i + 2]!
+  return sum / count < DARK_BRIGHTNESS
 }

@@ -10,6 +10,7 @@ import FinishDialog from '../components/FinishDialog.vue'
 import QuestionNav from '../components/QuestionNav.vue'
 import QuestionView from '../components/QuestionView.vue'
 import { useExamStore } from '../exam.store'
+import { attemptPath } from '../routes'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,13 +29,19 @@ async function open(id: string) {
 }
 watch(attemptId, open, { immediate: true })
 
+// An oral attempt has its own page (live call); a stale link or bookmark lands there.
+watch(
+  () => exam.attempt?.exam.profile.mode,
+  (mode) => mode === 'oral' && router.replace(attemptPath(attemptId.value, mode)),
+)
+
 // Leaving for the "done" page keeps the session running: it still has to deliver answers and recordings.
 watch(
   () => exam.locked,
   (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
 )
 onUnmounted(() => {
-  if (!exam.locked) exam.close()
+  if (!exam.locked && exam.attempt?.exam.profile.mode !== 'oral') exam.close()
 })
 
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)
@@ -64,8 +71,7 @@ function confirmFinish() {
   <div v-else-if="exam.attempt && exam.question" class="exam">
     <ExamHeader
       :title="exam.attempt.exam.title"
-      :index="exam.current"
-      :total="exam.questions.length"
+      :step="`Вопрос ${exam.current + 1} из ${exam.questions.length}`"
       :remaining-ms="exam.remainingMs"
       :finishing="exam.locked"
       @finish="confirming = true"
