@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { Id, Sha256, Timestamp, safeText } from './common.ts'
 import { AttemptStatus } from './attempts.ts'
 import { AnswerValue, NetState, SignalKind } from './events.ts'
-import { Question } from './exams.ts'
+import { ExamMode, Question } from './exams.ts'
 
 export const MarkerKind = z.enum([...SignalKind.options, 'chain_broken', 'missing_fragment', 'offline'])
 export type MarkerKind = z.infer<typeof MarkerKind>
@@ -48,6 +48,7 @@ export type AttemptSummary = z.infer<typeof AttemptSummary>
 export const ExaminerExam = z.object({
   id: Id,
   title: z.string(),
+  mode: ExamMode,
   opensAt: Timestamp,
   closesAt: Timestamp,
   attempts: z.object({
@@ -77,18 +78,26 @@ export type TimelineEvent = z.infer<typeof TimelineEvent>
 export const AttemptDetail = z.object({
   summary: AttemptSummary,
   examTitle: z.string(),
+  examMode: ExamMode,
   submittedAt: Timestamp.nullable(),
   answers: z.array(ReviewedAnswer),
   timeline: z.array(TimelineEvent),
   markers: z.array(Marker),
-  decision: z.object({ verdict: Verdict, comment: z.string(), decidedAt: Timestamp }).nullable(),
+  decision: z
+    .object({ verdict: Verdict, comment: z.string(), score: z.number().int().nullable(), decidedAt: Timestamp })
+    .nullable(),
 })
 export type AttemptDetail = z.infer<typeof AttemptDetail>
 
 export const UpdateMarkerBody = z.object({ status: z.enum(['confirmed', 'dismissed']) })
 export type UpdateMarkerBody = z.infer<typeof UpdateMarkerBody>
 
-export const DecisionBody = z.object({ verdict: Verdict, comment: safeText(5000) })
+export const DecisionBody = z.object({
+  verdict: Verdict,
+  comment: safeText(5000),
+  /** Points given by the examiner, e.g. for an oral answer; null when the automatic score stands. */
+  score: z.number().int().min(0).max(100).nullable().default(null),
+})
 export type DecisionBody = z.infer<typeof DecisionBody>
 
 export const ExaminerCommandBody = z.discriminatedUnion('type', [

@@ -19,10 +19,11 @@ export async function listForStudent(db: Db, userId: string): Promise<StudentExa
   return rows.map(({ exam, questionCount, attemptId, attemptStatus }) => ({
     id: exam.id,
     title: exam.title,
+    mode: exam.profile.mode,
     durationMin: exam.durationMin,
     opensAt: exam.opensAt.getTime(),
     closesAt: exam.closesAt.getTime(),
-    questionCount,
+    questionCount: exam.profile.mode === 'oral' ? Math.min(questionCount, exam.profile.ticketSize ?? 3) : questionCount,
     attempt: attemptId && attemptStatus ? { id: attemptId, status: attemptStatus } : null,
   }))
 }
@@ -39,11 +40,19 @@ export async function examQuestions(db: Db | Tx, examId: string) {
   return db.select().from(questions).where(eq(questions.examId, examId)).orderBy(asc(questions.position))
 }
 
-/** The exam as the student sees it: no correct answers. */
-export async function studentExam(db: Db | Tx, examId: string): Promise<StudentExam | null> {
+/** Questions of an attempt: the whole exam, or only the ticket drawn for an oral attempt (in ticket order). */
+export async function attemptQuestions(db: Db | Tx, examId: string, ticket: string[] | null) {
+  const rows = await examQuestions(db, examId)
+  if (!ticket) return rows
+  const byId = new Map(rows.map((q) => [q.id, q]))
+  return ticket.flatMap((id) => byId.get(id) ?? [])
+}
+
+/** The exam as the student sees it: no correct answers, and for an oral exam only the drawn ticket. */
+export async function studentExam(db: Db | Tx, examId: string, ticket: string[] | null): Promise<StudentExam | null> {
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId))
   if (!exam) return null
-  const rows = await examQuestions(db, examId)
+  const rows = await attemptQuestions(db, examId, ticket)
   return {
     id: exam.id,
     title: exam.title,

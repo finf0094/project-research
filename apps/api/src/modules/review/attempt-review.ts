@@ -4,7 +4,7 @@ import { answers, attempts, blobs, commands, decisions, events, markers, users }
 import type { Deps } from '../../deps.ts'
 import { conflict, notFound } from '../../shared/errors.ts'
 import { blobKey } from '../../shared/storage.ts'
-import { examQuestions, toStudentQuestion } from '../exams/service.ts'
+import { attemptQuestions, toStudentQuestion } from '../exams/service.ts'
 import { ownAttemptOf, toSummary } from './access.ts'
 import { autoScore } from './grading.ts'
 
@@ -12,7 +12,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
   const { db } = deps
   const { attempt, exam } = await ownAttemptOf(db, ownerId, attemptId)
   const [student] = await db.select({ name: users.name }).from(users).where(eq(users.id, attempt.userId))
-  const questionRows = await examQuestions(db, exam.id)
+  const questionRows = await attemptQuestions(db, exam.id, attempt.ticket)
   const answerRows = await db.select().from(answers).where(eq(answers.attemptId, attemptId))
   const valueOf = new Map(answerRows.map((a) => [a.questionId, a.value]))
   const timeline = await db
@@ -36,6 +36,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
   return {
     summary: toSummary(attempt, student?.name ?? '', valueOf.size, flagged, deps.now()),
     examTitle: exam.title,
+    examMode: exam.profile.mode,
     submittedAt: attempt.submittedAt?.getTime() ?? null,
     answers: questionRows.map((q) => {
       const value = valueOf.get(q.id) ?? null
@@ -53,7 +54,12 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       chunks: m.chunks,
     })),
     decision: decision
-      ? { verdict: decision.verdict, comment: decision.comment, decidedAt: decision.decidedAt.getTime() }
+      ? {
+          verdict: decision.verdict,
+          comment: decision.comment,
+          score: decision.score,
+          decidedAt: decision.decidedAt.getTime(),
+        }
       : null,
   }
 }
@@ -107,6 +113,7 @@ export async function decide(deps: Deps, ownerId: string, attemptId: string, bod
       reviewerId: ownerId,
       verdict: body.verdict,
       comment: body.comment,
+      score: body.score,
       decidedAt: new Date(deps.now()),
     })
     await tx.update(attempts).set({ status: 'decided' }).where(eq(attempts.id, attemptId))

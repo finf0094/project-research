@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Id, Sha256, Timestamp, safeText } from './common.ts'
 import { AnswerValue, Event } from './events.ts'
-import { StudentExam } from './exams.ts'
+import { ExamMode, StudentExam } from './exams.ts'
 
 /** `submitted` attempts wait for upload of their fragments and then for analysis. */
 export const AttemptStatus = z.enum(['active', 'terminated', 'submitted', 'ready_for_review', 'decided'])
@@ -53,6 +53,7 @@ export type SubmitBody = z.infer<typeof SubmitBody>
 export const StudentExamListItem = z.object({
   id: Id,
   title: z.string(),
+  mode: ExamMode,
   durationMin: z.number().int().positive(),
   opensAt: Timestamp,
   closesAt: Timestamp,
@@ -60,3 +61,7 @@ export const StudentExamListItem = z.object({
   attempt: z.object({ id: Id, status: AttemptStatus }).nullable(),
 })
 export type StudentExamListItem = z.infer<typeof StudentExamListItem>
+
+/** Credentials to join the oral exam's live room (LiveKit). */
+export const OralRoomAccess = z.object({ url: z.string(), token: z.string(), room: z.string() })
+export type OralRoomAccess = z.infer<typeof OralRoomAccess>

@@ -25,7 +25,7 @@ const [exam] = await db
     durationMin: 90,
     opensAt: new Date(now - 3_600_000),
     closesAt: new Date(now + 7 * 86_400_000),
-    profile: { recording: 'adaptive' },
+    profile: { mode: 'written', recording: 'adaptive' },
     ownerId: teacher!.id,
   })
   .returning()
@@ -83,6 +83,40 @@ await db.insert(questions).values([
   },
 ])
 
-await db.insert(examParticipants).values(students.map((s) => ({ examId: exam!.id, userId: s.id })))
+// Oral exam: each student draws a random ticket of two questions from the pool and answers on a video call.
+const [oral] = await db
+  .insert(exams)
+  .values({
+    title: 'Базы данных · устный экзамен',
+    durationMin: 30,
+    opensAt: new Date(now - 3_600_000),
+    closesAt: new Date(now + 7 * 86_400_000),
+    profile: { mode: 'oral', recording: 'full', ticketSize: 2 },
+    ownerId: teacher!.id,
+  })
+  .returning()
+
+const oralPool = [
+  'Нормальные формы: что нарушает 3НФ и как это исправить?',
+  'Уровни изоляции транзакций и аномалии, которые они предотвращают.',
+  'Как работает B-дерево и почему оно подходит для индексов?',
+  'Репликация и шардирование: в чём разница и когда что применять?',
+  'Что такое план запроса и как его читать?',
+]
+await db.insert(questions).values(
+  oralPool.map((text, i) => ({
+    examId: oral!.id,
+    position: i + 1,
+    type: 'text' as const,
+    text,
+    options: [],
+    correct: [],
+    points: 10,
+  })),
+)
+
+await db
+  .insert(examParticipants)
+  .values([exam!, oral!].flatMap((e) => students.map((s) => ({ examId: e.id, userId: s.id }))))
 await close()
 console.log(`Seeded. Sign in as teacher@example.edu or student1@example.edu with password "${PASSWORD}".`)

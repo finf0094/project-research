@@ -21,6 +21,7 @@ export async function listExams(db: Db, ownerId: string): Promise<ExaminerExam[]
   return rows.map(({ exam, total, active, toReview }) => ({
     id: exam.id,
     title: exam.title,
+    mode: exam.profile.mode,
     opensAt: exam.opensAt.getTime(),
     closesAt: exam.closesAt.getTime(),
     attempts: { total, active, toReview },

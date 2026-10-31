@@ -113,6 +113,8 @@ export const attempts = pgTable(
     connection: text('connection').$type<NetState>(),
     /** Set when the event chain failed verification; the attempt then needs manual review. */
     chainBrokenAt: integer('chain_broken_at'),
+    /** Oral exams: the question ids of the ticket drawn at start, in order. */
+    ticket: uuid('ticket').array(),
     /** When the server next asks for a control fragment; random, so the student cannot prepare for it. */
     nextCaptureAt: timestamp('next_capture_at', { withTimezone: true }),
     riskScore: integer('risk_score'),
@@ -227,6 +229,7 @@ export const decisions = pgTable(
       .references(() => users.id),
     verdict: text('verdict').$type<Verdict>().notNull(),
     comment: text('comment').notNull(),
+    score: integer('score'),
     decidedAt: timestamp('decided_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.attemptId, t.decidedAt)],

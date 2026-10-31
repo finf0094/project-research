@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes, randomInt, randomUUID } from 'node:crypto'
 import type { AttemptSession, AttemptStatus, SubmitBody } from '@exam/contracts'
 import { genesisHash } from '@exam/integrity'
 import { and, eq } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { answers, attempts, exams } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
-import { isParticipant, studentExam } from '../exams/service.ts'
+import { examQuestions, isParticipant, studentExam } from '../exams/service.ts'
 
 type AttemptRow = typeof attempts.$inferSelect
 
@@ -34,6 +34,11 @@ export async function startAttempt(deps: Deps, userId: string, examId: string): 
     if (now < exam.opensAt.getTime() || now >= exam.closesAt.getTime()) throw conflict('Exam is not open')
 
     const id = randomUUID()
+    // An oral exam draws a random ticket from the question pool; written exams use every question.
+    const ticket =
+      exam.profile.mode === 'oral'
+        ? shuffle((await examQuestions(tx, examId)).map((q) => q.id)).slice(0, exam.profile.ticketSize ?? 3)
+        : null
     const [row] = await tx
       .insert(attempts)
       .values({
@@ -46,6 +51,7 @@ export async function startAttempt(deps: Deps, userId: string, examId: string): 
         hmacKeyEnc: encryptSecret(deps.masterKey, randomBytes(32)),
         lastHash: await genesisHash(id),
         lastSeenAt: new Date(now),
+        ticket,
         nextCaptureAt: exam.profile.recording === 'adaptive' ? nextCaptureTime(now) : null,
       })
       .onConflictDoNothing()
@@ -112,7 +118,7 @@ export function attemptKey(deps: Pick<Deps, 'masterKey'>, attempt: Pick<AttemptR
 }
 
 async function toSession(deps: Deps, tx: Tx, attempt: AttemptRow): Promise<AttemptSession> {
-  const exam = await studentExam(tx, attempt.examId)
+  const exam = await studentExam(tx, attempt.examId, attempt.ticket)
   if (!exam) throw notFound('Exam not found')
   const saved = await tx.select().from(answers).where(eq(answers.attemptId, attempt.id))
   return {
@@ -126,4 +132,14 @@ async function toSession(deps: Deps, tx: Tx, attempt: AttemptRow): Promise<Attem
     lastHash: attempt.lastHash,
     answers: Object.fromEntries(saved.map((a) => [a.questionId, a.value])),
   }
+}
+
+/** Fisher–Yates with a cryptographic source: a ticket must not be predictable. */
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1)
+    ;[result[i], result[j]] = [result[j]!, result[i]!]
+  }
+  return result
 }

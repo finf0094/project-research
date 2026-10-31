@@ -1,7 +1,7 @@
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { AttemptSession, Event } from '@exam/contracts'
+import type { AttemptSession, Event, ExamProfile } from '@exam/contracts'
 import { importHmacKeyBase64, seal } from '@exam/integrity'
 import { sql } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
@@ -49,7 +49,10 @@ export async function createTestContext(): Promise<TestContext> {
 const passwordHash = await hashPassword(PASSWORD)
 
 /** Creates an examiner, a student enrolled in a 60-minute exam and a non-enrolled student. */
-export async function seedExam({ deps, clock }: TestContext) {
+export async function seedExam(
+  { deps, clock }: TestContext,
+  profile: ExamProfile = { mode: 'written', recording: 'adaptive' },
+) {
   const [examiner, student, outsider] = await deps.db
     .insert(users)
     .values([
@@ -65,7 +68,7 @@ export async function seedExam({ deps, clock }: TestContext) {
       durationMin: 60,
       opensAt: new Date(clock.now - 60_000),
       closesAt: new Date(clock.now + 86_400_000),
-      profile: { recording: 'adaptive' },
+      profile,
       ownerId: examiner!.id,
     })
     .returning()

@@ -5,6 +5,7 @@ import type { Tx } from '../../db/client.ts'
 import { answers, attempts, commands, events, questions } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { OPEN_STATUSES, attemptKey, nextCaptureTime, ownAttempt } from '../attempts/service.ts'
+import { attemptQuestions } from '../exams/service.ts'
 import { countsTowardGrade, isValidAnswer } from './projection.ts'
 
 const CONTROL_FRAGMENT_SECONDS = 20
@@ -29,8 +30,7 @@ export async function acceptEvents(
 
     if (open && chainBrokenAt === null) {
       const key = await importHmacKey(new Uint8Array(attemptKey(deps, attempt)))
-      const examQuestions = await tx.select().from(questions).where(eq(questions.examId, attempt.examId))
-      const byId = new Map(examQuestions.map((q) => [q.id, q]))
+      const byId = new Map((await attemptQuestions(tx, attempt.examId, attempt.ticket)).map((q) => [q.id, q]))
       const offlineWindowMs = deps.config.OFFLINE_WINDOW_MIN * 60_000
 
       for (const event of batch.toSorted((a, b) => a.seq - b.seq)) {

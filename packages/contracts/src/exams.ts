@@ -20,7 +20,16 @@ export type Question = z.infer<typeof Question>
 export const RecordingMode = z.enum(['adaptive', 'full'])
 export type RecordingMode = z.infer<typeof RecordingMode>
 
-export const ExamProfile = z.object({ recording: RecordingMode })
+/** Written: questions answered on screen. Oral: a live conversation with the examiner over a random ticket. */
+export const ExamMode = z.enum(['written', 'oral'])
+export type ExamMode = z.infer<typeof ExamMode>
+
+export const ExamProfile = z.object({
+  mode: ExamMode,
+  recording: RecordingMode,
+  /** Oral exams: how many questions a ticket draws from the exam's pool. */
+  ticketSize: z.number().int().positive().optional(),
+})
 export type ExamProfile = z.infer<typeof ExamProfile>
 
 export const StudentExam = z.object({

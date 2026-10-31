@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNotNull, lt, or, sql } from 'drizzle-orm'
 import type { Tx } from '../db/client.ts'
 import { answers, attempts, blobs, commands, decisions, events, markers, sessions } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
-import { examQuestions } from '../modules/exams/service.ts'
+import { attemptQuestions } from '../modules/exams/service.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
 import { analyzeRecordings } from '../ml/recordings.ts'
 import { blobKey } from '../shared/storage.ts'
@@ -85,7 +85,7 @@ async function analyze(deps: Deps, tx: Tx, attempt: typeof attempts.$inferSelect
     }))
   const final = projectAnswers(
     answerEvents,
-    await examQuestions(tx, attempt.examId),
+    await attemptQuestions(tx, attempt.examId, attempt.ticket),
     attempt.deadline.getTime(),
     deps.config.OFFLINE_WINDOW_MIN * 60_000,
   )
