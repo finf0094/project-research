@@ -23,7 +23,7 @@ function next() {
   <div class="player">
     <video v-if="src" ref="video" :src="src" controls preload="metadata" @ended="next" />
     <p v-else class="empty">{{ $t('review.player.empty') }}</p>
-    <p v-if="sources.length > 1" class="muted parts">
+    <p v-if="sources.length > 1" class="parts">
       {{ $t('review.player.part', { n: index + 1, total: sources.length }) }}
     </p>
   </div>
@@ -32,14 +32,18 @@ function next() {
 <style scoped>
 .player {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 video,
 .empty {
   inline-size: 100%;
+  /* A long message grows the box downwards, never wider than the screen. */
+  min-block-size: 0;
   aspect-ratio: 16 / 9;
+  overflow: hidden;
   border-radius: var(--radius);
-  background: var(--ink);
+  background: rgb(0 0 0 / 0.35);
 }
 .empty {
   display: grid;
@@ -50,5 +54,6 @@ video,
 }
 .parts {
   font-size: var(--text-xs);
+  opacity: 0.7;
 }
 </style>

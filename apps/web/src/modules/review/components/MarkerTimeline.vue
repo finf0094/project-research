@@ -55,8 +55,9 @@ svg {
   inline-size: 100%;
   block-size: 48px;
 }
+/* Drawn from the surrounding text colour: it reads on a light card and on the dark stage alike. */
 .track {
-  fill: var(--surface-2);
+  fill: color-mix(in oklab, currentColor 14%, transparent);
 }
 .mark {
   fill: var(--warn);
@@ -75,7 +76,7 @@ svg {
   }
   &.selected,
   &:focus-visible {
-    stroke: var(--accent);
+    stroke: var(--lime);
     stroke-width: 0.8;
   }
 }
@@ -83,7 +84,7 @@ svg {
   position: relative;
   block-size: 1.2em;
   font-size: var(--text-xs);
-  color: var(--text-2);
+  opacity: 0.7;
 
   span {
     position: absolute;
@@ -94,6 +95,13 @@ svg {
     &:last-child {
       translate: -100% 0;
     }
+  }
+}
+/* On a narrow screen five times collide: keep the start, the middle and the end. */
+@media (width < 600px) {
+  .ticks span:nth-child(2),
+  .ticks span:nth-child(4) {
+    display: none;
   }
 }
 </style>

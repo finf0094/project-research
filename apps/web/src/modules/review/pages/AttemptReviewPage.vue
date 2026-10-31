@@ -4,13 +4,19 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
 import { AppCard } from '@/shared/ui'
-import { chunkUrl, decide, getAttempt, judgeMarker } from '../api'
+import { chunkUrl, decide, getAttempt, judgeMarker, listAttempts } from '../api'
 import AnswersList from '../components/AnswersList.vue'
 import AttemptHeader from '../components/AttemptHeader.vue'
 import DecisionForm from '../components/DecisionForm.vue'
-import FragmentPlayer from '../components/FragmentPlayer.vue'
 import MarkerList from '../components/MarkerList.vue'
-import MarkerTimeline from '../components/MarkerTimeline.vue'
+import MarkerSummary from '../components/MarkerSummary.vue'
+import ReviewStage from '../components/ReviewStage.vue'
+import { queuePlace, type QueuePlace } from '../review-queue'
+
+/**
+ * Reviewing one attempt: the recording around each marker on a dark stage, the markers to confirm or
+ * dismiss, the answers, and the decision; the queue's next student is one click away.
+ */
 
 const route = useRoute()
 const attemptId = String(route.params.attemptId)
@@ -31,7 +37,17 @@ async function load() {
   selected.value ??= fresh.markers.find((m) => m.status === 'pending')?.id ?? null
 }
 
-onMounted(() => action.run(load))
+// The queue is a convenience: without it the page still works, just without "next".
+const queue = ref<QueuePlace | null>(null)
+const loadQueue = (examId: string) =>
+  listAttempts(examId)
+    .then((list) => (queue.value = queuePlace(list, attemptId)))
+    .catch(() => {})
+
+onMounted(async () => {
+  await action.run(load)
+  if (detail.value) void loadQueue(detail.value.examId)
+})
 
 const marker = computed(() => detail.value?.markers.find((m) => m.id === selected.value) ?? null)
 const sources = computed(() => (marker.value?.chunks ?? []).map((hash) => chunkUrl(attemptId, hash)))
@@ -56,6 +72,7 @@ async function save(body: DecisionBody) {
     await decide(attemptId, body)
     saved.value = true // saved even if the reload below fails
     await load()
+    if (detail.value) void loadQueue(detail.value.examId)
   })
 }
 </script>
@@ -65,23 +82,23 @@ async function save(body: DecisionBody) {
     {{ $t((action.error.value ?? saving.error.value)!) }}
   </p>
   <main v-if="detail" class="page">
-    <AttemptHeader :detail="detail" />
+    <AttemptHeader :detail="detail" :queue="queue" />
 
     <div class="layout">
-      <div class="main">
+      <div class="main stagger">
+        <ReviewStage
+          :marker="marker"
+          :sources="sources"
+          :markers="detail.markers"
+          :start="detail.summary.startedAt"
+          :end="end"
+          @select="selected = $event"
+        />
         <AppCard class="stack">
-          <FragmentPlayer :sources="sources" />
-          <MarkerTimeline
-            :markers="detail.markers"
-            :start="detail.summary.startedAt"
-            :end="end"
-            :selected="selected"
-            @select="selected = $event"
-          />
-        </AppCard>
-        <AppCard class="stack">
-          <h2>{{ $t('review.attempt.markers') }}</h2>
-          <p class="muted note">{{ $t('review.attempt.markersNote') }}</p>
+          <header class="card-head">
+            <h2>{{ $t('review.attempt.markers') }}</h2>
+            <p class="muted note">{{ $t('review.attempt.markersHint') }}</p>
+          </header>
           <p v-if="!detail.markers.length" class="muted">{{ $t('review.attempt.noMarkers') }}</p>
           <MarkerList
             :markers="detail.markers"
@@ -97,17 +114,22 @@ async function save(body: DecisionBody) {
         </AppCard>
       </div>
 
-      <AppCard as="aside" class="side">
-        <DecisionForm
-          v-if="editable"
-          :current="detail.decision"
-          :saving="saving.busy.value"
-          :with-score="needsScore"
-          @save="save"
-        />
-        <p v-else class="muted">{{ $t('review.attempt.waitAnalysis') }}</p>
-        <p v-if="saved" class="saved" role="status">{{ $t('review.attempt.saved') }}</p>
-      </AppCard>
+      <aside class="side">
+        <MarkerSummary v-if="detail.markers.length" :markers="detail.markers" />
+        <AppCard>
+          <DecisionForm
+            v-if="editable"
+            :current="detail.decision"
+            :saving="saving.busy.value"
+            :with-score="needsScore"
+            @save="save"
+          />
+          <p v-else class="muted">{{ $t('review.attempt.waitAnalysis') }}</p>
+          <Transition name="saved">
+            <p v-if="saved" class="saved" role="status">{{ $t('review.attempt.saved') }}</p>
+          </Transition>
+        </AppCard>
+      </aside>
     </div>
   </main>
 </template>
@@ -115,11 +137,13 @@ async function save(body: DecisionBody) {
 <style scoped>
 .page {
   display: grid;
+  /* Never wider than the screen, whatever a long name or a row of buttons would like. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
   gap: var(--space-4);
   align-items: start;
 }
@@ -129,8 +153,33 @@ async function save(body: DecisionBody) {
   gap: var(--space-4);
 }
 .side {
+  min-inline-size: 0;
   position: sticky;
   top: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+}
+.stack h2 {
+  font-size: var(--text-lg);
+}
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  h2 {
+    font-size: var(--text-lg);
+  }
+}
+.saved-enter-active {
+  transition:
+    opacity var(--dur) var(--ease),
+    translate var(--dur) var(--ease-spring);
+}
+.saved-enter-from {
+  opacity: 0;
+  translate: 0 6px;
 }
 .note {
   font-size: var(--text-sm);
@@ -146,7 +195,7 @@ async function save(body: DecisionBody) {
 }
 @media (width < 1000px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .side {
     position: static;
