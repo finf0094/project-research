@@ -49,6 +49,7 @@ export function useDeviceProbe() {
 
   async function start() {
     release()
+    timings.length = poses.length = 0 // a retry measures this camera position afresh
     state.value = 'starting'
     let media: MediaStream
     try {
@@ -60,8 +61,9 @@ export function useDeviceProbe() {
     if (disposed) return stopTracks(media)
     stream.value = media
     hasMic.value = media.getAudioTracks().length > 0
-    // An unplugged camera or a revoked permission ends the tracks: the check is no longer passed.
-    for (const track of media.getTracks()) track.addEventListener('ended', lost)
+    // An unplugged device or a revoked permission ends its track: that check is no longer passed.
+    for (const track of media.getVideoTracks()) track.addEventListener('ended', lost)
+    for (const track of media.getAudioTracks()) track.addEventListener('ended', micLost)
     try {
       sensors = await createSensors(media, 'full', { yaw: 0, pitch: 0 })
     } catch (error) {
@@ -71,12 +73,17 @@ export function useDeviceProbe() {
       return
     }
     if (disposed) return release()
+    if (state.value !== 'starting') return // a track ended while the analysis loaded: already blocked
     state.value = 'running'
     timer = setInterval(() => void measure(), 500)
   }
 
+  function micLost() {
+    hasMic.value = false
+  }
+
   function lost() {
-    if (state.value !== 'running') return
+    if (state.value !== 'running' && state.value !== 'starting') return
     release()
     state.value = 'blocked'
   }
@@ -107,7 +114,8 @@ export function useDeviceProbe() {
     clearInterval(timer)
     sensors?.dispose()
     sensors = null
-    for (const track of stream.value?.getTracks() ?? []) track.removeEventListener('ended', lost)
+    for (const track of stream.value?.getVideoTracks() ?? []) track.removeEventListener('ended', lost)
+    for (const track of stream.value?.getAudioTracks() ?? []) track.removeEventListener('ended', micLost)
     stopTracks(stream.value)
     stream.value = null
     faces.value = null

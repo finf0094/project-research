@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { CameraPreview } from '@/modules/proctoring'
 import { AppButton, AppCard } from '@/shared/ui'
 import ExamLayout from '../components/ExamLayout.vue'
@@ -16,7 +16,12 @@ import { useAttemptPage } from '../use-attempt-page'
 const { exam, attemptId, loadError, confirming, open, finish } = useAttemptPage('written')
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)
 const { size, scale } = useTextSize()
+// The page is remounted for every attempt (App keys pages by their parameters), so one id per page.
 const flags = useFlags(attemptId.value)
+watch(
+  () => exam.locked,
+  (locked) => locked && flags.forget(),
+)
 const last = computed(() => exam.current === exam.questions.length - 1)
 </script>
 
@@ -62,7 +67,7 @@ const last = computed(() => exam.current === exam.questions.length - 1)
         <AnswerStatus
           :answered="isAnswered(exam.answers[exam.question.id])"
           :saved-at="exam.savedAt[exam.question.id]"
-          :failed="exam.saveFailed"
+          :failed="exam.failedOn.includes(exam.question.id)"
           :locked="exam.locked"
           @clear="exam.clear(exam.question!.id)"
         />

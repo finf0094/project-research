@@ -1,5 +1,5 @@
 import type { AnswerValue, QuestionOutcome, StudentResult } from '@exam/contracts'
-import { PASS_SCORE } from '@exam/contracts'
+import { isEmptyAnswer, PASS_SCORE } from '@exam/contracts'
 import { desc, eq } from 'drizzle-orm'
 import type { Db } from '../../db/client.ts'
 import { answers, decisions, exams, users } from '../../db/schema.ts'
@@ -26,12 +26,9 @@ export async function studentResult(db: Db, userId: string, attemptId: string): 
   if (!exam?.publishedAt || !decision || attempt.status !== 'decided') throw notFound('No result yet')
 
   const asked = await attemptQuestions(db, attempt.examId, attempt.ticket)
-  const given = new Map(
-    (await db.select().from(answers).where(eq(answers.attemptId, attemptId))).map((a) => [
-      a.questionId,
-      a.value,
-    ]),
-  )
+  const rows = await db.select().from(answers).where(eq(answers.attemptId, attemptId))
+  // A cleared answer is "no answer", not a wrong one.
+  const given = new Map(rows.filter((a) => !isEmptyAnswer(a.value)).map((a) => [a.questionId, a.value]))
   const oral = exam.profile.mode === 'oral'
   const questions = asked.map((q) => outcome(q, given.get(q.id) ?? null, oral))
   const points = {

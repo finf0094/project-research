@@ -38,7 +38,7 @@ const text = computed(() => (hint.value ? t(`proctoring.hint.${hint.value}`) : n
 <template>
   <!-- In the page flow on purpose: a hint must never cover the question. -->
   <div class="slot" role="status" aria-live="polite">
-    <Transition name="hint">
+    <Transition name="hint" mode="out-in">
       <p v-if="hint && text" :key="hint" class="hint">
         <IconTile :icon="ICON[hint] ?? ScanFace" tone="peach" />
         {{ text }}

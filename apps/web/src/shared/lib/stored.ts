@@ -1,8 +1,8 @@
 import { ref, watch, type Ref } from 'vue'
 
 /**
- * A small per-device preference kept in localStorage. Storage may be unavailable (private mode, blocked
- * site data): then the value simply lives for this page.
+ * A small per-device preference kept in localStorage; back at its default it is removed, not stored.
+ * Storage may be unavailable (private mode, blocked site data): then the value simply lives for this page.
  */
 export function useStored<T>(key: string, fallback: T): Ref<T> {
   const value = ref(read(key, fallback)) as Ref<T>
@@ -10,7 +10,9 @@ export function useStored<T>(key: string, fallback: T): Ref<T> {
     value,
     (next) => {
       try {
-        localStorage.setItem(key, JSON.stringify(next))
+        const raw = JSON.stringify(next)
+        if (raw === JSON.stringify(fallback)) localStorage.removeItem(key)
+        else localStorage.setItem(key, raw)
       } catch {
         // Not remembered, still works.
       }

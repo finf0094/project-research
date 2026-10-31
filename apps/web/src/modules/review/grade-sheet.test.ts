@@ -30,12 +30,12 @@ describe('grade sheet', () => {
   })
 
   it('counts an attempt sent back for more review as pending, not as a result', () => {
-    const csv = gradeSheetCsv([attempt('Глеб', { verdict: 'needs_review', score: 90 })], {
+    const csv = gradeSheetCsv([attempt('Глеб', { verdict: 'needs_review', score: null })], {
       columns: ['a', 'b', 'c', 'd', 'e'],
       outcome: { pass: 'p', fail: 'f', pending: 'w' },
     })
     expect(csv.split('\r\n')[1]).toBe('"Глеб";"6";"10";"";"w"')
-    expect(distribution([attempt('Глеб', { verdict: 'needs_review', score: 90 })])).toEqual([
+    expect(distribution([attempt('Глеб', { verdict: 'needs_review', score: null })])).toEqual([
       0, 0, 0, 0, 0, 0,
     ])
   })

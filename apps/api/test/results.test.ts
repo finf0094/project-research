@@ -79,6 +79,29 @@ describe('student results', () => {
     expect((await call('GET', `/attempts/${attemptId}/result`, student)).statusCode).toBe(404)
   })
 
+  it('show a cleared answer as no answer, not as a wrong one', async () => {
+    const { attemptId } = (await call('POST', '/attempts', student, { examId: seeded.exam.id })).json()
+    await ctx.deps.db.insert(answers).values([
+      { attemptId, questionId: seeded.single.id, value: '', seq: 1 },
+      { attemptId, questionId: seeded.text.id, value: '   ', seq: 2 },
+    ])
+    await ctx.deps.db.update(attempts).set({ status: 'ready_for_review' }).where(eq(attempts.id, attemptId))
+    await call('PUT', `/examiner/attempts/${attemptId}/decision`, examiner, {
+      verdict: 'clean',
+      comment: '',
+      score: 0,
+    })
+    const [summary] = (await call('GET', `/examiner/exams/${seeded.exam.id}/attempts`, examiner)).json()
+    expect(summary.answered).toBe(0)
+    await afterTheExam()
+    await call('POST', `/examiner/exams/${seeded.exam.id}/publish`, examiner)
+    const result: StudentResult = (await call('GET', `/attempts/${attemptId}/result`, student)).json()
+    expect(result.questions.map((q) => [q.status, q.answer])).toEqual([
+      ['unanswered', null],
+      ['unanswered', null],
+    ])
+  })
+
   it('are private to the student', async () => {
     const { attemptId } = (await call('POST', '/attempts', student, { examId: seeded.exam.id })).json()
     const outsider = await signIn(ctx.app, 'outsider@test.edu')

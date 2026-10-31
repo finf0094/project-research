@@ -11,11 +11,8 @@ export function examState(exam: ExaminerExam, now: number): ExamState {
 
 export const STATE_TONE = { scheduled: 'accent', running: 'lime', review: 'warn', finished: 'ok' } as const
 
-/** The score that counts: none while undecided or sent back for more review. */
-export function finalScore(attempt: AttemptSummary): number | null {
-  const result = attempt.result
-  return result && result.verdict !== 'needs_review' ? result.score : null
-}
+/** The score that counts (the server gives none while undecided or sent back for more review). */
+export const finalScore = (attempt: AttemptSummary): number | null => attempt.result?.score ?? null
 
 export function passed(attempt: AttemptSummary): boolean | null {
   const score = finalScore(attempt)

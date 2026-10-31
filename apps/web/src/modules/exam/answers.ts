@@ -1,12 +1,10 @@
-import type { AnswerValue, Question } from '@exam/contracts'
+import { isEmptyAnswer, type AnswerValue, type Question } from '@exam/contracts'
 import { computed, ref, toRaw, type Ref } from 'vue'
 import { putAnswer } from '@/modules/offline'
 import type { ExamSession } from './exam-session'
 import { createTextDrafts } from './text-drafts'
 
-export function isAnswered(value: AnswerValue | undefined): boolean {
-  return Array.isArray(value) ? value.length > 0 : !!value?.trim()
-}
+export const isAnswered = (value: AnswerValue | undefined) => !isEmptyAnswer(value)
 
 /**
  * The student's answers. Choices are saved at once; text after a pause, on blur, on page hide and before
@@ -21,6 +19,8 @@ export function useAnswers(
   /** When each answer was last stored on the device during this visit (earlier ones show without a time). */
   const savedAt = ref<Record<string, number>>({})
   const saveFailed = ref(false)
+  /** Questions whose latest answer the device refused to store. */
+  const failedOn = ref<string[]>([])
   const drafts = createTextDrafts(persist)
   const answeredCount = computed(() => questions.value.filter((q) => isAnswered(answers.value[q.id])).length)
 
@@ -43,12 +43,14 @@ export function useAnswers(
     try {
       await rt.log.append('answer', { questionId, value }, () => putAnswer(rt.attemptId, questionId, value))
       saveFailed.value = false
+      failedOn.value = failedOn.value.filter((id) => id !== questionId)
       savedAt.value = { ...savedAt.value, [questionId]: Date.now() }
       rt.sync.wake()
     } catch (error) {
       // The device refused to store it (e.g. disk full): say so, never pretend it is saved.
       console.error('answer not saved', error)
       saveFailed.value = true
+      if (!failedOn.value.includes(questionId)) failedOn.value = [...failedOn.value, questionId]
     }
   }
 
@@ -62,8 +64,9 @@ export function useAnswers(
     drafts.discard()
     answers.value = saved
     savedAt.value = {}
+    failedOn.value = []
     saveFailed.value = false
   }
 
-  return { answers, savedAt, saveFailed, answeredCount, answer, clear, flush: drafts.flush, reset }
+  return { answers, savedAt, failedOn, saveFailed, answeredCount, answer, clear, flush: drafts.flush, reset }
 }

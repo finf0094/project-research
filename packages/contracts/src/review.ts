@@ -81,7 +81,7 @@ export const ExaminerExam = z.object({
   /** When students were allowed to see their results; null while they cannot. */
   publishedAt: Timestamp.nullable(),
   /** From when results may go out: the exam closed and its offline window passed. */
-  publishableAt: z.number(),
+  publishableAt: Timestamp,
   attempts: z.object({
     active: z.number().int().nonnegative(),
     toReview: z.number().int().nonnegative(),

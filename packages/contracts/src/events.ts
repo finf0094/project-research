@@ -26,6 +26,11 @@ export type SignalKind = z.infer<typeof SignalKind>
 export const AnswerValue = z.union([safeText(20_000), z.array(ShortText).max(50)])
 export type AnswerValue = z.infer<typeof AnswerValue>
 
+/** A cleared answer ('' or no options, or only spaces): kept in the log for order, but not an answer. */
+export function isEmptyAnswer(value: AnswerValue | null | undefined): boolean {
+  return Array.isArray(value) ? value.length === 0 : !value?.trim()
+}
+
 export const FragmentReason = z.enum(['risk', 'control', 'full'])
 export type FragmentReason = z.infer<typeof FragmentReason>
 

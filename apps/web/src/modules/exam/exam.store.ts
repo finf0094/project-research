@@ -49,7 +49,7 @@ export const useExamStore = defineStore('exam', () => {
   const question = computed(() => questions.value[current.value])
   const finished = computed(() => FINISHED.includes(status.value))
   const locked = computed(() => endedBy.value !== null || finished.value)
-  const { answers, savedAt, saveFailed, answeredCount, answer, clear, flush, reset } = useAnswers(
+  const { answers, savedAt, failedOn, saveFailed, answeredCount, answer, clear, flush, reset } = useAnswers(
     () => runtime,
     questions,
     locked,
@@ -171,6 +171,7 @@ export const useExamStore = defineStore('exam', () => {
     attempt,
     answers,
     savedAt,
+    failedOn,
     current,
     deadline,
     remainingMs,

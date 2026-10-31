@@ -12,7 +12,10 @@ export function useTextSize() {
   return { size, scale }
 }
 
-/** Questions the student marked to come back to; a private note of this device, never sent anywhere. */
+/**
+ * Questions the student marked to come back to; a private note of this device, never sent anywhere.
+ * `forget()` once the exam is over, so a shared computer keeps nothing.
+ */
 export function useFlags(attemptId: string) {
   const flagged = useStored<string[]>(`exam:flags:${attemptId}`, [])
   const has = (questionId: string) => flagged.value.includes(questionId)
@@ -20,5 +23,6 @@ export function useFlags(attemptId: string) {
     (flagged.value = has(questionId)
       ? flagged.value.filter((id) => id !== questionId)
       : [...flagged.value, questionId])
-  return { flagged, has, toggle }
+  const forget = () => (flagged.value = [])
+  return { flagged, has, toggle, forget }
 }

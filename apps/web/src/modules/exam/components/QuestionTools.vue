@@ -1,29 +1,26 @@
 <script setup lang="ts">
 import { Flag } from 'lucide-vue-next'
+import { useId } from 'vue'
 import { TEXT_SIZES, type TextSize } from '../reading'
 
 /** Reading comfort and memory: the text size, and a mark to come back to this question. */
 const size = defineModel<TextSize>('size', { required: true })
 defineProps<{ flagged: boolean }>()
 defineEmits<{ flag: [] }>()
+const name = useId()
 </script>
 
 <template>
   <div class="tools">
-    <div class="sizes" role="radiogroup" :aria-label="$t('exam.tools.size')">
-      <button
-        v-for="s in TEXT_SIZES"
-        :key="s"
-        type="button"
-        role="radio"
-        :class="[s, { on: size === s }]"
-        :aria-checked="size === s"
-        :aria-label="$t(`exam.tools.sizes.${s}`)"
-        @click="size = s"
-      >
-        A
-      </button>
-    </div>
+    <!-- Native radios: arrow keys and one tab stop come for free. -->
+    <fieldset class="sizes">
+      <legend class="visually-hidden">{{ $t('exam.tools.size') }}</legend>
+      <label v-for="s in TEXT_SIZES" :key="s" :class="[s, { on: size === s }]">
+        <input v-model="size" class="visually-hidden" type="radio" :value="s" :name="name" />
+        <span aria-hidden="true">A</span>
+        <span class="visually-hidden">{{ $t(`exam.tools.sizes.${s}`) }}</span>
+      </label>
+    </fieldset>
     <button
       type="button"
       class="flag"
@@ -52,13 +49,16 @@ defineEmits<{ flag: [] }>()
   background: var(--surface-2);
 }
 .sizes {
+  margin: 0;
   padding: 4px;
-  button {
+  border: 0;
+  label {
+    display: grid;
+    place-items: center;
     inline-size: 32px;
     block-size: 32px;
-    border: 0;
     border-radius: 50%;
-    background: none;
+    cursor: pointer;
     color: var(--text-2);
     font-weight: 700;
     transition:
@@ -77,6 +77,10 @@ defineEmits<{ flag: [] }>()
       background: var(--surface);
       color: var(--text);
       box-shadow: var(--shadow-1);
+    }
+    &:has(:focus-visible) {
+      outline: 3px solid var(--accent);
+      outline-offset: 1px;
     }
   }
 }

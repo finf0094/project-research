@@ -1,4 +1,5 @@
 import type { AttemptDetail, DecisionBody, ExaminerCommandBody } from '@exam/contracts'
+import { isEmptyAnswer } from '@exam/contracts'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
 import {
@@ -25,7 +26,10 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
   const [student] = await db.select({ name: users.name }).from(users).where(eq(users.id, attempt.userId))
   const questionRows = await attemptQuestions(db, exam.id, attempt.ticket)
   const answerRows = await db.select().from(answers).where(eq(answers.attemptId, attemptId))
-  const valueOf = new Map(answerRows.map((a) => [a.questionId, a.value]))
+  // A cleared answer is no answer: it counts neither as answered nor as wrong.
+  const valueOf = new Map(
+    answerRows.filter((a) => !isEmptyAnswer(a.value)).map((a) => [a.questionId, a.value]),
+  )
   const timeline = await db
     .select({ seq: events.seq, type: events.type, at: events.clientAt, receivedAt: events.receivedAt })
     .from(events)

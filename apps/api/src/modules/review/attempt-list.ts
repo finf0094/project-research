@@ -1,4 +1,5 @@
 import type { AttemptSummary, MarkerKind, Verdict } from '@exam/contracts'
+import { isEmptyAnswer } from '@exam/contracts'
 import { and, asc, count, desc, eq, ne, sql } from 'drizzle-orm'
 import { answers, attempts, decisions, markers, questions, users } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
@@ -50,7 +51,11 @@ export async function listAttempts(deps: Deps, ownerId: string, examId: string):
   const decisionOf = new Map(decisionRows.map((d) => [d.attemptId, d]))
 
   return rows.map(({ attempt, studentName }) => {
-    const given = new Map((answersOf.get(attempt.id) ?? []).map((a) => [a.questionId, a.value]))
+    const given = new Map(
+      (answersOf.get(attempt.id) ?? [])
+        .filter((a) => !isEmptyAnswer(a.value))
+        .map((a) => [a.questionId, a.value]),
+    )
     const asked = attempt.ticket ? examQuestions.filter((q) => attempt.ticket!.includes(q.id)) : examQuestions
     const points = oral ? null : scorePoints(asked, given)
     const kinds = (markersOf.get(attempt.id) ?? []).toSorted((a, b) => b.n - a.n)
@@ -84,9 +89,11 @@ function resultOf(
   decision: { verdict: Verdict; score: number | null } | undefined,
   points: { auto: number; max: number; open: boolean } | null,
 ) {
-  // An oral exam has no automatic points: only the examiner's score stands.
-  const score = points ? finalScore(decision?.score ?? null, points) : (decision?.score ?? null)
-  return decision ? { verdict: decision.verdict, score } : null
+  if (!decision) return null
+  // Sent back for more review: no score stands yet. An oral exam has only the examiner's score.
+  if (decision.verdict === 'needs_review') return { verdict: decision.verdict, score: null }
+  const score = points ? finalScore(decision.score, points) : decision.score
+  return { verdict: decision.verdict, score }
 }
 
 function group<T extends { attemptId: string }>(list: T[]) {
