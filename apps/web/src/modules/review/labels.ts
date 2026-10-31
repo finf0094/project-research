@@ -9,6 +9,8 @@ export const MARKER_LABEL: Record<MarkerKind, string> = {
   noise: 'Голос или шум',
   tab_hidden: 'Уход со вкладки',
   camera_off: 'Камера выключена',
+  looking_away: 'Взгляд в сторону',
+  object_detected: 'Телефон или книга в кадре',
   paste: 'Вставка текста',
   chain_broken: 'Журнал событий нарушен',
   missing_fragment: 'Фрагмент записи не загружен',

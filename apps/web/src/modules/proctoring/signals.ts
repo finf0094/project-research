@@ -1,7 +1,8 @@
 import type { RiskLevel, SignalKind } from '@exam/contracts'
 
 /** Signals measured continuously from camera and microphone; the rest are browser events. */
-export type ObservedKind = 'face_missing' | 'multiple_faces' | 'too_dark' | 'noise'
+export type ObservedKind =
+  'face_missing' | 'multiple_faces' | 'too_dark' | 'noise' | 'looking_away' | 'object_detected'
 
 interface Rule {
   /** The condition must hold this long before the signal turns on (a glance away is not a signal). */
@@ -15,6 +16,9 @@ const RULES: Record<ObservedKind, Rule> = {
   multiple_faces: { onAfterMs: 2000, offAfterMs: 2000 },
   too_dark: { onAfterMs: 5000, offAfterMs: 3000 },
   noise: { onAfterMs: 3000, offAfterMs: 3000 },
+  // Reading the question and thinking means glancing around; only a sustained look away counts.
+  looking_away: { onAfterMs: 5000, offAfterMs: 2000 },
+  object_detected: { onAfterMs: 2000, offAfterMs: 4000 },
 }
 
 export interface Transition {
@@ -78,4 +82,6 @@ export const HINTS: Partial<Record<SignalKind, string>> = {
   noise: 'Вокруг шумно. Постарайтесь найти тихое место.',
   tab_hidden: 'Пожалуйста, оставайтесь на вкладке экзамена.',
   camera_off: 'Камера выключена. Включите её, чтобы продолжить под наблюдением.',
+  looking_away: 'Пожалуйста, смотрите на экран.',
+  object_detected: 'Уберите телефон и книги из поля зрения камеры.',
 }

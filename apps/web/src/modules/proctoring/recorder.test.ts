@@ -30,7 +30,7 @@ afterEach(() => {
 })
 
 describe('recorder', () => {
-  it('produces a standalone chunk every 10 seconds and keeps only the last few minutes', async () => {
+  it('produces a standalone chunk every 10 seconds', async () => {
     let t = 0
     const chunks: RecordedChunk[] = []
     const recorder = startRecorder(
@@ -43,7 +43,6 @@ describe('recorder', () => {
       await vi.advanceTimersByTimeAsync(10_005)
     }
     expect(chunks).toHaveLength(25)
-    expect(recorder.chunks().length).toBeLessThanOrEqual(19)
     const stopped = recorder.stop()
     await vi.advanceTimersByTimeAsync(10)
     await stopped

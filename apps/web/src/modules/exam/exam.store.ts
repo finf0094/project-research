@@ -21,6 +21,7 @@ import { submitAttempt } from './api'
 import { loadAttempt } from './local-attempt'
 import { acquireTabLock } from './tab-lock'
 import { createTextDrafts } from './text-drafts'
+import { keepScreenOn } from './wake-lock'
 
 const FINISHED: readonly AttemptStatus[] = ['submitted', 'ready_for_review', 'decided']
 
@@ -31,6 +32,7 @@ interface Runtime {
   sync: SyncHandle
   timer: ReturnType<typeof setInterval>
   releaseLock: () => void
+  releaseScreen: () => void
   onPageHide: () => void
 }
 
@@ -106,7 +108,16 @@ export const useExamStore = defineStore('exam', () => {
     })
     const onPageHide = () => void drafts.flush()
     window.addEventListener('pagehide', onPageHide)
-    runtime = { attemptId, log, clock, sync, releaseLock, onPageHide, timer: setInterval(tick, 1000) }
+    runtime = {
+      attemptId,
+      log,
+      clock,
+      sync,
+      releaseLock,
+      onPageHide,
+      releaseScreen: keepScreenOn(),
+      timer: setInterval(tick, 1000),
+    }
     tick()
 
     if (!locked.value) {
@@ -174,6 +185,7 @@ export const useExamStore = defineStore('exam', () => {
       clearInterval(runtime.timer)
       window.removeEventListener('pagehide', runtime.onPageHide)
       runtime.releaseLock()
+      runtime.releaseScreen()
     }
     drafts.discard()
     runtime = null

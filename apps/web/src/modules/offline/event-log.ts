@@ -32,7 +32,7 @@ export function openEventLog(
         const sealed = await seal({ seq: current.seq + 1, type, data, at: now() }, current.hash, key)
         const next = { seq: sealed.seq, hash: sealed.hash }
         try {
-          await db.transaction('rw', db.events, db.attempts, db.answers, db.chunks, async () => {
+          await db.transaction('rw', db.events, db.attempts, db.answers, db.chunks, db.pins, async () => {
             await db.events.add({ ...sealed, attemptId })
             await db.attempts.update(attemptId, { head: next })
             await onWrite?.()

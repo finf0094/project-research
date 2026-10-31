@@ -2,6 +2,7 @@ import type { RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import type { EventLog } from '@/modules/offline'
+import { savedTier } from './device-tier'
 import { startProctor, type Proctor } from './proctor'
 import { requestCamera } from './sensors'
 
@@ -63,6 +64,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
       const proctor = await abortable(
         startProctor(media, {
           ...opts,
+          tier: savedTier(),
           onHint: (kind) => (hint.value = kind),
           onRisk: (level) => (risk.value = level),
         }),

@@ -16,6 +16,10 @@ export const SignalKind = z.enum([
   'tab_hidden',
   'camera_off',
   'paste',
+  /** Head turned away or eyes off the screen for a while (face landmarks). */
+  'looking_away',
+  /** A phone or a book in view (object detector). */
+  'object_detected',
 ])
 export type SignalKind = z.infer<typeof SignalKind>
 
@@ -24,6 +28,10 @@ export type AnswerValue = z.infer<typeof AnswerValue>
 
 export const FragmentReason = z.enum(['risk', 'control', 'full'])
 export type FragmentReason = z.infer<typeof FragmentReason>
+
+/** How much on-device analysis this computer can afford; chosen at preflight and lowered automatically. */
+export const DeviceTier = z.enum(['full', 'lite', 'minimal'])
+export type DeviceTier = z.infer<typeof DeviceTier>
 
 // Every schema here is strict: the server verifies hashes over exactly what the client sealed,
 // so silently stripping unknown keys would make an untouched chain look tampered with.
@@ -63,6 +71,7 @@ export const Event = z.discriminatedUnion('type', [
       .refine((d) => d.tStart <= d.tEnd, 'tStart must not be after tEnd'),
   ),
   event('command.received', z.strictObject({ commandId: Id })),
+  event('proctoring.mode', z.strictObject({ tier: DeviceTier })),
 ])
 export type Event = z.infer<typeof Event>
 export type EventType = Event['type']

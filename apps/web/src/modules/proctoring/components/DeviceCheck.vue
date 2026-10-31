@@ -2,6 +2,7 @@
 import { CircleAlert, CircleCheck } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { AppButton } from '@/shared/ui'
+import { saveTier, tierFromTiming } from '../device-tier'
 import { createSensors, requestCamera, type Sensors } from '../sensors'
 import { DARK_BRIGHTNESS } from '../signals'
 
@@ -15,6 +16,7 @@ let stream: MediaStream | null = null
 let sensors: Sensors | null = null
 let timer: ReturnType<typeof setInterval> | undefined
 let unmounted = false
+const timings: number[] = []
 
 const checks = computed(() => [
   {
@@ -48,11 +50,16 @@ async function start() {
   }
   if (unmounted) return release()
   if (video.value) video.value.srcObject = stream
-  sensors = await createSensors(stream)
+  // The check runs the heaviest tier and measures it: that decides how much this computer analyses in the exam.
+  sensors = await createSensors(stream, 'full')
   if (unmounted) return release()
   state.value = 'running'
   timer = setInterval(() => {
-    faces.value = sensors?.faces(performance.now()) ?? null
+    const started = performance.now()
+    const frame = sensors?.analyze(performance.now(), true)
+    timings.push(performance.now() - started)
+    if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))
+    faces.value = frame?.faces ?? null
     brightness.value = sensors?.brightness() ?? 255
     emit(
       'ready',
@@ -61,13 +68,19 @@ async function start() {
   }, 500)
 }
 
-// The check frees the camera when it is done; the exam page asks for it again (the permission is remembered).
-onMounted(start)
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.floor(sorted.length / 2)]!
+}
+
 function release() {
   clearInterval(timer)
   sensors?.dispose()
   stream?.getTracks().forEach((t) => t.stop())
 }
+
+// The check frees the camera when it is done; the exam page asks for it again (the permission is remembered).
+onMounted(start)
 onUnmounted(() => {
   unmounted = true
   release()

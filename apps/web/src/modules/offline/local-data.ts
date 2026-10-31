@@ -1,6 +1,6 @@
 import type { AnswerValue } from '@exam/contracts'
 import Dexie from 'dexie'
-import { db, type LocalAttempt, type LocalChunk } from './db'
+import { db, type LocalAttempt, type LocalChunk, type PendingPin, type RingChunk } from './db'
 
 // The only way other modules touch local data: plain functions over the tables, no Dexie leaking out.
 
@@ -38,3 +38,26 @@ export const countChunks = (attemptId: string) =>
 
 export const listEvents = (attemptId: string) =>
   db.events.where('[attemptId+seq]').between([attemptId, Dexie.minKey], [attemptId, Dexie.maxKey]).toArray()
+
+const ringOf = (attemptId: string) =>
+  db.ring.where('[attemptId+tStart]').between([attemptId, Dexie.minKey], [attemptId, Dexie.maxKey])
+
+/** Adds a recorded chunk to the ring and drops what is older than `keepMs`; survives reloads. */
+export async function putRingChunk(chunk: RingChunk, keepMs: number) {
+  await db.transaction('rw', db.ring, async () => {
+    await db.ring.put(chunk)
+    await db.ring
+      .where('[attemptId+tStart]')
+      .between([chunk.attemptId, Dexie.minKey], [chunk.attemptId, chunk.tEnd - keepMs])
+      .delete()
+  })
+}
+
+export const listRing = (attemptId: string) => ringOf(attemptId).toArray()
+
+/** Recording is no longer needed once the attempt is finished: what was pinned is in `chunks`. */
+export const clearRing = (attemptId: string) => ringOf(attemptId).delete()
+
+export const addPin = (pin: PendingPin) => db.pins.add(pin)
+export const listPins = (attemptId: string) => db.pins.where('attemptId').equals(attemptId).toArray()
+export const deletePin = (id: number) => db.pins.delete(id)

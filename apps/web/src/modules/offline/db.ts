@@ -1,4 +1,4 @@
-import type { AnswerValue, AttemptStatus, StudentExam } from '@exam/contracts'
+import type { AnswerValue, AttemptStatus, FragmentReason, StudentExam } from '@exam/contracts'
 import type { ChainHead, SealedEvent } from '@exam/integrity'
 import Dexie, { type EntityTable, type Table } from 'dexie'
 
@@ -40,12 +40,31 @@ export interface LocalChunk {
   blob: Blob
 }
 
-/** Internal to the offline module: other modules use the functions in store.ts. */
+/** A piece of the recording ring: the last few minutes, kept on the device and never sent by itself. */
+export interface RingChunk {
+  attemptId: string
+  tStart: number
+  tEnd: number
+  blob: Blob
+}
+
+/** A fragment requested but not yet pinned (it may still need chunks that are being recorded). */
+export interface PendingPin {
+  id?: number
+  attemptId: string
+  reason: FragmentReason
+  tStart: number
+  tEnd: number
+}
+
+/** Internal to the offline module: other modules use the functions in local-data.ts. */
 export const db = new Dexie('exam') as Dexie & {
   attempts: EntityTable<LocalAttempt, 'id'>
   events: Table<LocalEvent, [string, number]>
   answers: Table<LocalAnswer, [string, string]>
   chunks: Table<LocalChunk, [string, string]>
+  ring: Table<RingChunk, [string, number]>
+  pins: Table<PendingPin, number>
 }
 
 db.version(1).stores({
@@ -53,4 +72,6 @@ db.version(1).stores({
   events: '[attemptId+seq]',
   answers: '[attemptId+questionId]',
   chunks: '[attemptId+hash], [attemptId+tStart]',
+  ring: '[attemptId+tStart]',
+  pins: '++id, attemptId',
 })

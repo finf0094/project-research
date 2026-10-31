@@ -1,7 +1,8 @@
-import type { RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
+import type { DeviceTier, RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import type { EventLog } from '@/modules/offline'
+import { lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
-import { startRecorder, type Recorder } from './recorder'
+import { startRecorder } from './recorder'
 import { createSensors } from './sensors'
 import {
   ANALYSIS_FPS,
@@ -17,6 +18,7 @@ export interface ProctorOptions {
   attemptId: string
   log: EventLog
   recording: RecordingMode
+  tier: DeviceTier
   /** Server-time clock of the attempt; signal and fragment times use it. */
   now: () => number
   onHint(kind: SignalKind | null): void
@@ -33,37 +35,44 @@ const HINT_REPEAT_MS = 60_000
 /** The "stay on the tab" hint is only visible after the student comes back, so it lingers a little. */
 const RETURN_HINT_MS = 10_000
 const RECENT_MS = 2 * 60_000
-const RISK_FRAGMENT_MS = 30_000
-/**
- * The server asks for control fragments at random moments. Without network it cannot, so the client
- * takes one itself when none was taken for this long (the server reconciles both kinds after the exam).
- */
+/** Evidence kept around a risky moment: short at medium risk, longer at high risk (review, section 10.1). */
+const FRAGMENT_MS: Record<'medium' | 'high', number> = { medium: 10_000, high: 30_000 }
+const FRAGMENT_COOLDOWN_MS = 60_000
+/** The server asks for control fragments; offline it cannot, so the client takes one itself after this long. */
 const SELF_CONTROL_AFTER_MS = 15 * 60_000
 const CONTROL_SECONDS = 20
+/** Object detection is the heaviest model: run it every few seconds only. */
+const OBJECTS_EVERY_MS = 2000
+/** Average analysis time above which the tier is lowered one step. */
+const SLOW_ANALYSIS_MS = 250
 
 /**
- * Local adaptive proctoring: measures, turns measurements into signals, shows hints, and decides
- * how much evidence to keep. It never judges; signals and fragments go into the sealed event log.
+ * Local adaptive proctoring: measures, turns measurements into signals, shows hints, and decides how much
+ * evidence to keep. It never judges; signals and fragments go into the sealed event log.
  */
 export async function startProctor(stream: MediaStream, options: ProctorOptions): Promise<Proctor> {
   const { attemptId, log, recording, now } = options
-  const sensors = await createSensors(stream)
+  let tier = options.tier
+  const sensors = await createSensors(stream, tier)
   const tracker = createSignalTracker()
   const active = new Set<SignalKind>()
   let activations: number[] = []
   const lastHint = new Map<SignalKind, number>()
   let returnHintUntil = 0
   let risk: RiskLevel = 'low'
-  let lastRiskFragment = -Infinity
+  let lastFragment = -Infinity
   let lastControl = now()
+  let lastObjects = -Infinity
+  let analysisMs = 0
   let timer: ReturnType<typeof setTimeout> | undefined
 
-  let recorder: Recorder | null = null
-  const evidence = createEvidence(attemptId, log, () => recorder)
-  recorder = startRecorder(stream, now, (chunk) => {
-    if (recording === 'full') evidence.request('full', chunk.tStart, chunk.tEnd)
-    evidence.onChunk()
+  const evidence = createEvidence(attemptId, log)
+  let savingChunk: Promise<void> = Promise.resolve()
+  const recorder = startRecorder(stream, now, (chunk) => {
+    savingChunk = savingChunk.then(() => evidence.onChunk(chunk))
+    if (recording === 'full') void evidence.request('full', chunk.tStart, chunk.tEnd)
   })
+  void log.append('proctoring.mode', { tier })
 
   /** Shows the hint for the first active signal (or the lingering tab hint) and logs it once a minute per kind. */
   function showHint() {
@@ -99,12 +108,14 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     const next = riskLevel(active, activations.length)
     if (next === risk) return
     void log.append('risk.changed', { from: risk, to: next })
+    const previous = risk
     risk = next
     options.onRisk(next)
-    // With full recording every chunk is already kept; a risk fragment would only upload them twice.
-    if (next === 'high' && recording !== 'full' && now() - lastRiskFragment > 2 * RISK_FRAGMENT_MS) {
-      lastRiskFragment = now()
-      evidence.request('risk', now() - RISK_FRAGMENT_MS, now() + RISK_FRAGMENT_MS)
+    // Evidence is kept when risk rises. With full recording every chunk is already kept, so it is skipped.
+    const rising = next === 'high' || (next === 'medium' && previous === 'low')
+    if (next !== 'low' && rising && recording !== 'full' && now() - lastFragment > FRAGMENT_COOLDOWN_MS) {
+      lastFragment = now()
+      void evidence.request('risk', now() - FRAGMENT_MS[next], now() + FRAGMENT_MS[next])
     }
   }
 
@@ -113,20 +124,45 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     if (transition) setSignal(transition.kind, transition.active)
   }
 
-  function tick() {
+  function analyze() {
+    const started = performance.now()
     const dark = sensors.brightness() < DARK_BRIGHTNESS
     observe('too_dark', dark)
-    const faces = sensors.faces(performance.now())
-    if (faces !== null) {
+    const withObjects = tier === 'full' && now() - lastObjects > OBJECTS_EVERY_MS
+    if (withObjects) lastObjects = now()
+    const frame = tier === 'minimal' ? null : sensors.analyze(performance.now(), withObjects)
+    if (frame?.faces != null) {
       // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.
-      observe('face_missing', faces === 0 && !dark)
-      observe('multiple_faces', faces >= 2)
+      observe('face_missing', frame.faces === 0 && !dark)
+      observe('multiple_faces', frame.faces >= 2)
     }
+    if (frame?.lookingAway != null) observe('looking_away', frame.lookingAway)
+    if (frame?.object != null) observe('object_detected', frame.object)
     observe('noise', sensors.loudness() > NOISE_RMS)
+    adaptTier(performance.now() - started)
+  }
+
+  /** Keeps the exam smooth on weak computers: lowers the tier when analysis is consistently slow. */
+  function adaptTier(ms: number) {
+    analysisMs = analysisMs ? analysisMs * 0.8 + ms * 0.2 : ms
+    if (analysisMs > SLOW_ANALYSIS_MS && tier !== 'minimal') {
+      tier = lowerTier(tier)
+      analysisMs = 0
+      void log.append('proctoring.mode', { tier })
+    }
+  }
+
+  function tick() {
+    analyze()
     updateRisk()
     showHint()
     if (now() - lastControl > SELF_CONTROL_AFTER_MS) capture(CONTROL_SECONDS)
-    timer = setTimeout(tick, 1000 / ANALYSIS_FPS[risk])
+    timer = setTimeout(tick, 1000 / ANALYSIS_FPS[tier === 'minimal' ? 'low' : risk])
+  }
+
+  function capture(seconds: number) {
+    lastControl = now()
+    void evidence.request('control', now(), now() + seconds * 1000)
   }
 
   const onVisibility = () => setSignal('tab_hidden', document.visibilityState === 'hidden')
@@ -140,18 +176,14 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   document.addEventListener('paste', onPaste)
   tick()
 
-  function capture(seconds: number) {
-    lastControl = now()
-    evidence.request('control', now(), now() + seconds * 1000)
-  }
-
   return {
     capture,
     async stop() {
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisibility)
       document.removeEventListener('paste', onPaste)
-      await recorder?.stop()
+      await recorder.stop()
+      await savingChunk
       await evidence.finish()
       sensors.dispose()
     },

@@ -1,13 +1,19 @@
 export { createServerClock, type ServerClock } from './clock'
-export type { EndReason, LocalAttempt, LocalChunk } from './db'
+export type { EndReason, LocalAttempt, LocalChunk, PendingPin, RingChunk } from './db'
 export { openEventLog, type EventLog } from './event-log'
 export {
+  addPin,
+  clearRing,
   countChunks,
+  deletePin,
   getAttempt,
   listAnswers,
   listEvents,
+  listPins,
+  listRing,
   putAnswer,
   putChunks,
+  putRingChunk,
   saveAttempt,
   updateAttempt,
 } from './local-data'
