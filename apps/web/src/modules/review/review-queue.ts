@@ -12,7 +12,8 @@ export interface QueuePlace {
 export function queuePlace(attempts: AttemptSummary[], attemptId: string): QueuePlace {
   const waiting = attempts.filter((a) => a.status === 'ready_for_review')
   const index = waiting.findIndex((a) => a.id === attemptId)
-  const next = index >= 0 ? waiting[index + 1] : waiting.find((a) => a.id !== attemptId)
+  // After the last one, back to the riskiest still waiting.
+  const next = (index >= 0 ? waiting[index + 1] : undefined) ?? waiting.find((a) => a.id !== attemptId)
   return {
     position: index >= 0 ? index + 1 : null,
     total: waiting.length,

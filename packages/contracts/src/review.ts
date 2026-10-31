@@ -134,7 +134,8 @@ export const AttemptDetail = z.object({
 })
 export type AttemptDetail = z.infer<typeof AttemptDetail>
 
-export const UpdateMarkerBody = z.object({ status: z.enum(['confirmed', 'dismissed']) })
+/** The examiner's judgement of a marker; `pending` takes a judgement back. */
+export const UpdateMarkerBody = z.object({ status: z.enum(['pending', 'confirmed', 'dismissed']) })
 export type UpdateMarkerBody = z.infer<typeof UpdateMarkerBody>
 
 export const DecisionBody = z.object({

@@ -18,9 +18,9 @@ export function useAnswers(
   const answers = ref<Record<string, AnswerValue>>({})
   /** When each answer was last stored on the device during this visit (earlier ones show without a time). */
   const savedAt = ref<Record<string, number>>({})
-  const saveFailed = ref(false)
-  /** Questions whose latest answer the device refused to store. */
+  /** Questions whose latest answer the device refused to store; any of them means "not all saved". */
   const failedOn = ref<string[]>([])
+  const saveFailed = computed(() => failedOn.value.length > 0)
   const drafts = createTextDrafts(persist)
   const answeredCount = computed(() => questions.value.filter((q) => isAnswered(answers.value[q.id])).length)
 
@@ -42,14 +42,12 @@ export function useAnswers(
     if (!rt || value === undefined) return
     try {
       await rt.log.append('answer', { questionId, value }, () => putAnswer(rt.attemptId, questionId, value))
-      saveFailed.value = false
       failedOn.value = failedOn.value.filter((id) => id !== questionId)
       savedAt.value = { ...savedAt.value, [questionId]: Date.now() }
       rt.sync.wake()
     } catch (error) {
       // The device refused to store it (e.g. disk full): say so, never pretend it is saved.
       console.error('answer not saved', error)
-      saveFailed.value = true
       if (!failedOn.value.includes(questionId)) failedOn.value = [...failedOn.value, questionId]
     }
   }
@@ -65,7 +63,6 @@ export function useAnswers(
     answers.value = saved
     savedAt.value = {}
     failedOn.value = []
-    saveFailed.value = false
   }
 
   return { answers, savedAt, failedOn, saveFailed, answeredCount, answer, clear, flush: drafts.flush, reset }

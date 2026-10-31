@@ -3,6 +3,13 @@ import { defineMessages } from '@/shared/i18n'
 export const authoringMessages = defineMessages({
   ru: {
     authoring: {
+      summary: '{n} вопр. · {points} б.',
+      steps: { label: 'Шаги', settings: 'Основное', questions: 'Вопросы', participants: 'Участники' },
+      preview: {
+        title: 'Так увидит студент',
+        tag: 'превью',
+        note: 'Правильные ответы студенту не показываются.',
+      },
       newTitle: 'Новый экзамен',
       editTitle: 'Экзамен',
       back: 'К экзаменам',
@@ -28,6 +35,13 @@ export const authoringMessages = defineMessages({
         ticketSize: 'Вопросов в билете',
       },
       questions: {
+        untitled: 'Без текста',
+        toFix: 'Исправить: {n}',
+        needsFix: 'нужно исправить',
+        duplicate: 'Дублировать вопрос',
+        pointsShort: 'б.',
+        markOne: 'Варианты — отметьте один правильный',
+        markMany: 'Варианты — отметьте все правильные',
         title: 'Вопросы',
         oralHint: 'Для устного экзамена это пул: каждый студент получит случайный билет из него.',
         number: 'Вопрос {n}',
@@ -58,6 +72,13 @@ export const authoringMessages = defineMessages({
   },
   kk: {
     authoring: {
+      summary: '{n} сұрақ · {points} ұпай',
+      steps: { label: 'Қадамдар', settings: 'Негізгі', questions: 'Сұрақтар', participants: 'Қатысушылар' },
+      preview: {
+        title: 'Студент осылай көреді',
+        tag: 'алдын ала',
+        note: 'Дұрыс жауаптар студентке көрсетілмейді.',
+      },
       newTitle: 'Жаңа емтихан',
       editTitle: 'Емтихан',
       back: 'Емтихандарға',
@@ -83,6 +104,13 @@ export const authoringMessages = defineMessages({
         ticketSize: 'Билеттегі сұрақтар саны',
       },
       questions: {
+        untitled: 'Мәтінсіз',
+        toFix: 'Түзету: {n}',
+        needsFix: 'түзету керек',
+        duplicate: 'Сұрақтың көшірмесін жасау',
+        pointsShort: 'ұп.',
+        markOne: 'Нұсқалар — бір дұрысын белгілеңіз',
+        markMany: 'Нұсқалар — барлық дұрысын белгілеңіз',
         title: 'Сұрақтар',
         oralHint: 'Ауызша емтихан үшін бұл — сұрақтар қоры: әр студент одан кездейсоқ билет алады.',
         number: 'Сұрақ {n}',
@@ -113,6 +141,13 @@ export const authoringMessages = defineMessages({
   },
   en: {
     authoring: {
+      summary: '{n} questions · {points} points',
+      steps: { label: 'Steps', settings: 'Basics', questions: 'Questions', participants: 'Participants' },
+      preview: {
+        title: 'What the student sees',
+        tag: 'preview',
+        note: 'Correct answers are never shown to students.',
+      },
       newTitle: 'New exam',
       editTitle: 'Exam',
       back: 'Back to exams',
@@ -138,6 +173,13 @@ export const authoringMessages = defineMessages({
         ticketSize: 'Questions per ticket',
       },
       questions: {
+        untitled: 'No text yet',
+        toFix: 'To fix: {n}',
+        needsFix: 'needs fixing',
+        duplicate: 'Duplicate question',
+        pointsShort: 'pt',
+        markOne: 'Options — mark the correct one',
+        markMany: 'Options — mark every correct one',
         title: 'Questions',
         oralHint: 'For an oral exam this is a pool: each student draws a random ticket from it.',
         number: 'Question {n}',

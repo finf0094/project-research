@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Marker } from '@exam/contracts'
+import type { Marker, UpdateMarkerBody } from '@exam/contracts'
 import { formatTime } from '@/shared/lib/format'
 import { IconTile } from '@/shared/ui'
 import { MARKER_ICON, MARKER_TONE } from '../marker-look'
@@ -8,8 +8,11 @@ import { MARKER_ICON, MARKER_TONE } from '../marker-look'
  * The markers of an attempt, each with what it is, when, where it came from and the examiner's judgement.
  * The row opens its fragment on the stage; context markers (offline) explain, they are never judged.
  */
-defineProps<{ markers: Marker[]; selected: string | null; editable: boolean }>()
-const emit = defineEmits<{ select: [id: string]; judge: [id: string, status: 'confirmed' | 'dismissed'] }>()
+defineProps<{ markers: Marker[]; selected: string | null; editable: boolean; busy: boolean }>()
+const emit = defineEmits<{ select: [id: string]; judge: [id: string, status: UpdateMarkerBody['status']] }>()
+/** Pressing a judgement again takes it back. */
+const judge = (m: Marker, status: 'confirmed' | 'dismissed') =>
+  emit('judge', m.id, m.status === status ? 'pending' : status)
 const origin = (m: Marker) =>
   m.discrepancy
     ? 'discrepancy'
@@ -51,7 +54,8 @@ const origin = (m: Marker) =>
           type="button"
           class="confirm"
           :aria-pressed="m.status === 'confirmed'"
-          @click="emit('judge', m.id, 'confirmed')"
+          :disabled="busy"
+          @click="judge(m, 'confirmed')"
         >
           {{ $t('review.markers.confirm') }}
         </button>
@@ -59,7 +63,8 @@ const origin = (m: Marker) =>
           type="button"
           class="dismiss"
           :aria-pressed="m.status === 'dismissed'"
-          @click="emit('judge', m.id, 'dismissed')"
+          :disabled="busy"
+          @click="judge(m, 'dismissed')"
         >
           {{ $t('review.markers.dismiss') }}
         </button>

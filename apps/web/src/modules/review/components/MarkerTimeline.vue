@@ -8,6 +8,15 @@ const emit = defineEmits<{ select: [id: string] }>()
 
 const span = computed(() => Math.max(1, props.end - props.start))
 const x = (t: number) => ((Math.min(Math.max(t, props.start), props.end) - props.start) / span.value) * 100
+/** One tab stop for the whole timeline (the selected mark, else the first); arrows move between marks. */
+const focusable = computed(() => props.selected ?? props.markers[0]?.id ?? null)
+function step(event: KeyboardEvent, index: number, by: -1 | 1) {
+  const next = props.markers[index + by]
+  if (!next) return
+  emit('select', next.id)
+  const marks = (event.currentTarget as SVGElement).parentElement?.querySelectorAll<SVGElement>('.mark')
+  marks?.[index + by]?.focus()
+}
 const ticks = computed(() => [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, t: props.start + f * span.value })))
 </script>
 
@@ -21,7 +30,7 @@ const ticks = computed(() => [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, t: props.s
     >
       <rect x="0" y="9" width="100" height="6" rx="3" class="track" />
       <rect
-        v-for="m in markers"
+        v-for="(m, i) in markers"
         :key="m.id"
         :x="x(m.startAt)"
         y="2"
@@ -30,12 +39,15 @@ const ticks = computed(() => [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, t: props.s
         rx="1"
         class="mark"
         :class="[m.status, { selected: m.id === selected }]"
-        tabindex="0"
+        :tabindex="m.id === focusable ? 0 : -1"
         role="button"
+        :aria-pressed="m.id === selected"
         :aria-label="`${$t(`review.marker.${m.kind}`)}, ${formatTime(m.startAt)}`"
         @click="emit('select', m.id)"
         @keydown.enter.prevent="emit('select', m.id)"
         @keydown.space.prevent="emit('select', m.id)"
+        @keydown.right.prevent="step($event, i, 1)"
+        @keydown.left.prevent="step($event, i, -1)"
       />
     </svg>
     <figcaption class="ticks">
@@ -74,10 +86,12 @@ svg {
   &.dismissed {
     fill: var(--ok);
   }
+  /* The viewBox is stretched: a non-scaling stroke keeps the ring 2px whatever the width. */
   &.selected,
   &:focus-visible {
     stroke: var(--lime);
-    stroke-width: 0.8;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
   }
 }
 .ticks {

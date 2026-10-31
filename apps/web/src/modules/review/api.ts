@@ -4,6 +4,7 @@ import {
   ExaminerExam,
   type DecisionBody,
   type ExaminerCommandBody,
+  type UpdateMarkerBody,
 } from '@exam/contracts'
 import { z } from 'zod'
 import { request } from '@/shared/lib/http'
@@ -23,7 +24,7 @@ export const getAttempt = (attemptId: string) => request(`/examiner/attempts/${a
 export const sendCommand = (attemptId: string, body: ExaminerCommandBody) =>
   request(`/examiner/attempts/${attemptId}/commands`, { method: 'POST', body })
 
-export const judgeMarker = (markerId: string, status: 'confirmed' | 'dismissed') =>
+export const judgeMarker = (markerId: string, status: UpdateMarkerBody['status']) =>
   request(`/examiner/markers/${markerId}`, { method: 'PATCH', body: { status } })
 
 export const decide = (attemptId: string, body: DecisionBody) =>

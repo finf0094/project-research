@@ -1,4 +1,4 @@
-import type { AttemptDetail, DecisionBody, ExaminerCommandBody } from '@exam/contracts'
+import type { AttemptDetail, DecisionBody, ExaminerCommandBody, UpdateMarkerBody } from '@exam/contracts'
 import { isEmptyAnswer } from '@exam/contracts'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
@@ -110,7 +110,7 @@ export async function updateMarker(
   deps: Deps,
   ownerId: string,
   markerId: string,
-  status: 'confirmed' | 'dismissed',
+  status: UpdateMarkerBody['status'],
 ) {
   const [marker] = await deps.db.select().from(markers).where(eq(markers.id, markerId))
   if (!marker) throw notFound('Marker not found')

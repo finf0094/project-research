@@ -15,7 +15,8 @@ const list = [
 describe('queuePlace', () => {
   it('places a waiting attempt and points to the next one', () => {
     expect(queuePlace(list, 'y')).toEqual({ position: 2, total: 3, next: { id: 'z', name: 'Z' } })
-    expect(queuePlace(list, 'z').next).toBeNull()
+    expect(queuePlace(list, 'z').next).toEqual({ id: 'x', name: 'X' }) // after the last, the riskiest
+    expect(queuePlace([a('x', 'ready_for_review')], 'x').next).toBeNull()
   })
 
   it('sends a decided attempt on to the riskiest one still waiting', () => {

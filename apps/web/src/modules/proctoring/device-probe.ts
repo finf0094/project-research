@@ -73,7 +73,12 @@ export function useDeviceProbe() {
       return
     }
     if (disposed) return release()
-    if (state.value !== 'starting') return // a track ended while the analysis loaded: already blocked
+    if (state.value !== 'starting') {
+      // A track ended while the analysis loaded: already blocked, so stop what just started.
+      sensors.dispose()
+      sensors = null
+      return
+    }
     state.value = 'running'
     timer = setInterval(() => void measure(), 500)
   }

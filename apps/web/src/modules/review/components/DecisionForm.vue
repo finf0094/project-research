@@ -6,6 +6,8 @@ import { AppButton } from '@/shared/ui'
 const props = defineProps<{
   current: { verdict: Verdict; comment: string; score: number | null } | null
   saving: boolean
+  /** The last save went through: said under the button. */
+  saved?: boolean
   /**
    * Oral exams and free-text answers have no automatic total: the examiner gives the score, and
    * accepting the work needs it.
@@ -61,6 +63,9 @@ const VERDICTS: Verdict[] = ['clean', 'violation', 'needs_review']
     <AppButton type="submit" block :disabled="!verdict" :loading="saving">{{
       $t('review.decision.save')
     }}</AppButton>
+    <Transition name="saved">
+      <p v-if="saved" class="saved" role="status">{{ $t('review.attempt.saved') }}</p>
+    </Transition>
   </form>
 </template>
 
@@ -114,5 +119,18 @@ input[type='number'] {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   font-weight: 400;
+}
+.saved {
+  color: var(--ok);
+  font-weight: 600;
+}
+.saved-enter-active {
+  transition:
+    opacity var(--dur) var(--ease),
+    translate var(--dur) var(--ease-spring);
+}
+.saved-enter-from {
+  opacity: 0;
+  translate: 0 6px;
 }
 </style>

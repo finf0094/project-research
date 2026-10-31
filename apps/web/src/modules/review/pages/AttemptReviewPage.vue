@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AttemptDetail, DecisionBody } from '@exam/contracts'
+import type { AttemptDetail, DecisionBody, UpdateMarkerBody } from '@exam/contracts'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
@@ -34,7 +34,8 @@ async function load() {
   const fresh = await getAttempt(attemptId)
   if (mine !== loads) return
   detail.value = fresh
-  selected.value ??= fresh.markers.find((m) => m.status === 'pending')?.id ?? null
+  // A re-analysis replaces markers: a selection that no longer exists moves to the next one to look at.
+  if (!fresh.markers.some((m) => m.id === selected.value)) selected.value = nextPending(fresh)
 }
 
 // The queue is a convenience: without it the page still works, just without "next".
@@ -58,11 +59,17 @@ const needsScore = computed(
 )
 const editable = computed(() => ['ready_for_review', 'decided'].includes(detail.value?.summary.status ?? ''))
 
-const judge = (id: string, status: 'confirmed' | 'dismissed') =>
+const nextPending = (d: AttemptDetail) =>
+  (d.markers.find((m) => m.status === 'pending') ?? d.markers[0])?.id ?? null
+
+/** Judging the marker on stage moves the stage on to the next one still to look at. */
+const judge = (id: string, status: UpdateMarkerBody['status']) =>
   action.run(async () => {
     saving.error.value = null // only the latest failure is shown
     await judgeMarker(id, status)
     await load()
+    if (status !== 'pending' && selected.value === id && detail.value)
+      selected.value = nextPending(detail.value)
   })
 
 async function save(body: DecisionBody) {
@@ -104,6 +111,7 @@ async function save(body: DecisionBody) {
             :markers="detail.markers"
             :selected="selected"
             :editable="editable"
+            :busy="action.busy.value"
             @select="selected = $event"
             @judge="judge"
           />
@@ -122,12 +130,10 @@ async function save(body: DecisionBody) {
             :current="detail.decision"
             :saving="saving.busy.value"
             :with-score="needsScore"
+            :saved="saved"
             @save="save"
           />
           <p v-else class="muted">{{ $t('review.attempt.waitAnalysis') }}</p>
-          <Transition name="saved">
-            <p v-if="saved" class="saved" role="status">{{ $t('review.attempt.saved') }}</p>
-          </Transition>
         </AppCard>
       </aside>
     </div>
@@ -172,26 +178,12 @@ async function save(body: DecisionBody) {
     font-size: var(--text-lg);
   }
 }
-.saved-enter-active {
-  transition:
-    opacity var(--dur) var(--ease),
-    translate var(--dur) var(--ease-spring);
-}
-.saved-enter-from {
-  opacity: 0;
-  translate: 0 6px;
-}
 .note {
   font-size: var(--text-sm);
 }
 .error {
   margin-bottom: var(--space-4);
   color: var(--danger);
-}
-.saved {
-  margin-top: var(--space-3);
-  color: var(--ok);
-  font-weight: 600;
 }
 @media (width < 1000px) {
   .layout {

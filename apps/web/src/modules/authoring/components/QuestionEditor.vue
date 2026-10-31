@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { QuestionInput, QuestionType } from '@exam/contracts'
-import { Trash2 } from 'lucide-vue-next'
 import { useFields } from '@/shared/lib/fields'
-import { changeType, nextOptionId } from '../draft'
+import { changeType } from '../draft'
+import OptionsEditor from './OptionsEditor.vue'
 
 /** One question: its type, text, points and, for choice questions, the options with the correct ones. */
 const model = defineModel<QuestionInput>({ required: true })
@@ -13,37 +13,15 @@ const text = field('text')
 const points = field('points')
 
 const setType = (type: QuestionType) => (model.value = changeType(model.value, type))
-const setOptionText = (id: string, value: string) =>
-  (model.value = {
-    ...model.value,
-    options: model.value.options.map((o) => (o.id === id ? { ...o, text: value } : o)),
-  })
-
-function toggleCorrect(id: string, on: boolean) {
-  const others = model.value.type === 'single' ? [] : model.value.correct.filter((c) => c !== id)
-  model.value = { ...model.value, correct: on ? [...others, id] : others }
-}
-
-function addOption() {
-  const id = nextOptionId(model.value.options.map((o) => o.id))
-  model.value = { ...model.value, options: [...model.value.options, { id, text: '' }] }
-}
-
-function removeOption(id: string) {
-  model.value = {
-    ...model.value,
-    options: model.value.options.filter((o) => o.id !== id),
-    correct: model.value.correct.filter((c) => c !== id),
-  }
-}
 </script>
 
 <template>
   <fieldset class="question" :disabled="disabled">
-    <legend>{{ $t('authoring.questions.number', { n: index + 1 }) }}</legend>
-    <div class="row">
-      <label v-if="!oral">
-        {{ $t('authoring.questions.type') }}
+    <legend class="visually-hidden">{{ $t('authoring.questions.number', { n: index + 1 }) }}</legend>
+    <header class="head">
+      <span class="number" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
+      <label v-if="!oral" class="type">
+        <span class="visually-hidden">{{ $t('authoring.questions.type') }}</span>
         <select
           :value="model.type"
           @change="setType(($event.target as HTMLSelectElement).value as QuestionType)"
@@ -53,113 +31,119 @@ function removeOption(id: string) {
           </option>
         </select>
       </label>
-      <label>
-        {{ $t('authoring.questions.points') }}
-        <input v-model.number="points" type="number" min="1" max="100" required />
+      <label class="points">
+        <input v-model.number="points" type="number" min="1" max="100" />
+        <span>{{ $t('authoring.questions.pointsShort') }}</span>
       </label>
-    </div>
-    <label>
+      <span class="tools"><slot name="tools" /></span>
+    </header>
+
+    <label class="field">
       {{ $t('authoring.questions.text') }}
-      <textarea v-model="text" rows="2" maxlength="5000" required />
+      <textarea v-model="text" rows="3" maxlength="5000" />
     </label>
 
-    <div
-      v-if="model.type !== 'text'"
-      class="options"
-      role="group"
-      :aria-label="$t('authoring.questions.options')"
-    >
-      <div v-for="(option, i) in model.options" :key="option.id" class="option">
-        <input
-          :type="model.type === 'single' ? 'radio' : 'checkbox'"
-          :name="`correct-${index}`"
-          :checked="model.correct.includes(option.id)"
-          :aria-label="$t('authoring.questions.correctFor', { n: i + 1 })"
-          @change="toggleCorrect(option.id, ($event.target as HTMLInputElement).checked)"
-        />
-        <input
-          :value="option.text"
-          :aria-label="$t('authoring.questions.option', { n: i + 1 })"
-          maxlength="1000"
-          required
-          @input="setOptionText(option.id, ($event.target as HTMLInputElement).value)"
-        />
-        <button
-          type="button"
-          class="icon"
-          :disabled="model.options.length <= 2"
-          :aria-label="$t('authoring.questions.removeOption')"
-          @click="removeOption(option.id)"
-        >
-          <Trash2 :size="18" />
-        </button>
-      </div>
-      <button type="button" class="link" :disabled="model.options.length >= 12" @click="addOption">
-        + {{ $t('authoring.questions.addOption') }}
-      </button>
-    </div>
-    <slot />
+    <OptionsEditor v-if="model.type !== 'text'" v-model="model" :index="index" />
   </fieldset>
 </template>
 
 <style scoped>
 .question {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  padding: 0;
+  border: 0;
 }
-legend {
-  padding-inline: var(--space-2);
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.number {
+  margin-inline-end: var(--space-2);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: 1;
+}
+.type select,
+.points {
+  block-size: 36px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
-.row {
-  display: grid;
-  grid-template-columns: 1fr 120px;
-  gap: var(--space-3);
+.type select {
+  padding: 0 var(--space-3);
 }
-label {
+.points {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-3) 0 var(--space-1);
+  background: var(--surface-2);
+  color: var(--text);
+  input {
+    inline-size: 36px;
+    border: 0;
+    background: none;
+    font-weight: 700;
+    text-align: center;
+  }
+}
+.tools {
+  display: flex;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+  :slotted(button) {
+    display: grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-2);
+    transition:
+      background-color var(--dur) var(--ease),
+      color var(--dur) var(--ease);
+    &:hover:not(:disabled) {
+      color: var(--text);
+    }
+    &.danger:hover:not(:disabled) {
+      background: var(--danger-tint);
+      color: var(--danger);
+    }
+  }
+}
+.field,
+.field-label {
   display: grid;
   gap: var(--space-2);
   font-size: var(--text-sm);
   font-weight: 600;
 }
-.options {
-  display: grid;
-  gap: var(--space-2);
-}
-.option {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--space-2);
-
-  input[type='radio'],
-  input[type='checkbox'] {
-    accent-color: var(--accent);
-    inline-size: 20px;
-    block-size: 20px;
+textarea,
+.text {
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-weight: 500;
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+    background: var(--surface);
   }
 }
-.icon {
-  display: grid;
-  place-items: center;
-  inline-size: 36px;
-  block-size: 36px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text-2);
-  cursor: pointer;
-}
-.link {
-  justify-self: start;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font-weight: 600;
-  cursor: pointer;
+textarea {
+  font-size: var(--text-md);
+  resize: vertical;
 }
 </style>

@@ -274,6 +274,14 @@ describe('submit, recording and review', () => {
       payload: { status: 'dismissed' },
     })
     expect(marker.statusCode).toBe(204)
+    // A judgement can be taken back.
+    const undo = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/api/examiner/markers/${detail.markers[0].id}`,
+      headers: examiner,
+      payload: { status: 'pending' },
+    })
+    expect(undo.statusCode).toBe(204)
     const decision = await ctx.app.inject({
       method: 'PUT',
       url: `/api/examiner/attempts/${session.attemptId}/decision`,

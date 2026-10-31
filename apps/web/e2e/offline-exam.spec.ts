@@ -8,7 +8,7 @@ const STUDENT = process.env.E2E_STUDENT ?? 'student2@example.edu'
 test('answers survive going offline and a reload, then the exam is submitted', async ({ page, context }) => {
   await page.goto('/login')
   await page.getByLabel('Email').fill(STUDENT)
-  await page.getByLabel('Пароль').fill('password')
+  await page.getByLabel('Пароль', { exact: true }).fill('password')
   await page.getByRole('button', { name: 'Войти' }).click()
   await page.waitForURL('**/exams')
 

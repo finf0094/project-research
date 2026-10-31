@@ -41,6 +41,8 @@ defineEmits<{ select: [id: string] }>()
 
 <style scoped>
 .stage {
+  /* The dark stage takes the dark theme's colours, so markers stay visible on it in the light theme too. */
+  color-scheme: dark;
   display: grid;
   gap: var(--space-4);
   padding: var(--space-4);

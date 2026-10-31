@@ -32,3 +32,10 @@ export function describeIssues(issues: z.core.$ZodIssue[], t: Translate): string
   })
   return [...new Set(names)]
 }
+
+/** Which questions (by position) a failed check points at, to mark them in the outline. */
+export function questionsWithIssues(issues: z.core.$ZodIssue[]): Set<number> {
+  return new Set(
+    issues.flatMap(({ path }) => (path[0] === 'questions' && typeof path[1] === 'number' ? [path[1]] : [])),
+  )
+}

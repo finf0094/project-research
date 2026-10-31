@@ -10,7 +10,7 @@ const STUDENT = process.env.E2E_ORAL_STUDENT ?? 'student1@example.edu'
 async function signIn(page: Page, email: string) {
   await page.goto('/login')
   await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Пароль').fill('password')
+  await page.getByLabel('Пароль', { exact: true }).fill('password')
   await page.getByRole('button', { name: 'Войти' }).click()
 }
 
