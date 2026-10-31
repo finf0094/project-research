@@ -3,6 +3,7 @@ import { defineMessages } from '@/shared/i18n'
 export const reviewMessages = defineMessages({
   ru: {
     review: {
+      notRunning: 'Экзамен уже не идёт.',
       marker: {
         face_missing: 'Нет лица в кадре',
         multiple_faces: 'Несколько людей в кадре',
@@ -124,6 +125,7 @@ export const reviewMessages = defineMessages({
   },
   kk: {
     review: {
+      notRunning: 'Емтихан енді жүріп жатқан жоқ.',
       marker: {
         face_missing: 'Кадрда бет жоқ',
         multiple_faces: 'Кадрда бірнеше адам',
@@ -245,6 +247,7 @@ export const reviewMessages = defineMessages({
   },
   en: {
     review: {
+      notRunning: 'The exam is no longer in progress.',
       marker: {
         face_missing: 'No face in view',
         multiple_faces: 'Several people in view',

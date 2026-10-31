@@ -199,4 +199,17 @@ describe('useLiveRoom', () => {
         .some((t) => t.stopped),
     ).toBe(false)
   })
+
+  it('stops clones of a failed publish when the camera goes away', async () => {
+    const { call } = setup()
+    await call.join(access)
+    const room = rooms[0]!
+    room.localParticipant.publishTrack.mockRejectedValueOnce(new Error('timeout'))
+    call.setLocal(camera())
+    await settle()
+    call.setLocal(null)
+    await settle()
+    expect(published().every((t) => t.stopped)).toBe(true)
+    expect(room.localParticipant.unpublishTrack).toHaveBeenCalledTimes(2)
+  })
 })

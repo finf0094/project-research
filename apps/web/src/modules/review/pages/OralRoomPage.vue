@@ -13,7 +13,7 @@ const attemptId = String(route.params.attemptId)
 const detail = ref<AttemptDetail | null>(null)
 const call = useLiveRoom()
 const ending = ref(false)
-const error = ref<ErrorKey | 'review.room.noCamera' | null>(null)
+const error = ref<ErrorKey | 'review.room.noCamera' | 'review.notRunning' | null>(null)
 let camera: MediaStream | null = null
 let unmounted = false
 
@@ -45,7 +45,7 @@ onMounted(async () => {
     // A finished attempt has nobody to talk to: no call, no camera.
     if (running.value) await join()
   } catch (e) {
-    error.value = errorKey(e)
+    error.value = errorKey(e, { 409: 'review.notRunning' as const })
   }
 })
 onUnmounted(() => {
@@ -62,7 +62,7 @@ async function end() {
     camera = null
     detail.value = await getAttempt(attemptId)
   } catch (e) {
-    error.value = errorKey(e)
+    error.value = errorKey(e, { 409: 'review.notRunning' as const })
   }
 }
 </script>

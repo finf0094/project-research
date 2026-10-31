@@ -15,7 +15,7 @@ const checks = ref<Check[] | null>(null)
 const consent = ref(false)
 const deviceReady = ref(false)
 const starting = ref(false)
-const error = ref<ErrorKey | null>(null)
+const error = ref<ErrorKey | 'exam.preflight.notOpen' | null>(null)
 
 onMounted(async () => (checks.value = await runBrowserChecks()))
 const FACTS = ['answers', 'video', 'server', 'decision'] as const
@@ -28,7 +28,7 @@ async function start() {
     const attempt = await beginAttempt(String(route.params.examId))
     await router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
   } catch (e) {
-    error.value = errorKey(e)
+    error.value = errorKey(e, { 409: 'exam.preflight.notOpen' as const })
   } finally {
     starting.value = false
   }

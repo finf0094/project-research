@@ -94,6 +94,7 @@ export const examMessages = defineMessages({
         decisionText: 'принимает только преподаватель. Записи удаляются после проверки.',
         consent: 'Понимаю и согласен(на)',
         start: 'Начать экзамен',
+        notOpen: 'Экзамен сейчас не открыт. Проверьте время начала.',
         browser: {
           title: 'Браузер',
           hint: 'Откройте экзамен в свежей версии Chrome, Edge, Firefox или Safari.',
@@ -205,6 +206,7 @@ export const examMessages = defineMessages({
         decisionText: 'тек оқытушы қабылдайды. Жазбалар тексерістен кейін жойылады.',
         consent: 'Түсінемін және келісемін',
         start: 'Емтиханды бастау',
+        notOpen: 'Емтихан қазір ашық емес. Басталу уақытын тексеріңіз.',
         browser: {
           title: 'Браузер',
           hint: 'Емтиханды Chrome, Edge, Firefox немесе Safari-дің жаңа нұсқасында ашыңыз.',
@@ -318,6 +320,7 @@ export const examMessages = defineMessages({
         decisionText: 'is made only by the examiner. Recordings are deleted after the review.',
         consent: 'I understand and agree',
         start: 'Start the exam',
+        notOpen: 'The exam is not open right now. Check the start time.',
         browser: {
           title: 'Browser',
           hint: 'Open the exam in a recent version of Chrome, Edge, Firefox or Safari.',

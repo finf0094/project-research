@@ -16,7 +16,7 @@ const exam = ref<ExaminerExam | null>(null)
 const attempts = ref<AttemptSummary[]>([])
 const acting = ref<AttemptSummary | null>(null)
 const stale = ref(false)
-const actionError = ref<ErrorKey | null>(null)
+const actionError = ref<ErrorKey | 'review.notRunning' | null>(null)
 
 async function refresh() {
   try {
@@ -50,7 +50,7 @@ async function send(body: ExaminerCommandBody) {
     acting.value = null
     await refresh()
   } catch (e) {
-    actionError.value = errorKey(e)
+    actionError.value = errorKey(e, { 409: 'review.notRunning' as const })
   }
 }
 </script>

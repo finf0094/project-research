@@ -2,6 +2,7 @@ import type { ExamMode } from '@exam/contracts'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useExamStore } from './exam.store'
+import { loadAttempt } from './local-attempt'
 import { attemptPath } from './paths'
 
 /**
@@ -19,15 +20,17 @@ export function useAttemptPage(mode: ExamMode) {
   async function open(id: string) {
     loadError.value = false
     try {
+      // The page is decided before the session starts (an attempt this device had never seen gets past
+      // the route guard): the next page would otherwise open it while this one closes it on unmount.
+      const actual = (await loadAttempt(id)).exam.profile.mode
+      if (actual !== mode) {
+        await router.replace({ path: attemptPath(id, actual), query: route.query, hash: route.hash })
+        return
+      }
       await exam.open(id)
     } catch {
       loadError.value = true
-      return
     }
-    // Only for an attempt this device had never seen: the route guard could not know its mode yet.
-    const actual = exam.attempt?.exam.profile.mode
-    if (actual && actual !== mode)
-      await router.replace({ path: attemptPath(id, actual), query: route.query, hash: route.hash })
   }
   watch(attemptId, open, { immediate: true })
 

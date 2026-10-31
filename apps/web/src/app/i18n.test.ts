@@ -1,5 +1,7 @@
-import { AttemptStatus, MarkerKind, NetState, QuestionType, SignalKind, Verdict } from '@exam/contracts'
+import { AttemptStatus, MarkerKind, NetState, QuestionType, Verdict } from '@exam/contracts'
 import { describe, expect, it } from 'vitest'
+import { ROOM_STATES } from '@/modules/oral'
+import { HINTED } from '@/modules/proctoring'
 import { LOCALES } from '@/shared/i18n'
 import { i18n } from './i18n'
 
@@ -10,9 +12,8 @@ const DYNAMIC: [string, readonly string[]][] = [
   ['review.connection', NetState.options],
   ['review.decision', Verdict.options],
   ['exam.question.type', QuestionType.options],
-  // `paste` has no hint: it is logged for the examiner, never shown to the student.
-  ['proctoring.hint', SignalKind.options.filter((k) => k !== 'paste')],
-  ['oral.state', ['idle', 'connecting', 'connected', 'reconnecting', 'disconnected', 'unavailable']],
+  ['proctoring.hint', [...HINTED]],
+  ['oral.state', ROOM_STATES],
 ]
 
 describe('translations', () => {

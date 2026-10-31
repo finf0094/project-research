@@ -3,7 +3,15 @@ import { ConnectionState, Room, RoomEvent, Track, type RemoteTrack } from 'livek
 import { onScopeDispose, ref, shallowRef } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 
-export type RoomState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'unavailable'
+export const ROOM_STATES = [
+  'idle',
+  'connecting',
+  'connected',
+  'reconnecting',
+  'disconnected',
+  'unavailable',
+] as const
+export type RoomState = (typeof ROOM_STATES)[number]
 
 const STATE: Record<ConnectionState, RoomState> = {
   [ConnectionState.Connecting]: 'connecting',
@@ -29,7 +37,8 @@ export function useLiveRoom() {
   let room: Room | null = null
   let getAccess: (() => Promise<OralRoomAccess>) | null = null
   let wanted: MediaStream | null = null
-  let sent: { from: MediaStream | null; tracks: MediaStreamTrack[] } = { from: null, tracks: [] }
+  /** `from` is undefined after a failed run, so the next run always cleans up and retries. */
+  let sent: { from: MediaStream | null | undefined; tracks: MediaStreamTrack[] } = { from: null, tracks: [] }
   let publishing: Promise<void> = Promise.resolve()
   let disposed = false
   /** Audio elements by track: LiveKit detaches before it reports the track gone, so they are tracked here. */
@@ -112,7 +121,7 @@ export function useLiveRoom() {
       if (!current || state.value !== 'connected' || sent.from === wanted) return
       const old = sent
       const target = wanted
-      sent = { from: null, tracks: target?.getTracks().map((t) => t.clone()) ?? [] }
+      sent = { from: undefined, tracks: target?.getTracks().map((t) => t.clone()) ?? [] }
       for (const track of old.tracks) {
         await current.localParticipant.unpublishTrack(track).catch(() => undefined)
         track.stop()
