@@ -1,6 +1,8 @@
 import { watch } from 'vue'
 import { createI18n } from 'vue-i18n'
+import { adminMessages } from '@/modules/admin'
 import { authMessages } from '@/modules/auth'
+import { authoringMessages } from '@/modules/authoring'
 import { examMessages } from '@/modules/exam'
 import { offlineMessages } from '@/modules/offline'
 import { oralMessages } from '@/modules/oral'
@@ -14,7 +16,9 @@ import { appMessages } from './messages'
 const parts = [
   commonMessages,
   appMessages,
+  adminMessages,
   authMessages,
+  authoringMessages,
   examMessages,
   offlineMessages,
   oralMessages,
@@ -24,7 +28,9 @@ const parts = [
 const forLocale = (locale: Locale) => Object.assign({}, ...parts.map((p) => p[locale])) as Schema
 type Schema = typeof commonMessages.ru &
   typeof appMessages.ru &
+  typeof adminMessages.ru &
   typeof authMessages.ru &
+  typeof authoringMessages.ru &
   typeof examMessages.ru &
   typeof offlineMessages.ru &
   typeof oralMessages.ru &

@@ -1,5 +1,6 @@
 import type { Role } from '@exam/contracts'
 
 /** Where each role lands after signing in. */
-export const homeFor = (role: Role | null) =>
-  role === 'examiner' ? '/examiner' : role === 'student' ? '/exams' : '/login'
+const HOME: Record<Role, string> = { student: '/exams', examiner: '/examiner', admin: '/admin' }
+
+export const homeFor = (role: Role | null) => (role ? HOME[role] : '/login')

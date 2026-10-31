@@ -1,4 +1,4 @@
-import { AttemptStatus, MarkerKind, NetState, QuestionType, Verdict } from '@exam/contracts'
+import { AttemptStatus, MarkerKind, NetState, QuestionType, Role, Verdict } from '@exam/contracts'
 import { describe, expect, it } from 'vitest'
 import { ROOM_STATES } from '@/modules/oral'
 import { HINTED } from '@/modules/proctoring'
@@ -11,6 +11,7 @@ const DYNAMIC: [string, readonly string[]][] = [
   ['review.status', AttemptStatus.options],
   ['review.connection', NetState.options],
   ['review.decision', Verdict.options],
+  ['admin.roles', Role.options],
   ['exam.question.type', QuestionType.options],
   ['proctoring.hint', [...HINTED]],
   ['oral.state', ROOM_STATES],

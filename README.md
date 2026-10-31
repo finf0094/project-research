@@ -109,9 +109,12 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
 - Languages: Russian (default), Kazakh and English through vue-i18n; each module owns its texts
   (`modules/*/messages.ts`) and the other languages must match the Russian keys at compile time.
   Kazakh dates are spelled by the app, since browsers often ship no Kazakh calendar data.
+- Exam authoring: examiners create and edit their own exams (settings, questions with correct answers, the
+  oral ticket size) and choose participants by email. Once a student has started, questions and settings are
+  frozen (answers, tickets and sealed logs refer to them); participants can still change. The administrator's
+  role is user management (no self sign-up); the seed has `admin@example.edu`.
 - Runtime: Node.js 22.18+ (type stripping) instead of 24; no reka-ui (native `<dialog>` and inputs suffice).
 
 **Not implemented yet**
 
-- Exam authoring UI and an admin role (exams come from `pnpm seed` or SQL), Swagger docs, the room hub for
-  classrooms.
+- Swagger docs, the room hub for classrooms.

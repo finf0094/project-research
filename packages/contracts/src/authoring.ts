@@ -38,7 +38,10 @@ export const ExamDefinition = z
     profile: ExamProfile.strict(),
     questions: z.array(QuestionInput).min(1).max(200),
   })
-  .refine((d) => d.closesAt > d.opensAt, { message: 'the exam must close after it opens', path: ['closesAt'] })
+  .refine((d) => d.closesAt > d.opensAt, {
+    message: 'the exam must close after it opens',
+    path: ['closesAt'],
+  })
   .refine((d) => d.profile.mode === 'written' || (d.profile.ticketSize ?? 0) <= d.questions.length, {
     message: 'a ticket cannot have more questions than the pool',
     path: ['profile', 'ticketSize'],

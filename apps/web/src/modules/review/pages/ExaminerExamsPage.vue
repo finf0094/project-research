@@ -18,25 +18,31 @@ onMounted(async () => {
 
 <template>
   <main class="page">
-    <h1>{{ $t('review.exams.title') }}</h1>
+    <header class="head">
+      <h1>{{ $t('review.exams.title') }}</h1>
+      <RouterLink to="/examiner/exams/new" class="create">+ {{ $t('review.exams.create') }}</RouterLink>
+    </header>
     <p v-if="failed" class="muted">{{ $t('review.exams.loadFailed') }}</p>
     <ul v-else class="grid">
       <li v-for="exam in exams" :key="exam.id">
-        <RouterLink :to="`/examiner/exams/${exam.id}`" class="card-link">
-          <AppCard class="card">
-            <h2>{{ exam.title }}</h2>
-            <p class="muted">{{ formatDateTime(exam.opensAt) }} — {{ formatDateTime(exam.closesAt) }}</p>
-            <div class="counts">
-              <StatusPill tone="accent">{{
-                $t('review.exams.writing', { n: exam.attempts.active })
-              }}</StatusPill>
-              <StatusPill :tone="exam.attempts.toReview ? 'warn' : 'off'">{{
-                $t('review.exams.toReview', { n: exam.attempts.toReview })
-              }}</StatusPill>
-              <StatusPill>{{ $t('review.exams.total', { n: exam.attempts.total }) }}</StatusPill>
-            </div>
-          </AppCard>
-        </RouterLink>
+        <AppCard class="card">
+          <h2>
+            <RouterLink :to="`/examiner/exams/${exam.id}`" class="card-link">{{ exam.title }}</RouterLink>
+          </h2>
+          <p class="muted">{{ formatDateTime(exam.opensAt) }} — {{ formatDateTime(exam.closesAt) }}</p>
+          <div class="counts">
+            <StatusPill tone="accent">{{
+              $t('review.exams.writing', { n: exam.attempts.active })
+            }}</StatusPill>
+            <StatusPill :tone="exam.attempts.toReview ? 'warn' : 'off'">{{
+              $t('review.exams.toReview', { n: exam.attempts.toReview })
+            }}</StatusPill>
+            <StatusPill>{{ $t('review.exams.total', { n: exam.attempts.total }) }}</StatusPill>
+          </div>
+          <RouterLink :to="`/examiner/exams/${exam.id}/edit`" class="edit">{{
+            $t('review.exams.edit')
+          }}</RouterLink>
+        </AppCard>
       </li>
     </ul>
   </main>
@@ -54,11 +60,39 @@ onMounted(async () => {
   padding: 0;
   list-style: none;
 }
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.create {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
 .card-link {
   color: inherit;
   text-decoration: none;
+  /* The whole card opens monitoring; the edit link sits above this layer. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+}
+.edit {
+  position: relative;
+  z-index: 1;
+  justify-self: start;
+  font-size: var(--text-sm);
 }
 .card {
+  position: relative;
   display: grid;
   gap: var(--space-3);
   transition: transform 0.16s var(--ease);

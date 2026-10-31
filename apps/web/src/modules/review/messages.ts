@@ -28,6 +28,8 @@ export const reviewMessages = defineMessages({
       connection: { online: 'В сети', slow: 'Слабая связь', offline: 'Без сети' },
       exams: {
         title: 'Экзамены',
+        create: 'Создать экзамен',
+        edit: 'Изменить',
         loadFailed: 'Не удалось загрузить экзамены. Обновите страницу.',
         writing: 'Сдают сейчас: {n}',
         toReview: 'Ждут проверки: {n}',
@@ -150,6 +152,8 @@ export const reviewMessages = defineMessages({
       connection: { online: 'Желіде', slow: 'Әлсіз байланыс', offline: 'Желісіз' },
       exams: {
         title: 'Емтихандар',
+        create: 'Емтихан құру',
+        edit: 'Өзгерту',
         loadFailed: 'Емтихандарды жүктеу мүмкін болмады. Бетті жаңартыңыз.',
         writing: 'Қазір тапсырып жатыр: {n}',
         toReview: 'Тексеруді күтуде: {n}',
@@ -272,6 +276,8 @@ export const reviewMessages = defineMessages({
       connection: { online: 'Online', slow: 'Weak connection', offline: 'Offline' },
       exams: {
         title: 'Exams',
+        create: 'Create exam',
+        edit: 'Edit',
         loadFailed: 'Could not load the exams. Refresh the page.',
         writing: 'In progress: {n}',
         toReview: 'Awaiting review: {n}',

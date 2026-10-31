@@ -59,14 +59,12 @@ describe('live monitoring stream', () => {
     const stream = (headers: { cookie: string }) =>
       ctx.app.inject({ method: 'GET', url: `/api/examiner/exams/${seeded.exam.id}/stream`, headers })
     expect((await stream(await signIn(ctx.app, 'student@test.edu'))).statusCode).toBe(403)
-    await ctx.deps.db
-      .insert(users)
-      .values({
-        email: 'other@test.edu',
-        name: 'Other',
-        role: 'examiner',
-        passwordHash: await hashPassword(PASSWORD),
-      })
+    await ctx.deps.db.insert(users).values({
+      email: 'other@test.edu',
+      name: 'Other',
+      role: 'examiner',
+      passwordHash: await hashPassword(PASSWORD),
+    })
     expect((await stream(await signIn(ctx.app, 'other@test.edu'))).statusCode).toBe(404)
   })
 

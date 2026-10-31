@@ -1,6 +1,8 @@
 import type { Role } from '@exam/contracts'
 import { createRouter, createWebHistory } from 'vue-router'
+import { adminRoutes } from '@/modules/admin'
 import { authRoutes, homeFor, useAuthStore } from '@/modules/auth'
+import { authoringRoutes } from '@/modules/authoring'
 import { examRoutes } from '@/modules/exam'
 import { reviewRoutes } from '@/modules/review'
 
@@ -21,6 +23,8 @@ export const router = createRouter({
     ...authRoutes,
     ...examRoutes,
     ...reviewRoutes,
+    ...authoringRoutes,
+    ...adminRoutes,
     { path: '/', redirect: () => homeFor(useAuthStore().role) },
     { path: '/:pathMatch(.*)*', component: () => import('./NotFoundPage.vue'), meta: { public: true } },
   ],
