@@ -24,19 +24,27 @@ export const outcome = (a: AttemptSummary): Outcome => {
   return p === null ? 'pending' : p ? 'pass' : 'fail'
 }
 
+/** Text that a spreadsheet would run as a formula gets a leading apostrophe (CSV injection). */
+const FORMULA = /^[=+\-@\t\r]/
+
 /**
- * The grade sheet as CSV for Excel: a BOM so Cyrillic opens correctly, semicolons (Excel's separator in
- * Russian and Kazakh locales), quoted cells. `labels` are the column titles and outcome words in the UI language.
+ * The grade sheet as CSV for Excel: a BOM so Cyrillic opens correctly, quoted cells, and the separator
+ * Excel expects in the UI language (a semicolon where the decimal mark is a comma, as in Russian and
+ * Kazakh). `labels` are the column titles (student, auto, max, score, result) and outcome words.
  */
 export function gradeSheetCsv(
   attempts: AttemptSummary[],
   labels: { columns: string[]; outcome: Record<Outcome, string> },
+  separator: ';' | ',' = ';',
 ): string {
-  const cell = (v: string | number | null) => `"${String(v ?? '').replaceAll('"', '""')}"`
+  const cell = (v: string | number | null) => {
+    const text = String(v ?? '')
+    const safe = typeof v === 'string' && FORMULA.test(text) ? `'${text}` : text
+    return `"${safe.replaceAll('"', '""')}"`
+  }
+  const row = (cells: (string | number | null)[]) => cells.map(cell).join(separator)
   const rows = attempts.map((a) =>
-    [a.student.name, `${a.points.auto}/${a.points.max}`, a.result?.score ?? null, labels.outcome[outcome(a)]]
-      .map(cell)
-      .join(';'),
+    row([a.student.name, a.points.auto, a.points.max, a.result?.score ?? null, labels.outcome[outcome(a)]]),
   )
-  return '﻿' + [labels.columns.map(cell).join(';'), ...rows].join('\r\n')
+  return '\ufeff' + [row(labels.columns), ...rows].join('\r\n')
 }

@@ -3,8 +3,11 @@ import { Download } from 'lucide-vue-next'
 import { formatDateTime } from '@/shared/lib/format'
 import { AppButton } from '@/shared/ui'
 
-/** Releasing the results to students, and the grade sheet for the dean's office. */
-defineProps<{ publishedAt: number | null; publishing: boolean }>()
+/**
+ * Releasing the results to students, and the grade sheet for the dean's office. `pending`: attempts still
+ * written or waiting for review; their results reach the students once decided.
+ */
+defineProps<{ publishedAt: number | null; publishing: boolean; pending: number }>()
 defineEmits<{ publish: []; download: [] }>()
 </script>
 
@@ -19,6 +22,7 @@ defineEmits<{ publish: []; download: [] }>()
     </p>
     <h2>{{ $t('hub.results.publishTitle') }}</h2>
     <p class="text">{{ $t('hub.results.publishText') }}</p>
+    <p v-if="pending" class="pending">{{ $t('hub.results.pendingNote', { n: pending }, pending) }}</p>
     <div class="actions">
       <AppButton
         v-if="!publishedAt"
@@ -45,6 +49,12 @@ defineEmits<{ publish: []; download: [] }>()
   border-radius: var(--radius-lg);
   background: var(--ink);
   color: var(--on-ink);
+}
+.pending {
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 0.08);
+  font-size: var(--text-sm);
 }
 .label,
 .text {

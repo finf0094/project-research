@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { DecisionBody, Verdict } from '@exam/contracts'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { AppButton } from '@/shared/ui'
 
 const props = defineProps<{
   current: { verdict: Verdict; comment: string; score: number | null } | null
   saving: boolean
-  /** Oral exams have no automatic score: the examiner gives the points. */
+  /**
+   * Oral exams and free-text answers have no automatic total: the examiner gives the score, and
+   * accepting the work needs it.
+   */
   withScore?: boolean
 }>()
 const emit = defineEmits<{ save: [body: DecisionBody] }>()
@@ -15,6 +18,9 @@ const emit = defineEmits<{ save: [body: DecisionBody] }>()
 const verdict = ref<Verdict | null>(props.current?.verdict ?? null)
 const comment = ref(props.current?.comment ?? '')
 const score = ref<number | ''>(props.current?.score ?? '')
+
+/** The server refuses to accept open answers without a score; other verdicts may leave it for later. */
+const scoreRequired = computed(() => props.withScore && verdict.value === 'clean')
 
 function submit() {
   if (!verdict.value) return
@@ -39,7 +45,7 @@ const VERDICTS: Verdict[] = ['clean', 'violation', 'needs_review']
     </fieldset>
     <label v-if="withScore" class="field">
       {{ $t('review.decision.score') }}
-      <input v-model.number="score" type="number" min="0" max="100" step="1" required />
+      <input v-model.number="score" type="number" min="0" max="100" step="1" :required="scoreRequired" />
     </label>
     <label class="field">
       {{ $t('review.decision.comment') }}

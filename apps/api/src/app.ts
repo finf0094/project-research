@@ -12,6 +12,7 @@ import { blobsRoutes } from './modules/blobs/routes.ts'
 import { authoringRoutes } from './modules/exams/authoring-routes.ts'
 import { examsRoutes } from './modules/exams/routes.ts'
 import { oralRoutes } from './modules/oral/routes.ts'
+import { resultsRoutes } from './modules/results/routes.ts'
 import { reviewRoutes } from './modules/review/routes.ts'
 import { syncRoutes } from './modules/sync/routes.ts'
 import { usersRoutes } from './modules/users/routes.ts'
@@ -51,6 +52,7 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
     oralRoutes,
     authoringRoutes,
     usersRoutes,
+    resultsRoutes,
   ]) {
     await app.register(module, { prefix: '/api', deps })
   }

@@ -25,13 +25,13 @@ export const reviewRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { 
   registerStream(app, deps)
 
   app.get('/examiner/exams', { schema: { response: { 200: z.array(ExaminerExam) } } }, async (request) =>
-    listExams(deps.db, me(request)),
+    listExams(deps, me(request)),
   )
 
   app.get(
     '/examiner/exams/:id',
     { schema: { params: IdParams, response: { 200: ExaminerExam } } },
-    async (request) => examSummary(deps.db, me(request), request.params.id),
+    async (request) => examSummary(deps, me(request), request.params.id),
   )
 
   app.post('/examiner/exams/:id/publish', { schema: { params: IdParams } }, async (request, reply) => {

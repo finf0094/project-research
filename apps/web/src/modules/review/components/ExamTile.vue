@@ -7,11 +7,12 @@ import type { ExamState } from '../exam-state'
 
 /** An exam in the list, tinted by where it is in its life; the whole card opens the exam page. */
 const props = defineProps<{ exam: ExaminerExam; state: ExamState }>()
-const progress = computed(() =>
-  props.exam.participants
-    ? Math.round((100 * (props.exam.attempts.total - props.exam.attempts.active)) / props.exam.participants)
-    : 0,
-)
+/** Share of participants who have finished; clamped, as a removed participant may still have an attempt. */
+const progress = computed(() => {
+  const { participants, attempts } = props.exam
+  if (!participants) return 0
+  return Math.min(100, Math.round((100 * (attempts.total - attempts.active)) / participants))
+})
 const to = computed(() => {
   const tab = { scheduled: '', running: '/monitoring', review: '/review', finished: '/results' }[props.state]
   return `/examiner/exams/${props.exam.id}${tab}`

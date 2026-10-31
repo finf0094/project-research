@@ -278,7 +278,7 @@ describe('submit, recording and review', () => {
       method: 'PUT',
       url: `/api/examiner/attempts/${session.attemptId}/decision`,
       headers: examiner,
-      payload: { verdict: 'clean', comment: 'Second person was a family member passing by.' },
+      payload: { verdict: 'clean', comment: 'Second person was a family member passing by.', score: 70 },
     })
     expect(decision.statusCode).toBe(204)
   })

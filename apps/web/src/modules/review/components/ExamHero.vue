@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
-import { formatTime } from '@/shared/lib/format'
+import { formatClock } from '@/shared/lib/format'
 import { AppButton } from '@/shared/ui'
 
 /** The exam running right now, large and dark, with the two places a proctor goes: monitoring and review. */
@@ -12,7 +12,7 @@ defineProps<{ exam: ExaminerExam }>()
     <div class="body">
       <span class="badge"
         ><span class="dot live" />{{ $t('hub.state.running') }} ·
-        {{ $t('hub.list.until', { at: formatTime(exam.closesAt).slice(0, 5) }) }}</span
+        {{ $t('hub.list.until', { at: formatClock(exam.closesAt) }) }}</span
       >
       <h2>{{ exam.title }}</h2>
       <ul class="facts">
@@ -20,7 +20,7 @@ defineProps<{ exam: ExaminerExam }>()
           <b>{{ exam.attempts.active }}</b> {{ $t('hub.list.writing') }}
         </li>
         <li>
-          <b>{{ exam.participants }}</b> {{ $t('hub.list.participants') }}
+          <b>{{ exam.participants }}</b> {{ $t('hub.list.participants', exam.participants) }}
         </li>
         <li>
           <b>{{ exam.attempts.toReview }}</b> {{ $t('hub.list.toReview') }}
@@ -123,7 +123,7 @@ h2 {
   block-size: 22px;
   border-radius: 50%;
   background: var(--danger);
-  color: white;
+  color: var(--on-danger);
   font-size: var(--text-xs);
 }
 </style>

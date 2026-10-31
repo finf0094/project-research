@@ -21,10 +21,15 @@
     --on-lime: #15142b;
     --ok: light-dark(#1b7a52, #5bd69b);
     --ok-tint: light-dark(#ddf4e7, #132a20);
+    /* Text on solid status fills: the dark theme lightens the fills, so their text turns dark. */
+    --on-ok: light-dark(#ffffff, #0c2419);
     --warn: light-dark(#9c4f00, #f5a65b);
     --warn-tint: light-dark(#ffebd6, #2d1f10);
     --danger: light-dark(#b42318, #ff8a7a);
     --danger-tint: light-dark(#fde4e1, #33171a);
+    /* Below-the-pass-mark fill in charts: soft on purpose, a score is not an alarm. */
+    --fail: light-dark(#f2a46b, #d98a52);
+    --on-danger: light-dark(#ffffff, #2a0d0a);
     --off: light-dark(#53586f, #a6a8c2);
     --off-tint: light-dark(#ecedf3, #202036);
     --ring: light-dark(rgb(75 79 232 / 0.28), rgb(165 168 255 / 0.35));

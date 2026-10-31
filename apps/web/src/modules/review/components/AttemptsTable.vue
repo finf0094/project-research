@@ -2,6 +2,7 @@
 import type { AttemptSummary } from '@exam/contracts'
 import { ChevronRight } from 'lucide-vue-next'
 import { Avatar, StatusPill } from '@/shared/ui'
+import RiskBar from './RiskBar.vue'
 import { CONNECTION_TONE, STATUS_TONE } from '../labels'
 
 /**
@@ -55,11 +56,7 @@ const DONE = ['ready_for_review', 'decided']
           </td>
           <td class="num">{{ a.markerCount }}</td>
           <td>
-            <span v-if="a.riskScore === null" class="muted">—</span>
-            <span v-else class="risk">
-              <span class="bar" aria-hidden="true"><span :style="{ inlineSize: `${a.riskScore}%` }" /></span>
-              <b>{{ a.riskScore }}</b>
-            </span>
+            <RiskBar :risk="a.riskScore" />
           </td>
           <td class="actions">
             <button
@@ -161,27 +158,6 @@ tbody tr {
   block-size: 8px;
   border-radius: 50%;
   background: currentColor;
-}
-.risk {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-/* A neutral ramp on purpose: the score orders the queue, it does not accuse anyone. */
-.bar {
-  display: inline-block;
-  inline-size: 72px;
-  block-size: 6px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  span {
-    display: block;
-    block-size: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--warn), var(--danger));
-    transition: inline-size var(--dur-slow) var(--ease);
-  }
 }
 .actions {
   text-align: end;

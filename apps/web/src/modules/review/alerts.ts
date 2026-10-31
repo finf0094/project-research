@@ -1,4 +1,5 @@
 import type { AttemptSummary } from '@exam/contracts'
+import { HIGH_RISK } from './labels'
 
 export type AlertKind = 'submitted' | 'offline' | 'online' | 'risk' | 'ready'
 
@@ -10,8 +11,6 @@ export interface Alert {
   at: number
 }
 
-/** Above this risk score an attempt is announced once ("worth a look now"). */
-const HIGH_RISK = 60
 const FINISHED = new Set(['submitted', 'ready_for_review', 'decided'])
 
 /**

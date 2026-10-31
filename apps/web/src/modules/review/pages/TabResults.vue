@@ -8,20 +8,20 @@ import GradeSheet from '../components/GradeSheet.vue'
 import PublishCard from '../components/PublishCard.vue'
 import ScoreChart from '../components/ScoreChart.vue'
 import { useExamHub } from '../exam-hub'
-import { PASS_SCORE } from '../exam-state'
+import { PASS_SCORE } from '@exam/contracts'
 import { distribution, gradeSheetCsv, outcome } from '../grade-sheet'
 
 /** After the exam: averages, the distribution, publishing to students and the grade sheet. */
-defineProps<{ now: number }>()
 const { examId, exam, attempts, refresh } = useExamHub()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const publishing = useAction()
 
 const scored = computed(() =>
   attempts.value.flatMap((a) => (a.result?.score != null ? [a.result.score] : [])),
 )
+// Nothing scored yet has no average: a zero would read as a result.
 const average = computed(() =>
-  scored.value.length ? Math.round(scored.value.reduce((s, x) => s + x, 0) / scored.value.length) : 0,
+  scored.value.length ? Math.round(scored.value.reduce((s, x) => s + x, 0) / scored.value.length) : '—',
 )
 const passed = computed(() => attempts.value.filter((a) => outcome(a) === 'pass').length)
 const waiting = computed(() => attempts.value.filter((a) => a.status === 'ready_for_review').length)
@@ -30,19 +30,24 @@ const violations = computed(() => attempts.value.filter((a) => a.result?.verdict
 const publish = () => publishing.run(async () => (await publishResults(examId), await refresh()))
 
 function download() {
-  const csv = gradeSheetCsv(attempts.value, {
-    columns: ['student', 'auto', 'score', 'result'].map((c) => t(`hub.results.columns.${c}`)),
-    outcome: {
-      pass: t('hub.results.verdict.pass'),
-      fail: t('hub.results.verdict.fail'),
-      pending: t('hub.results.verdict.pending'),
+  const csv = gradeSheetCsv(
+    attempts.value,
+    {
+      columns: ['student', 'auto', 'max', 'score', 'result'].map((c) => t(`hub.results.columns.${c}`)),
+      outcome: {
+        pass: t('hub.results.verdict.pass'),
+        fail: t('hub.results.verdict.fail'),
+        pending: t('hub.results.verdict.pending'),
+      },
     },
-  })
+    locale.value === 'en' ? ',' : ';',
+  )
   const link = document.createElement('a')
   link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
   link.download = `${exam.value?.title ?? 'exam'}.csv`
   link.click()
-  URL.revokeObjectURL(link.href)
+  // Revoked once the browser has started the download, not before.
+  setTimeout(() => URL.revokeObjectURL(link.href), 0)
 }
 </script>
 
@@ -72,6 +77,7 @@ function download() {
       <ScoreChart :counts="distribution(attempts)" :total="scored.length" />
       <PublishCard
         :published-at="exam.publishedAt"
+        :pending="exam.attempts.active + waiting"
         :publishing="publishing.busy.value"
         @publish="publish"
         @download="download"

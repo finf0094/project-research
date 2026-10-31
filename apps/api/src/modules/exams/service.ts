@@ -25,7 +25,14 @@ export async function listForStudent(db: Db, userId: string): Promise<StudentExa
     closesAt: exam.closesAt.getTime(),
     questionCount:
       exam.profile.mode === 'oral' ? Math.min(questionCount, exam.profile.ticketSize ?? 3) : questionCount,
-    attempt: attemptId && attemptStatus ? { id: attemptId, status: attemptStatus } : null,
+    attempt:
+      attemptId && attemptStatus
+        ? {
+            id: attemptId,
+            status: attemptStatus,
+            resultReady: attemptStatus === 'decided' && !!exam.publishedAt,
+          }
+        : null,
   }))
 }
 

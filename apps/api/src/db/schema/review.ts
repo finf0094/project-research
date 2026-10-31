@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { bigserial, boolean, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import type { MarkerKind, MarkerSource, MarkerStatus, Verdict } from '@exam/contracts'
 import { epochMs } from './columns.ts'
 import { attempts } from './attempts.ts'
@@ -43,6 +43,8 @@ export const decisions = pgTable(
     comment: text('comment').notNull(),
     score: integer('score'),
     decidedAt: timestamp('decided_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Insertion order: the latest decision is the one with the highest seq, even within one millisecond. */
+    seq: bigserial('seq', { mode: 'number' }).notNull(),
   },
   (t) => [index().on(t.attemptId, t.decidedAt)],
 )

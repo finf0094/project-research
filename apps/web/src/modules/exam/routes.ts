@@ -41,6 +41,11 @@ export const examRoutes: RouteRecordRaw[] = [
     beforeEnter: pageOf('oral'),
   },
   {
+    path: '/attempts/:attemptId/result',
+    component: () => import('./pages/ResultPage.vue'),
+    meta: { role: 'student', shell: 'student' },
+  },
+  {
     path: '/attempts/:attemptId/done',
     component: () => import('./pages/DonePage.vue'),
     meta: { role: 'student' },

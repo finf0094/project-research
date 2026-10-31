@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onScopeDispose, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import HubHeader from '../components/HubHeader.vue'
 import { provideExamHub } from '../exam-hub'
@@ -10,18 +9,22 @@ import { provideExamHub } from '../exam-hub'
  */
 const route = useRoute()
 const hub = provideExamHub(String(route.params.examId))
-// Countdowns and "x s ago" tick with this clock.
-const now = ref(Date.now())
-const clock = setInterval(() => (now.value = Date.now()), 1000)
-onScopeDispose(() => clearInterval(clock))
 </script>
 
 <template>
   <main class="hub">
-    <HubHeader v-if="hub.exam.value" :exam="hub.exam.value" :now="now" />
-    <p v-if="hub.stale.value" class="stale" role="status">{{ $t('review.monitoring.stale') }}</p>
+    <p v-if="hub.missing.value" class="missing" role="alert">
+      {{ $t('hub.missing') }} <RouterLink to="/examiner">{{ $t('review.exams.title') }}</RouterLink>
+    </p>
+    <HubHeader
+      v-if="hub.exam.value"
+      :exam="hub.exam.value"
+      :now="hub.now.value"
+      :live="hub.live.value"
+      :stale="hub.stale.value"
+    />
     <RouterView v-if="hub.exam.value" v-slot="{ Component }">
-      <div :key="String(route.name)" class="section"><component :is="Component" :now="now" /></div>
+      <div :key="String(route.name)" class="section"><component :is="Component" /></div>
     </RouterView>
   </main>
 </template>
@@ -34,11 +37,13 @@ onScopeDispose(() => clearInterval(clock))
 .section {
   animation: rise var(--dur-slow) var(--ease) both;
 }
-.stale {
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius);
-  background: var(--warn-tint);
-  color: var(--warn);
-  font-size: var(--text-sm);
+.missing {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  a {
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
 }
 </style>

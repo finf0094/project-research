@@ -229,7 +229,7 @@ describe('retention', () => {
       method: 'PUT',
       url: `/api/examiner/attempts/${s.attemptId}/decision`,
       headers,
-      payload: { verdict: 'clean', comment: '' },
+      payload: { verdict: 'clean', comment: '', score: 80 },
     })
 
     expect(await removeExpiredRecordings(ctx.deps)).toBe(0)

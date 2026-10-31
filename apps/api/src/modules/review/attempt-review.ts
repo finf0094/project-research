@@ -1,12 +1,23 @@
 import type { AttemptDetail, DecisionBody, ExaminerCommandBody } from '@exam/contracts'
 import { and, asc, desc, eq } from 'drizzle-orm'
-import { answers, attempts, blobs, commands, decisions, events, markers, users } from '../../db/schema.ts'
+import type { Tx } from '../../db/client.ts'
+import {
+  answers,
+  attempts,
+  blobs,
+  commands,
+  decisions,
+  events,
+  exams,
+  markers,
+  users,
+} from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
-import { conflict, notFound } from '../../shared/errors.ts'
+import { badRequest, conflict, notFound } from '../../shared/errors.ts'
 import { blobKey } from '../../shared/storage.ts'
 import { attemptQuestions, toStudentQuestion } from '../exams/service.ts'
 import { ownAttemptOf, toSummary } from './access.ts'
-import { autoScore } from './grading.ts'
+import { autoScore } from '../exams/grading.ts'
 
 export async function attemptDetail(deps: Deps, ownerId: string, attemptId: string): Promise<AttemptDetail> {
   const { db } = deps
@@ -29,12 +40,13 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
     .select()
     .from(decisions)
     .where(eq(decisions.attemptId, attemptId))
-    .orderBy(desc(decisions.decidedAt))
+    .orderBy(desc(decisions.seq))
     .limit(1)
   const flagged = markerRows.filter((m) => m.status !== 'context').length
 
   return {
     summary: toSummary(attempt, student?.name ?? '', valueOf.size, flagged, deps.now()),
+    examId: exam.id,
     examTitle: exam.title,
     examMode: exam.profile.mode,
     submittedAt: attempt.submittedAt?.getTime() ?? null,
@@ -106,9 +118,12 @@ export async function updateMarker(
 /** Every verdict is appended (audit trail); the latest one is the current decision. */
 export async function decide(deps: Deps, ownerId: string, attemptId: string, body: DecisionBody) {
   await deps.db.transaction(async (tx) => {
-    const { attempt } = await ownAttemptOf(tx, ownerId, attemptId, true)
+    const { attempt, exam } = await ownAttemptOf(tx, ownerId, attemptId, true)
     if (!['ready_for_review', 'decided'].includes(attempt.status))
       throw conflict('Attempt is not ready for review')
+    // Accepting work with open answers needs the examiner's score: no automatic total can stand for them.
+    if (body.verdict === 'clean' && body.score === null && (await hasOpenAnswers(tx, exam, attempt)))
+      throw badRequest('A score is required for open answers')
     await tx.insert(decisions).values({
       attemptId,
       reviewerId: ownerId,
@@ -130,4 +145,14 @@ export async function readChunk(deps: Deps, ownerId: string, attemptId: string, 
   const data = row ? await deps.storage.get(blobKey(attemptId, hash)) : null
   if (!row || !data) throw notFound('Recording not found')
   return { data, mime: row.mime }
+}
+
+/** Oral exams are graded by the examiner as a whole; written ones when a free-text question was asked. */
+async function hasOpenAnswers(
+  tx: Tx,
+  exam: typeof exams.$inferSelect,
+  attempt: typeof attempts.$inferSelect,
+): Promise<boolean> {
+  if (exam.profile.mode === 'oral') return true
+  return (await attemptQuestions(tx, attempt.examId, attempt.ticket)).some((q) => q.type === 'text')
 }

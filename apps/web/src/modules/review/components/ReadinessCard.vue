@@ -16,13 +16,13 @@ const items = computed(() => [
     id: 'questions',
     ok: total.value > 0,
     title: t('hub.overview.questions'),
-    hint: t('hub.overview.questionsNote', { n: total.value, points: props.exam.questions.points }),
+    hint: `${t('hub.count.questions', total.value)} · ${t('hub.count.points', props.exam.questions.points)}`,
   },
   {
     id: 'students',
     ok: props.exam.participants > 0,
     title: t('hub.overview.students'),
-    hint: t('hub.overview.studentsNote', { n: props.exam.participants }),
+    hint: t('hub.count.participants', props.exam.participants),
   },
   {
     id: 'time',

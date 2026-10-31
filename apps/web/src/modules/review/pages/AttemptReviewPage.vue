@@ -36,6 +36,10 @@ onMounted(() => action.run(load))
 const marker = computed(() => detail.value?.markers.find((m) => m.id === selected.value) ?? null)
 const sources = computed(() => (marker.value?.chunks ?? []).map((hash) => chunkUrl(attemptId, hash)))
 const end = computed(() => detail.value?.submittedAt ?? detail.value?.summary.lastSeenAt ?? 0)
+/** Oral exams and free-text answers have no automatic total: the examiner gives the score. */
+const needsScore = computed(
+  () => detail.value?.examMode === 'oral' || !!detail.value?.answers.some((a) => a.autoScore === null),
+)
 const editable = computed(() => ['ready_for_review', 'decided'].includes(detail.value?.summary.status ?? ''))
 
 const judge = (id: string, status: 'confirmed' | 'dismissed') =>
@@ -98,7 +102,7 @@ async function save(body: DecisionBody) {
           v-if="editable"
           :current="detail.decision"
           :saving="saving.busy.value"
-          :with-score="detail.examMode === 'oral'"
+          :with-score="needsScore"
           @save="save"
         />
         <p v-else class="muted">{{ $t('review.attempt.waitAnalysis') }}</p>

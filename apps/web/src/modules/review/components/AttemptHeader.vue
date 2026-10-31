@@ -10,7 +10,13 @@ defineProps<{ detail: AttemptDetail }>()
 
 <template>
   <header class="head">
-    <RouterLink to="/examiner" class="crumb">{{ detail.examTitle }}</RouterLink>
+    <nav class="crumbs" :aria-label="$t('hub.crumbs')">
+      <RouterLink to="/examiner">{{ $t('review.exams.title') }}</RouterLink>
+      <span aria-hidden="true">/</span>
+      <RouterLink :to="`/examiner/exams/${detail.examId}/review`">{{ detail.examTitle }}</RouterLink>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{{ detail.summary.student.name }}</span>
+    </nav>
     <h1>{{ detail.summary.student.name }}</h1>
     <div class="facts">
       <StatusPill :tone="STATUS_TONE[detail.summary.status]">{{
@@ -35,8 +41,23 @@ defineProps<{ detail: AttemptDetail }>()
 </template>
 
 <style scoped>
-.crumb {
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  color: var(--text-2);
   font-size: var(--text-sm);
+  a {
+    color: inherit;
+    &:hover {
+      color: var(--text);
+    }
+  }
+  [aria-current] {
+    color: var(--text);
+    font-weight: 600;
+  }
 }
 .facts {
   display: flex;

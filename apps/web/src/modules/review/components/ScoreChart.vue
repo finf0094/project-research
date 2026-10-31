@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { BANDS } from '../grade-sheet'
-import { PASS_SCORE } from '../exam-state'
+import { PASS_SCORE } from '@exam/contracts'
 
 /** Scored attempts per band; bars grow in from the baseline. Below the pass mark in peach, above in accent. */
 const props = defineProps<{ counts: number[]; total: number }>()
@@ -15,13 +15,18 @@ const max = computed(() => Math.max(1, ...props.counts))
       <span class="muted note">{{ $t('hub.results.checkedCount', { n: total }) }}</span>
     </header>
     <ol class="bars">
-      <li v-for="(n, i) in counts" :key="i" :class="{ fail: BANDS[i]![1] < PASS_SCORE }">
-        <span class="n">{{ n }}</span>
+      <li
+        v-for="(n, i) in counts"
+        :key="i"
+        :class="{ fail: BANDS[i]![1] < PASS_SCORE }"
+        :aria-label="$t('hub.results.bandLabel', { from: BANDS[i]![0], to: BANDS[i]![1], n })"
+      >
+        <span class="n" aria-hidden="true">{{ n }}</span>
         <span class="bar" :style="{ blockSize: `${(100 * n) / max}%`, animationDelay: `${i * 60}ms` }" />
-        <span class="band">{{ BANDS[i]![0] }}–{{ BANDS[i]![1] }}</span>
+        <span class="band" aria-hidden="true">{{ BANDS[i]![0] }}–{{ BANDS[i]![1] }}</span>
       </li>
     </ol>
-    <p class="legend muted">
+    <p class="legend muted" aria-hidden="true">
       <span class="key fail" />{{ $t('hub.results.fail') }} <span class="key" />{{ $t('hub.results.pass') }}
     </p>
   </section>
@@ -76,7 +81,7 @@ li {
   animation: grow var(--dur-slow) var(--ease-spring) both;
 }
 .fail .bar {
-  background: #f2a46b;
+  background: var(--fail);
 }
 .band {
   translate: 0 22px;
@@ -101,7 +106,7 @@ li {
   border-radius: 3px;
   background: var(--accent);
   &.fail {
-    background: #f2a46b;
+    background: var(--fail);
   }
 }
 </style>

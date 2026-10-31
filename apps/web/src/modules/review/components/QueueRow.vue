@@ -2,17 +2,15 @@
 import type { AttemptSummary } from '@exam/contracts'
 import { ChevronRight } from 'lucide-vue-next'
 import { StatusPill } from '@/shared/ui'
-import { STATUS_TONE } from '../labels'
+import { riskLevel, STATUS_TONE } from '../labels'
 
 /** One attempt in the review queue: its risk, what was noticed, the automatic points, its state. */
 defineProps<{ attempt: AttemptSummary }>()
-const riskTone = (risk: number | null) =>
-  risk === null ? 'none' : risk >= 60 ? 'high' : risk >= 30 ? 'mid' : 'low'
 </script>
 
 <template>
   <RouterLink :to="`/examiner/attempts/${attempt.id}`" class="row">
-    <span class="risk" :class="riskTone(attempt.riskScore)">{{ attempt.riskScore ?? '—' }}</span>
+    <span class="risk" :class="riskLevel(attempt.riskScore)">{{ attempt.riskScore ?? '—' }}</span>
     <span class="main">
       <span class="name">{{ attempt.student.name }}</span>
       <span class="chips">

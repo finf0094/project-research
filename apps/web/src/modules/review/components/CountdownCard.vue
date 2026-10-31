@@ -7,7 +7,8 @@ import { AppButton } from '@/shared/ui'
 
 /** How long until the exam opens (or closes), with the examiner's next actions. */
 const props = defineProps<{ exam: ExaminerExam; now: number }>()
-const copied = ref(false)
+/** The copy result, shown on the button for a moment and announced. */
+const copied = ref<'copied' | 'copyFailed' | null>(null)
 
 const phase = computed(() =>
   props.now < props.exam.opensAt ? 'untilStart' : props.now < props.exam.closesAt ? 'untilEnd' : 'ended',
@@ -18,9 +19,12 @@ const left = computed(() =>
 
 async function copyLink() {
   // Students sign in and find the exam in their list; the link takes them straight there.
-  await navigator.clipboard.writeText(`${location.origin}/exams`)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 2000)
+  // The clipboard may be refused (no permission, insecure context): then say so instead of failing silently.
+  copied.value = await navigator.clipboard
+    .writeText(`${location.origin}/exams`)
+    .then(() => 'copied' as const)
+    .catch(() => 'copyFailed' as const)
+  setTimeout(() => (copied.value = null), 2500)
 }
 </script>
 
@@ -43,8 +47,10 @@ async function copyLink() {
       }}</AppButton>
       <AppButton variant="ink" class="soft" @click="copyLink">
         <Link :size="16" aria-hidden="true" />
-        {{ copied ? $t('hub.overview.copied') : $t('hub.overview.copyLink') }}
+        <span aria-hidden="true">{{ $t(`hub.overview.${copied ?? 'copyLink'}`) }}</span>
+        <span class="visually-hidden">{{ $t('hub.overview.copyLink') }}</span>
       </AppButton>
+      <span class="visually-hidden" role="status">{{ copied ? $t(`hub.overview.${copied}`) : '' }}</span>
     </div>
   </section>
 </template>

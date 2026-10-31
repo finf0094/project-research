@@ -1,0 +1,1 @@
+ALTER TABLE "decisions" ADD COLUMN "seq" bigserial NOT NULL;

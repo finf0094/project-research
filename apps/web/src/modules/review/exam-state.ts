@@ -1,4 +1,4 @@
-import type { AttemptSummary, ExaminerExam } from '@exam/contracts'
+import { PASS_SCORE, type AttemptSummary, type ExaminerExam } from '@exam/contracts'
 
 /** Where an exam is in its life, as the examiner sees it. */
 export type ExamState = 'scheduled' | 'running' | 'review' | 'finished'
@@ -10,9 +10,6 @@ export function examState(exam: ExaminerExam, now: number): ExamState {
 }
 
 export const STATE_TONE = { scheduled: 'accent', running: 'lime', review: 'warn', finished: 'ok' } as const
-
-/** Pass mark in percent; a confirmed violation fails whatever the score. */
-export const PASS_SCORE = 50
 
 export function passed(attempt: AttemptSummary): boolean | null {
   const result = attempt.result

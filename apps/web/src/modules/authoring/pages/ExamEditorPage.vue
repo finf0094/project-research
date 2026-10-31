@@ -71,7 +71,9 @@ async function submit() {
 <template>
   <main class="page">
     <header>
-      <RouterLink to="/examiner" class="crumb">{{ $t('authoring.back') }}</RouterLink>
+      <RouterLink :to="examId ? `/examiner/exams/${examId}` : '/examiner'" class="crumb">{{
+        $t(examId ? 'authoring.backToExam' : 'authoring.back')
+      }}</RouterLink>
       <h1>{{ examId ? draft?.title || $t('authoring.editTitle') : $t('authoring.newTitle') }}</h1>
     </header>
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>

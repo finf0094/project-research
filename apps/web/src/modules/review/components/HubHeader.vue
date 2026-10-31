@@ -2,11 +2,15 @@
 import type { ExaminerExam } from '@exam/contracts'
 import { BarChart3, Eye, LayoutGrid, ShieldCheck } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { formatDay, formatDateTime, formatTime } from '@/shared/lib/format'
+import { formatDay, formatDateTime, formatClock } from '@/shared/lib/format'
 import { examState, STATE_TONE } from '../exam-state'
 
-/** Breadcrumbs, the exam's title and state, and its four sections as tabs. */
-const props = defineProps<{ exam: ExaminerExam; now: number }>()
+/**
+ * Breadcrumbs, the exam's title and state, whether the numbers are live, and its four sections as tabs.
+ * `live`: the stream is connected; `stale`: the last reload failed.
+ */
+const props = defineProps<{ exam: ExaminerExam; now: number; live: boolean; stale: boolean }>()
+const sync = computed(() => (props.stale ? 'stale' : props.live ? 'live' : 'polling'))
 const state = computed(() => examState(props.exam, props.now))
 const base = computed(() => `/examiner/exams/${props.exam.id}`)
 const TABS = [
@@ -19,7 +23,7 @@ const TABS = [
 
 <template>
   <header class="head">
-    <nav class="crumbs" :aria-label="$t('app.nav.label')">
+    <nav class="crumbs" :aria-label="$t('hub.crumbs')">
       <RouterLink to="/examiner">{{ $t('review.exams.title') }}</RouterLink>
       <span aria-hidden="true">/</span>
       <span aria-current="page">{{ exam.title }}</span>
@@ -33,9 +37,13 @@ const TABS = [
           state === 'scheduled'
             ? $t('hub.list.startsAt', { at: formatDateTime(exam.opensAt) })
             : state === 'running'
-              ? $t('hub.list.until', { at: formatTime(exam.closesAt).slice(0, 5) })
+              ? $t('hub.list.until', { at: formatClock(exam.closesAt) })
               : $t('hub.list.closedAt', { at: formatDay(exam.closesAt) })
         }}
+      </span>
+      <span class="sync" :class="`is-${sync}`" role="status">
+        <span class="dot" :class="{ live: sync === 'live' }" aria-hidden="true" />
+        {{ $t(`hub.sync.${sync}`) }}
       </span>
     </div>
     <nav class="tabs" :aria-label="$t('hub.tabs.label')">
@@ -114,6 +122,21 @@ const TABS = [
     color: var(--ok);
   }
 }
+.sync {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  &.is-live {
+    color: var(--ok);
+  }
+  &.is-stale {
+    color: var(--warn);
+    font-weight: 600;
+  }
+}
 .dot {
   inline-size: 7px;
   block-size: 7px;
@@ -159,7 +182,7 @@ const TABS = [
   block-size: 20px;
   border-radius: 50%;
   background: var(--danger);
-  color: white;
+  color: var(--on-danger);
   font-size: var(--text-xs);
 }
 </style>

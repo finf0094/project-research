@@ -46,11 +46,14 @@ export function useLiveUpdates(examId: string, onChange: () => void) {
 
   connect()
   const poll = setInterval(onChange, FALLBACK_POLL_MS)
-  onScopeDispose(() => {
+  /** Ends the stream and the polling for good: when the page leaves, or the exam is gone. */
+  function stop() {
     source?.close()
     clearInterval(poll)
     clearTimeout(batch)
     clearTimeout(retry)
-  })
-  return { connected }
+    connected.value = false
+  }
+  onScopeDispose(stop)
+  return { connected, stop }
 }

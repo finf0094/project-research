@@ -4,7 +4,6 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
 import { AppCard, PillTabs, StatTile } from '@/shared/ui'
-import { alertsBetween, type Alert } from '../alerts'
 import { sendCommand } from '../api'
 import AlertsFeed from '../components/AlertsFeed.vue'
 import AttemptsTable from '../components/AttemptsTable.vue'
@@ -12,8 +11,7 @@ import CommandDialog from '../components/CommandDialog.vue'
 import { useExamHub } from '../exam-hub'
 
 /** The exam while it runs: counts, the students riskiest first, and a feed of what needs attention. */
-defineProps<{ now: number }>()
-const { exam, attempts, refresh } = useExamHub()
+const { exam, attempts, alerts, now, refresh } = useExamHub()
 const router = useRouter()
 
 type Filter = 'all' | 'writing' | 'problems' | 'submitted'
@@ -33,13 +31,6 @@ const filters = computed(() =>
     count: count(value),
   })),
 )
-
-// The feed remembers the last 30 alerts of this visit; each refresh adds what changed since the previous.
-const alerts = ref<Alert[]>([])
-watch(attempts, (next, previous) => {
-  if (previous.length)
-    alerts.value = [...alertsBetween(previous, next, Date.now()).reverse(), ...alerts.value].slice(0, 30)
-})
 
 const acting = ref<AttemptSummary | null>(null)
 const action = useAction({ 409: 'review.notRunning' as const })
@@ -62,11 +53,11 @@ const openAttempt = (id: string) => router.push(`/examiner/attempts/${id}`)
       <StatTile
         :label="$t('review.monitoring.writing')"
         :value="exam.attempts.active"
-        :note="$t('hub.monitoring.ofParticipants', { n: exam.participants })"
+        :note="$t('hub.monitoring.ofParticipants', exam.participants)"
       />
       <StatTile
         :label="$t('review.monitoring.offline')"
-        :value="count('problems')"
+        :value="attempts.filter((a) => a.connection === 'offline').length"
         :note="$t('review.monitoring.offlineNote')"
         tone="ink"
       />

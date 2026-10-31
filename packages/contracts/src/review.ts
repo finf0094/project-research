@@ -108,6 +108,7 @@ export type ServerAnalysis = z.infer<typeof ServerAnalysis>
 
 export const AttemptDetail = z.object({
   summary: AttemptBase,
+  examId: Id,
   examTitle: z.string(),
   examMode: ExamMode,
   submittedAt: Timestamp.nullable(),

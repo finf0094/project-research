@@ -1,4 +1,10 @@
-import { AttemptSession, AttemptStatus, StudentExamListItem, type SubmitBody } from '@exam/contracts'
+import {
+  AttemptSession,
+  AttemptStatus,
+  StudentExamListItem,
+  StudentResult,
+  type SubmitBody,
+} from '@exam/contracts'
 import { z } from 'zod'
 import { request } from '@/shared/lib/http'
 
@@ -11,3 +17,5 @@ export const fetchAttempt = (attemptId: string) => request(`/attempts/${attemptI
 
 export const submitAttempt = (attemptId: string, body: SubmitBody) =>
   request(`/attempts/${attemptId}/submit`, { method: 'POST', body }, z.object({ status: AttemptStatus }))
+
+export const fetchResult = (attemptId: string) => request(`/attempts/${attemptId}/result`, {}, StudentResult)

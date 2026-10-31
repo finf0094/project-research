@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, ne, sql } from 'drizzle-orm'
 import { answers, attempts, decisions, markers, questions, users } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { ownExam, toSummary } from './access.ts'
-import { autoScore } from './grading.ts'
+import { autoScore, finalScore } from '../exams/grading.ts'
 
 /**
  * Attempts of one exam, highest risk first (risk only orders the list; it is not a verdict), with their
@@ -11,7 +11,9 @@ import { autoScore } from './grading.ts'
  */
 export async function listAttempts(deps: Deps, ownerId: string, examId: string): Promise<AttemptSummary[]> {
   const { db } = deps
-  await ownExam(db, ownerId, examId)
+  const exam = await ownExam(db, ownerId, examId)
+  // Oral answers are spoken: choice questions on a ticket are not auto-graded, the examiner scores it all.
+  const oral = exam.profile.mode === 'oral'
   const rows = await db
     .select({ attempt: attempts, studentName: users.name })
     .from(attempts)
@@ -41,7 +43,7 @@ export async function listAttempts(deps: Deps, ownerId: string, examId: string):
     .from(decisions)
     .innerJoin(attempts, eq(attempts.id, decisions.attemptId))
     .where(eq(attempts.examId, examId))
-    .orderBy(decisions.attemptId, desc(decisions.decidedAt))
+    .orderBy(decisions.attemptId, desc(decisions.seq))
 
   const answersOf = group(answerRows)
   const markersOf = group(markerRows)
@@ -50,7 +52,7 @@ export async function listAttempts(deps: Deps, ownerId: string, examId: string):
   return rows.map(({ attempt, studentName }) => {
     const given = new Map((answersOf.get(attempt.id) ?? []).map((a) => [a.questionId, a.value]))
     const asked = attempt.ticket ? examQuestions.filter((q) => attempt.ticket!.includes(q.id)) : examQuestions
-    const points = scorePoints(asked, given)
+    const points = oral ? { auto: 0, max: 100, open: true } : scorePoints(asked, given)
     const kinds = (markersOf.get(attempt.id) ?? []).toSorted((a, b) => b.n - a.n)
     return {
       ...toSummary(
@@ -78,14 +80,11 @@ function scorePoints(asked: (typeof questions.$inferSelect)[], given: Map<string
   return { auto, max: asked.reduce((sum, q) => sum + q.points, 0), open }
 }
 
-/** The examiner's score if given; otherwise the automatic one, which is final only when nothing is open. */
 function resultOf(
   decision: { verdict: Verdict; score: number | null } | undefined,
   points: { auto: number; max: number; open: boolean },
 ) {
-  if (!decision) return null
-  const automatic = !points.open && points.max > 0 ? Math.round((points.auto / points.max) * 100) : null
-  return { verdict: decision.verdict, score: decision.score ?? automatic }
+  return decision ? { verdict: decision.verdict, score: finalScore(decision.score, points) } : null
 }
 
 function group<T extends { attemptId: string }>(list: T[]) {

@@ -3,7 +3,7 @@ import { createI18n } from 'vue-i18n'
 import { adminMessages } from '@/modules/admin'
 import { authMessages } from '@/modules/auth'
 import { authoringMessages } from '@/modules/authoring'
-import { examMessages } from '@/modules/exam'
+import { examMessages, studentMessages } from '@/modules/exam'
 import { offlineMessages } from '@/modules/offline'
 import { oralMessages } from '@/modules/oral'
 import { proctoringMessages } from '@/modules/proctoring'
@@ -20,6 +20,7 @@ const parts = [
   authMessages,
   authoringMessages,
   examMessages,
+  studentMessages,
   offlineMessages,
   oralMessages,
   proctoringMessages,
@@ -33,6 +34,7 @@ type Schema = typeof commonMessages.ru &
   typeof authMessages.ru &
   typeof authoringMessages.ru &
   typeof examMessages.ru &
+  typeof studentMessages.ru &
   typeof offlineMessages.ru &
   typeof oralMessages.ru &
   typeof proctoringMessages.ru &

@@ -6,6 +6,14 @@ import { IconTile } from '@/shared/ui'
 /** The proctor's feed: only what needs attention, newest on top, sliding in as it happens. */
 defineProps<{ alerts: Alert[]; now: number }>()
 defineEmits<{ open: [attemptId: string] }>()
+
+/** "12 seconds ago", then minutes: [message key, count]. */
+function ago(at: number, now: number): [string, number] {
+  const seconds = Math.max(1, Math.round((now - at) / 1000))
+  return seconds < 60
+    ? ['hub.monitoring.secondsAgo', seconds]
+    : ['hub.monitoring.minutesAgo', Math.floor(seconds / 60)]
+}
 const LOOK = {
   submitted: { icon: CheckCircle2, tone: 'ok' },
   offline: { icon: WifiOff, tone: 'ink' },
@@ -22,15 +30,14 @@ const LOOK = {
       <span class="note">{{ $t('hub.monitoring.alertsNote') }}</span>
     </header>
     <p v-if="!alerts.length" class="empty">{{ $t('hub.monitoring.noAlerts') }}</p>
-    <TransitionGroup tag="ul" name="list" aria-live="polite">
+    <!-- A log: new alerts are announced; the ticking "ago" is hidden from it so it is not re-read. -->
+    <TransitionGroup tag="ul" name="list" role="log" aria-live="polite" aria-relevant="additions">
       <li v-for="alert in alerts" :key="alert.id">
         <button type="button" class="item" @click="$emit('open', alert.attemptId)">
           <IconTile :icon="LOOK[alert.kind].icon" :tone="LOOK[alert.kind].tone" />
           <span>
             <span class="text">{{ $t(`hub.monitoring.alert.${alert.kind}`, { name: alert.name }) }}</span>
-            <span class="when">{{
-              $t('hub.monitoring.ago', { n: Math.max(1, Math.round((now - alert.at) / 1000)) })
-            }}</span>
+            <span class="when" aria-hidden="true">{{ $t(...ago(alert.at, now)) }}</span>
           </span>
         </button>
       </li>

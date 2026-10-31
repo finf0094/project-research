@@ -61,7 +61,11 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
               <span class="who"><Avatar :name="a.student.name" :size="32" />{{ a.student.name }}</span>
             </th>
             <td class="num">
-              {{ a.points.auto }}/{{ a.points.max }}<span v-if="a.points.open" class="muted"> +</span>
+              {{ a.points.auto }}/{{ a.points.max
+              }}<span v-if="a.points.open" class="muted" :title="$t('hub.queue.open')"
+                ><span aria-hidden="true"> +</span
+                ><span class="visually-hidden">{{ $t('hub.queue.open') }}</span></span
+              >
             </td>
             <td>
               <span v-if="a.result?.score != null" class="score">{{ a.result.score }}</span>
@@ -74,7 +78,11 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
             </td>
             <td class="outcome" :class="outcome(a)">{{ $t(`hub.results.verdict.${outcome(a)}`) }}</td>
             <td>
-              <RouterLink :to="`/examiner/attempts/${a.id}`" class="open" :aria-label="a.student.name">
+              <RouterLink
+                :to="`/examiner/attempts/${a.id}`"
+                class="open"
+                :aria-label="$t('hub.results.openAttempt', { name: a.student.name })"
+              >
                 <ChevronRight :size="18" />
               </RouterLink>
             </td>

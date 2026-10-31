@@ -1,12 +1,16 @@
 import type { ExaminerExam } from '@exam/contracts'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
-import type { Db } from '../../db/client.ts'
 import { attempts, examParticipants, exams, questions } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { ownExam } from './access.ts'
 
-/** The examiner's exams with what their cards and the exam page show, newest first. */
-export async function listExams(db: Db, ownerId: string, onlyId?: string): Promise<ExaminerExam[]> {
+/**
+ * The examiner's exams with what their cards and the exam page show, newest first. An attempt counts as
+ * writing until its deadline plus the offline window: after that nothing it sends can count anyway.
+ */
+export async function listExams(deps: Deps, ownerId: string, onlyId?: string): Promise<ExaminerExam[]> {
+  const { db, config, now } = deps
+  const stillWriting = new Date(now() - config.OFFLINE_WINDOW_MIN * 60_000).toISOString()
   const rows = await db
     .select()
     .from(exams)
@@ -21,7 +25,9 @@ export async function listExams(db: Db, ownerId: string, onlyId?: string): Promi
       .select({
         examId: attempts.examId,
         total: count(),
-        active: count(sql`case when ${attempts.status} = 'active' then 1 end`),
+        active: count(
+          sql`case when ${attempts.status} = 'active' and ${attempts.deadline} > ${stillWriting}::timestamptz then 1 end`,
+        ),
         toReview: count(sql`case when ${attempts.status} = 'ready_for_review' then 1 end`),
       })
       .from(attempts)
@@ -73,16 +79,17 @@ export async function listExams(db: Db, ownerId: string, onlyId?: string): Promi
   })
 }
 
-export async function examSummary(db: Db, ownerId: string, examId: string): Promise<ExaminerExam> {
-  await ownExam(db, ownerId, examId)
-  return (await listExams(db, ownerId, examId))[0]!
+export async function examSummary(deps: Deps, ownerId: string, examId: string): Promise<ExaminerExam> {
+  await ownExam(deps.db, ownerId, examId)
+  return (await listExams(deps, ownerId, examId))[0]!
 }
 
 /** Lets students see their results (scores and the per-question review); attempts not yet decided show later. */
 export async function publishResults({ db, now }: Deps, ownerId: string, examId: string) {
   await ownExam(db, ownerId, examId)
+  // Publishing again keeps the first date: students were told then.
   await db
     .update(exams)
-    .set({ publishedAt: new Date(now()) })
+    .set({ publishedAt: sql`coalesce(${exams.publishedAt}, ${new Date(now()).toISOString()}::timestamptz)` })
     .where(eq(exams.id, examId))
 }

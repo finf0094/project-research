@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
 import { CircleDot, ListChecks, TextCursorInput } from 'lucide-vue-next'
-import { formatDay, formatTime } from '@/shared/lib/format'
+import { formatDay, formatClock } from '@/shared/lib/format'
 
 /** The exam at a glance: when, how long, what is asked, who takes it. */
 defineProps<{ exam: ExaminerExam }>()
@@ -12,9 +12,7 @@ defineProps<{ exam: ExaminerExam }>()
     <div class="fact sky">
       <p class="label">{{ $t('hub.overview.date') }}</p>
       <p class="value">{{ formatDay(exam.opensAt) }}</p>
-      <p class="note">
-        {{ formatTime(exam.opensAt).slice(0, 5) }} — {{ formatTime(exam.closesAt).slice(0, 5) }}
-      </p>
+      <p class="note">{{ formatClock(exam.opensAt) }} — {{ formatClock(exam.closesAt) }}</p>
     </div>
     <div class="fact peach">
       <p class="label">{{ $t('hub.overview.duration') }}</p>
@@ -28,13 +26,19 @@ defineProps<{ exam: ExaminerExam }>()
       <p class="value">{{ exam.questions.single + exam.questions.multiple + exam.questions.text }}</p>
       <p class="types">
         <span :title="$t('exam.question.type.single')"
-          ><CircleDot :size="14" aria-hidden="true" />{{ exam.questions.single }}</span
+          ><CircleDot :size="14" aria-hidden="true" /><span class="visually-hidden"
+            >{{ $t('exam.question.type.single') }}:</span
+          >{{ exam.questions.single }}</span
         >
         <span :title="$t('exam.question.type.multiple')"
-          ><ListChecks :size="14" aria-hidden="true" />{{ exam.questions.multiple }}</span
+          ><ListChecks :size="14" aria-hidden="true" /><span class="visually-hidden"
+            >{{ $t('exam.question.type.multiple') }}:</span
+          >{{ exam.questions.multiple }}</span
         >
         <span :title="$t('exam.question.type.text')"
-          ><TextCursorInput :size="14" aria-hidden="true" />{{ exam.questions.text }}</span
+          ><TextCursorInput :size="14" aria-hidden="true" /><span class="visually-hidden"
+            >{{ $t('exam.question.type.text') }}:</span
+          >{{ exam.questions.text }}</span
         >
       </p>
     </div>

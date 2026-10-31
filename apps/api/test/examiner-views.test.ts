@@ -68,21 +68,22 @@ describe('examiner views', () => {
       result: null,
     })
 
-    const decide = (score: number | null) =>
+    const decide = (verdict: string, score: number | null) =>
       ctx.app.inject({
         method: 'PUT',
         url: `/api/examiner/attempts/${attemptId}/decision`,
         headers: examiner,
-        payload: { verdict: 'clean', comment: '', score },
+        payload: { verdict, comment: '', score },
       })
-    await decide(null)
-    // An open question is unscored: no automatic total can stand for it.
+    // Accepting work with an open answer needs the examiner's score.
+    expect((await decide('clean', null)).statusCode).toBe(400)
+    await decide('needs_review', null)
     expect((await get<AttemptSummary[]>(`/examiner/exams/${seeded.exam.id}/attempts`))[0]!.result).toEqual({
-      verdict: 'clean',
+      verdict: 'needs_review',
       score: null,
     })
     ctx.clock.now += 60_000 // a later decision replaces the earlier one
-    await decide(80)
+    await decide('clean', 80)
     expect(
       (await get<AttemptSummary[]>(`/examiner/exams/${seeded.exam.id}/attempts`))[0]!.result!.score,
     ).toBe(80)

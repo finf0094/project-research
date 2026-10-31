@@ -5,7 +5,6 @@ import QueueRow from '../components/QueueRow.vue'
 import { useExamHub } from '../exam-hub'
 
 /** Human review, riskiest first: how far it is, and the queue to work through. */
-defineProps<{ now: number }>()
 const { attempts } = useExamHub()
 
 type Filter = 'ready_for_review' | 'submitted' | 'decided'

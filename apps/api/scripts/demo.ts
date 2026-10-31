@@ -66,6 +66,8 @@ export async function seedDemoClass(db: Db, teacherId: string, passwordHash: str
       closesAt: new Date(now - 2 * day),
       profile: { mode: 'written', recording: 'adaptive' },
       ownerId: teacherId,
+      // Published: decided students can open their result (sign in as demo1@example.edu).
+      publishedAt: new Date(now - day / 2),
     })
     .returning()
   const [q1, q2] = await db

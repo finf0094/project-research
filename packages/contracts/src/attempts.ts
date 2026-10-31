@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Id, Sha256, Timestamp, safeText } from './common.ts'
 import { AnswerValue, Event } from './events.ts'
-import { ExamMode, StudentExam } from './exams.ts'
+import { ExamMode, QuestionType, StudentExam } from './exams.ts'
 
 /** `submitted` attempts wait for upload of their fragments and then for analysis. */
 export const AttemptStatus = z.enum(['active', 'terminated', 'submitted', 'ready_for_review', 'decided'])
@@ -58,9 +58,41 @@ export const StudentExamListItem = z.object({
   opensAt: Timestamp,
   closesAt: Timestamp,
   questionCount: z.number().int().nonnegative(),
-  attempt: z.object({ id: Id, status: AttemptStatus }).nullable(),
+  /** `resultReady`: the examiner decided and published, so the student can open their result. */
+  attempt: z.object({ id: Id, status: AttemptStatus, resultReady: z.boolean() }).nullable(),
 })
 export type StudentExamListItem = z.infer<typeof StudentExamListItem>
+
+/** Pass mark in percent; a confirmed violation fails whatever the score. */
+export const PASS_SCORE = 50
+
+/** How one question went, as the student sees it after publication. */
+export const QuestionOutcome = z.object({
+  text: z.string(),
+  type: QuestionType,
+  points: z.number().int(),
+  /** Points earned; null for open answers, which the examiner graded as part of the whole. */
+  earned: z.number().nullable(),
+  status: z.enum(['correct', 'wrong', 'unanswered', 'examiner']),
+  /** The student's answer and, for choice questions, the right one (as option texts). */
+  answer: z.string().nullable(),
+  correct: z.string().nullable(),
+})
+export type QuestionOutcome = z.infer<typeof QuestionOutcome>
+
+export const StudentResult = z.object({
+  examTitle: z.string(),
+  decidedAt: Timestamp,
+  reviewer: z.string(),
+  comment: z.string(),
+  /** Percent; null if the examiner gave no score and open answers prevent an automatic one. */
+  score: z.number().int().min(0).max(100).nullable(),
+  passed: z.boolean().nullable(),
+  /** A violation was confirmed; the recording itself is never shown to the student. */
+  violation: z.boolean(),
+  questions: z.array(QuestionOutcome),
+})
+export type StudentResult = z.infer<typeof StudentResult>
 
 /** Credentials to join the oral exam's live room (LiveKit). */
 export const OralRoomAccess = z.object({ url: z.string(), token: z.string(), room: z.string() })

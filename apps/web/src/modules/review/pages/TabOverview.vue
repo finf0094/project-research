@@ -6,8 +6,7 @@ import ReadinessCard from '../components/ReadinessCard.vue'
 import { useExamHub } from '../exam-hub'
 
 /** The exam before and around its time: countdown, readiness, facts and what supervision means. */
-defineProps<{ now: number }>()
-const { exam } = useExamHub()
+const { exam, now } = useExamHub()
 </script>
 
 <template>

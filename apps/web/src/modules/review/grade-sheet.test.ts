@@ -18,14 +18,26 @@ describe('grade sheet', () => {
 
   it('writes CSV that Excel opens with Cyrillic and quotes intact', () => {
     const csv = gradeSheetCsv(list, {
-      columns: ['Студент', 'Авто', 'Балл', 'Итог'],
+      columns: ['Студент', 'Авто', 'Из', 'Балл', 'Итог'],
       outcome: { pass: 'Зачтено', fail: 'Не зачтено', pending: 'Ждёт' },
     })
     const [head, first, second, third] = csv.slice(1).split('\r\n')
     expect(csv.startsWith('﻿')).toBe(true)
-    expect(head).toBe('"Студент";"Авто";"Балл";"Итог"')
-    expect(first).toBe('"Алия ""Ли"" С.";"6/10";"92";"Зачтено"')
-    expect(second).toBe('"Борис";"6/10";"70";"Не зачтено"') // a confirmed violation fails
-    expect(third).toBe('"Вера";"6/10";"";"Ждёт"')
+    expect(head).toBe('"Студент";"Авто";"Из";"Балл";"Итог"')
+    expect(first).toBe('"Алия ""Ли"" С.";"6";"10";"92";"Зачтено"')
+    expect(second).toBe('"Борис";"6";"10";"70";"Не зачтено"') // a confirmed violation fails
+    expect(third).toBe('"Вера";"6";"10";"";"Ждёт"')
+  })
+
+  it('defuses names a spreadsheet would run as formulas, and uses the separator asked for', () => {
+    const csv = gradeSheetCsv(
+      [attempt('=HYPERLINK("x")', null)],
+      {
+        columns: ['a', 'b', 'c', 'd', 'e'],
+        outcome: { pass: 'p', fail: 'f', pending: 'w' },
+      },
+      ',',
+    )
+    expect(csv.split('\r\n')[1]).toBe('"\'=HYPERLINK(""x"")","6","10","","w"')
   })
 })

@@ -33,6 +33,7 @@ let locale = 'ru'
 let timeFormat: Intl.DateTimeFormat
 let dateFormat: Intl.DateTimeFormat
 let dayFormat: Intl.DateTimeFormat
+let clockFormat: Intl.DateTimeFormat
 
 /** Dates follow the interface language; the app calls this whenever the language changes. */
 export function setFormatLocale(next: string) {
@@ -45,10 +46,13 @@ export function setFormatLocale(next: string) {
     minute: '2-digit',
   })
   dayFormat = new Intl.DateTimeFormat(next, { day: 'numeric', month: 'long' })
+  clockFormat = new Intl.DateTimeFormat(next, { hour: '2-digit', minute: '2-digit' })
 }
 setFormatLocale('ru')
 
 export const formatTime = (ts: number) => timeFormat.format(ts)
+/** "14:30": hours and minutes, for schedules. */
+export const formatClock = (ts: number) => clockFormat.format(ts)
 
 export function formatDateTime(ts: number): string {
   if (locale !== 'kk') return dateFormat.format(ts)
