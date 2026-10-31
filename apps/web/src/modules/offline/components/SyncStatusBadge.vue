@@ -5,16 +5,14 @@ import { useSyncStore } from '../sync.store'
 
 const sync = useSyncStore()
 
-// Calm wording on purpose: losing the network is not the student's fault and nothing is lost.
 const view = computed(() => {
   const { connection, pendingEvents } = sync.status
-  if (connection === 'offline')
-    return { tone: 'off', text: 'Нет сети — ответы сохраняются на устройстве' } as const
-  if (pendingEvents > 0) return { tone: 'warn', text: 'Сохранено на устройстве, отправляем…' } as const
-  return { tone: 'ok', text: 'Всё сохранено' } as const
+  if (connection === 'offline') return { tone: 'off', text: 'offline.badge.offline' } as const
+  if (pendingEvents > 0) return { tone: 'warn', text: 'offline.badge.sending' } as const
+  return { tone: 'ok', text: 'offline.badge.saved' } as const
 })
 </script>
 
 <template>
-  <StatusPill :tone="view.tone" dot role="status" aria-live="polite">{{ view.text }}</StatusPill>
+  <StatusPill :tone="view.tone" dot role="status" aria-live="polite">{{ $t(view.text) }}</StatusPill>
 </template>

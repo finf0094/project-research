@@ -13,6 +13,8 @@ export interface StartOptions {
   attemptId: string
   log: EventLog
   recording: RecordingMode
+  /** Watch the noise level; off for oral exams, where the student talks the whole time. */
+  listen: boolean
   now: () => number
 }
 

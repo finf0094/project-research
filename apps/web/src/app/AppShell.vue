@@ -2,7 +2,7 @@
 import { LogOut } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
-import { AppLogo } from '@/shared/ui'
+import { AppLogo, LocaleSwitch } from '@/shared/ui'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -16,10 +16,13 @@ async function logout() {
 <template>
   <div class="shell">
     <header class="bar">
-      <RouterLink to="/" class="home" aria-label="На главную"><AppLogo /></RouterLink>
+      <RouterLink to="/" class="home" :aria-label="$t('app.home')"><AppLogo /></RouterLink>
       <div class="user">
+        <LocaleSwitch />
         <span class="name">{{ auth.user?.name }}</span>
-        <button type="button" class="logout" aria-label="Выйти" @click="logout"><LogOut :size="20" /></button>
+        <button type="button" class="logout" :aria-label="$t('app.logout')" @click="logout">
+          <LogOut :size="20" />
+        </button>
       </div>
     </header>
     <div class="content"><slot /></div>

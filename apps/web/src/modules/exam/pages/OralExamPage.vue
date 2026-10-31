@@ -3,9 +3,11 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { RoomVideo, TicketList, studentRoomAccess, useLiveRoom } from '@/modules/oral'
 import { CameraPreview, HintBanner, useProctoringStore } from '@/modules/proctoring'
-import { AppButton, AppCard, AppDialog } from '@/shared/ui'
+import { AppCard } from '@/shared/ui'
 import ExamHeader from '../components/ExamHeader.vue'
+import ExaminerMessage from '../components/ExaminerMessage.vue'
 import ExamNotices from '../components/ExamNotices.vue'
+import ExamUnavailable from '../components/ExamUnavailable.vue'
 import FinishDialog from '../components/FinishDialog.vue'
 import { useExamStore } from '../exam.store'
 
@@ -32,17 +34,14 @@ async function open(id: string) {
 }
 watch(attemptId, open, { immediate: true })
 
-const join = () => call.join(() => studentRoomAccess(attemptId.value), proctoring.stream)
-// Joins once the attempt is running; the camera may come later (prompt) or come back after a restart.
+const join = () => call.join(() => studentRoomAccess(attemptId.value))
+// Joins while the attempt runs. The camera may come later (permission prompt) or come back after a restart.
 watch(
-  () => exam.attempt && !exam.locked,
+  () => !!exam.attempt && !exam.locked,
   (running) => (running ? join() : call.leave()),
   { immediate: true },
 )
-watch(
-  () => proctoring.stream,
-  (stream) => call.state.value === 'connected' && call.publish(stream),
-)
+watch(() => proctoring.stream, call.setLocal, { immediate: true })
 watch(
   () => exam.locked,
   (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
@@ -58,25 +57,13 @@ function confirmFinish() {
 </script>
 
 <template>
-  <main v-if="loadError" class="center">
-    <AppCard>
-      <h1>Не удалось открыть экзамен</h1>
-      <p class="muted">Для устного экзамена нужен интернет. Проверьте подключение.</p>
-      <AppButton @click="open(attemptId)">Повторить</AppButton>
-    </AppCard>
-  </main>
-
-  <main v-else-if="exam.openedElsewhere" class="center">
-    <AppCard>
-      <h1>Экзамен открыт в другой вкладке</h1>
-      <p class="muted">Продолжайте там и закройте эту вкладку.</p>
-    </AppCard>
-  </main>
+  <ExamUnavailable v-if="loadError" reason="load" oral @retry="open(attemptId)" />
+  <ExamUnavailable v-else-if="exam.openedElsewhere" reason="elsewhere" />
 
   <div v-else-if="exam.attempt" class="exam">
     <ExamHeader
       :title="exam.attempt.exam.title"
-      step="Устный экзамен"
+      :step="$t('exam.header.oral')"
       :remaining-ms="exam.remainingMs"
       :finishing="exam.locked"
       @finish="confirming = true"
@@ -91,22 +78,24 @@ function confirmFinish() {
 
     <div class="body">
       <AppCard class="main">
-        <RoomVideo :stream="call.remote.value" :state="call.state.value" who="Преподаватель" @retry="join" />
+        <RoomVideo
+          :stream="call.remote.value"
+          :state="call.state.value"
+          :audio-blocked="call.audioBlocked.value"
+          :who="$t('exam.page.examiner')"
+          @retry="join"
+          @start-audio="call.startAudio"
+        />
         <TicketList :questions="exam.questions" />
       </AppCard>
       <AppCard as="aside" class="side">
         <CameraPreview />
-        <p class="muted note">
-          Отвечайте вслух. Когда преподаватель скажет, что ответ принят, нажмите «Сдать».
-        </p>
+        <p class="muted note">{{ $t('exam.page.oralHint') }}</p>
       </AppCard>
     </div>
 
     <FinishDialog :open="confirming" :unanswered="0" @confirm="confirmFinish" @cancel="confirming = false" />
-    <AppDialog :open="!!exam.warning" title="Сообщение преподавателя" @close="exam.warning = null">
-      <p>{{ exam.warning }}</p>
-      <template #actions><AppButton @click="exam.warning = null">Понятно</AppButton></template>
-    </AppDialog>
+    <ExaminerMessage :message="exam.warning" @close="exam.warning = null" />
   </div>
 </template>
 
@@ -135,13 +124,6 @@ function confirmFinish() {
 }
 .note {
   font-size: var(--text-sm);
-}
-.center {
-  display: grid;
-  place-items: center;
-  min-height: 100dvh;
-  padding: var(--space-4);
-  text-align: center;
 }
 @media (width < 900px) {
   .body {

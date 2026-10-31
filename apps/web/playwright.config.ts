@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5173',
     viewport: { width: 1440, height: 900 },
+    // The interface follows the browser language; the tests read Russian texts.
+    locale: 'ru-RU',
     permissions: ['camera', 'microphone'],
     launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] },
   },

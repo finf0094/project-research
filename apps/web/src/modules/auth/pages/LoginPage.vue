@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AppButton, AppField, AppLogo } from '@/shared/ui'
+import { AppButton, AppField, AppLogo, LocaleSwitch } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/http'
 import { useAuthStore } from '../auth.store'
 import { homeFor } from '../home'
@@ -11,11 +11,12 @@ const router = useRouter()
 const route = useRoute()
 const email = ref('')
 const password = ref('')
-const error = ref('')
+/** A message key, so the text follows a language switch. */
+const error = ref<'auth.badCredentials' | 'auth.offline' | null>(null)
 const loading = ref(false)
 
 async function submit() {
-  error.value = ''
+  error.value = null
   loading.value = true
   try {
     await auth.login(email.value.trim(), password.value)
@@ -24,10 +25,7 @@ async function submit() {
       typeof route.query.next === 'string' && /^\/(?!\/)/.test(route.query.next) ? route.query.next : null
     await router.replace(next ?? homeFor(auth.role))
   } catch (e) {
-    error.value =
-      e instanceof ApiError && e.status === 401
-        ? 'Неверный email или пароль'
-        : 'Нет связи с сервером. Попробуйте ещё раз.'
+    error.value = e instanceof ApiError && e.status === 401 ? 'auth.badCredentials' : 'auth.offline'
   } finally {
     loading.value = false
   }
@@ -43,9 +41,10 @@ async function submit() {
 
     <section class="panel">
       <form class="form" @submit.prevent="submit">
+        <LocaleSwitch class="locale" />
         <AppLogo class="mobile-logo" />
-        <h1>С возвращением</h1>
-        <p class="muted">Войдите через учётную запись университета.</p>
+        <h1>{{ $t('auth.title') }}</h1>
+        <p class="muted">{{ $t('auth.subtitle') }}</p>
         <AppField
           v-model="email"
           label="Email"
@@ -56,19 +55,22 @@ async function submit() {
         />
         <AppField
           v-model="password"
-          label="Пароль"
+          :label="$t('auth.password')"
           type="password"
           autocomplete="current-password"
           required
-          :error="error || undefined"
+          :error="error ? $t(error) : undefined"
         />
-        <AppButton type="submit" block :loading="loading">Войти</AppButton>
+        <AppButton type="submit" block :loading="loading">{{ $t('auth.submit') }}</AppButton>
       </form>
     </section>
   </main>
 </template>
 
 <style scoped>
+.locale {
+  justify-self: end;
+}
 .login {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

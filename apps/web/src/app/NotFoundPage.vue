@@ -6,9 +6,9 @@ import { AppButton, AppCard } from '@/shared/ui'
   <main class="page">
     <AppCard class="card">
       <p class="code display" aria-hidden="true">404</p>
-      <h1>Такой страницы нет</h1>
-      <p class="muted">Возможно, ссылка устарела. Начните с главной страницы.</p>
-      <AppButton @click="$router.replace('/')">На главную</AppButton>
+      <h1>{{ $t('app.notFound') }}</h1>
+      <p class="muted">{{ $t('app.notFoundHint') }}</p>
+      <AppButton @click="$router.replace('/')">{{ $t('app.home') }}</AppButton>
     </AppCard>
   </main>
 </template>

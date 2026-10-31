@@ -78,14 +78,14 @@ export function riskLevel(active: ReadonlySet<SignalKind>, recentActivations: nu
 /** Frames analysed per second at each level. */
 export const ANALYSIS_FPS: Record<RiskLevel, number> = { low: 1, medium: 2, high: 4 }
 
-/** What the student sees: what to fix, never an accusation. */
-export const HINTS: Partial<Record<SignalKind, string>> = {
-  face_missing: 'Мы не видим ваше лицо. Сядьте перед камерой.',
-  multiple_faces: 'В кадре несколько человек. Во время экзамена вы должны быть один.',
-  too_dark: 'Слишком темно. Включите свет или повернитесь к окну.',
-  noise: 'Вокруг шумно. Постарайтесь найти тихое место.',
-  tab_hidden: 'Пожалуйста, оставайтесь на вкладке экзамена.',
-  camera_off: 'Камера выключена. Включите её, чтобы продолжить под наблюдением.',
-  looking_away: 'Пожалуйста, смотрите на экран.',
-  object_detected: 'Уберите телефон и книги из поля зрения камеры.',
-}
+/** Signals the student gets a hint for (what to fix, never an accusation; texts in messages.ts). */
+export const HINTED: ReadonlySet<SignalKind> = new Set([
+  'face_missing',
+  'multiple_faces',
+  'too_dark',
+  'noise',
+  'tab_hidden',
+  'camera_off',
+  'looking_away',
+  'object_detected',
+])

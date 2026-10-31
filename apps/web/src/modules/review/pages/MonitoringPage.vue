@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AttemptSummary, ExaminerCommandBody, ExaminerExam } from '@exam/contracts'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { AppCard, StatTile } from '@/shared/ui'
 import { listAttempts, listExams, sendCommand } from '../api'
@@ -10,6 +11,7 @@ import CommandDialog from '../components/CommandDialog.vue'
 const POLL_MS = 5000
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const examId = String(route.params.examId)
 const exam = ref<ExaminerExam | null>(null)
 const attempts = ref<AttemptSummary[]>([])
@@ -49,7 +51,7 @@ async function send(body: ExaminerCommandBody) {
     acting.value = null
     await refresh()
   } catch (e) {
-    actionError.value = e instanceof Error ? e.message : 'Не удалось выполнить действие'
+    actionError.value = e instanceof Error ? e.message : t('common.somethingWrong')
   }
 }
 </script>
@@ -57,22 +59,27 @@ async function send(body: ExaminerCommandBody) {
 <template>
   <main class="page">
     <header>
-      <RouterLink to="/examiner" class="crumb">Экзамены</RouterLink>
-      <h1>{{ exam?.title ?? 'Экзамен' }}</h1>
+      <RouterLink to="/examiner" class="crumb">{{ $t('review.exams.title') }}</RouterLink>
+      <h1>{{ exam?.title ?? $t('review.monitoring.exam') }}</h1>
     </header>
 
-    <section class="stats" aria-label="Сводка">
-      <StatTile label="Пишут сейчас" :value="stats.writing" />
-      <StatTile label="Без сети" :value="stats.offline" note="экзамен у них продолжается" tone="sky" />
-      <StatTile label="Сдали" :value="stats.submitted" />
-      <StatTile label="Ждут проверки" :value="stats.toReview" tone="peach" />
+    <section class="stats" :aria-label="$t('review.monitoring.summary')">
+      <StatTile :label="$t('review.monitoring.writing')" :value="stats.writing" />
+      <StatTile
+        :label="$t('review.monitoring.offline')"
+        :value="stats.offline"
+        :note="$t('review.monitoring.offlineNote')"
+        tone="sky"
+      />
+      <StatTile :label="$t('review.monitoring.submitted')" :value="stats.submitted" />
+      <StatTile :label="$t('review.monitoring.toReview')" :value="stats.toReview" tone="peach" />
     </section>
 
     <AppCard>
-      <h2>Студенты</h2>
+      <h2>{{ $t('review.monitoring.students') }}</h2>
       <p class="muted note">
-        Приоритет проверки только упорядочивает список. Пропадание интернета на него не влияет.
-        <span v-if="stale"> · Нет связи с сервером, данные могут быть устаревшими.</span>
+        {{ $t('review.monitoring.riskNote') }}
+        <span v-if="stale"> · {{ $t('review.monitoring.stale') }}</span>
       </p>
       <AttemptsTable
         :attempts="attempts"
@@ -84,7 +91,9 @@ async function send(body: ExaminerCommandBody) {
     </AppCard>
 
     <CommandDialog :attempt="acting" @send="send" @close="acting = null" />
-    <p v-if="actionError" class="error" role="alert">Действие не выполнено: {{ actionError }}</p>
+    <p v-if="actionError" class="error" role="alert">
+      {{ $t('review.monitoring.actionFailed', { error: actionError }) }}
+    </p>
   </main>
 </template>
 

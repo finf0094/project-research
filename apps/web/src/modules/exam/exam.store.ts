@@ -1,41 +1,23 @@
-import type { AnswerValue, AttemptStatus, Question, SyncResponse } from '@exam/contracts'
+import type { AttemptStatus, Question, SyncResponse } from '@exam/contracts'
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, toRaw } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import {
   clearRecording,
   createServerClock,
   listAnswers,
   openEventLog,
-  putAnswer,
-  startSync,
   updateAttempt,
-  useSyncStore,
   type EndReason,
-  type EventLog,
   type LocalAttempt,
-  type ServerClock,
-  type SyncHandle,
 } from '@/modules/offline'
 import { useProctoringStore } from '@/modules/proctoring'
-import { ApiError } from '@/shared/lib/http'
-import { submitAttempt } from './api'
+import { isAnswered, useAnswers } from './answers'
+import { startExamSession, type ExamSession } from './exam-session'
 import { loadAttempt } from './local-attempt'
+import { submitWhenDelivered } from './submit'
 import { acquireTabLock } from './tab-lock'
-import { createTextDrafts } from './text-drafts'
-import { keepScreenOn } from './wake-lock'
 
 const FINISHED: readonly AttemptStatus[] = ['submitted', 'ready_for_review', 'decided']
-
-interface Runtime {
-  attemptId: string
-  log: EventLog
-  clock: ServerClock
-  sync: SyncHandle
-  timer: ReturnType<typeof setInterval>
-  releaseLock: () => void
-  releaseScreen: () => void
-  onPageHide: () => void
-}
 
 /**
  * The running attempt: answers, navigation, time, proctoring and finishing. Every change goes into the
@@ -43,30 +25,31 @@ interface Runtime {
  */
 export const useExamStore = defineStore('exam', () => {
   const attempt = shallowRef<LocalAttempt | null>(null)
-  const answers = ref<Record<string, AnswerValue>>({})
   const current = ref(0)
   const deadline = ref(0)
   const remainingMs = ref(0)
   const status = ref<AttemptStatus>('active')
   const endedBy = ref<EndReason | null>(null)
   const chainBroken = ref(false)
-  const saveFailed = ref(false)
   const warning = ref<string | null>(null)
   const openedElsewhere = ref(false)
   const signedOut = ref(false)
 
   const proctoring = useProctoringStore()
-  const drafts = createTextDrafts(persist)
-  let runtime: Runtime | null = null
+  let runtime: ExamSession | null = null
   /** Bumped by open/close so a slow open() that lost the race cleans up instead of starting a second session. */
   let generation = 0
   const handledCommands = new Set<string>()
 
   const questions = computed<Question[]>(() => attempt.value?.exam.questions ?? [])
   const question = computed(() => questions.value[current.value])
-  const answeredCount = computed(() => questions.value.filter((q) => isAnswered(answers.value[q.id])).length)
   const finished = computed(() => FINISHED.includes(status.value))
   const locked = computed(() => endedBy.value !== null || finished.value)
+  const { answers, saveFailed, answeredCount, answer, flush, reset } = useAnswers(
+    () => runtime,
+    questions,
+    locked,
+  )
 
   async function open(attemptId: string) {
     if (attempt.value?.id === attemptId && runtime) return
@@ -85,7 +68,7 @@ export const useExamStore = defineStore('exam', () => {
     const clock = createServerClock(local.clockOffset)
     const log = openEventLog(attemptId, local.key, local.head, () => clock.now())
     attempt.value = local
-    answers.value = saved
+    reset(saved)
     deadline.value = local.deadline
     status.value = local.status
     endedBy.value = local.endedBy
@@ -98,27 +81,12 @@ export const useExamStore = defineStore('exam', () => {
     if (!locked.value) await log.append(local.head.seq === 0 ? 'session.started' : 'session.resumed', {})
     if (gen !== generation) return releaseLock()
 
-    const syncStore = useSyncStore()
-    const sync = startSync({
-      attemptId,
-      log,
-      clock,
+    runtime = startExamSession(attemptId, log, clock, releaseLock, {
       onResponse: (response) => handleResponse(gen, response),
-      onStatus: syncStore.set,
       onUnauthorized: () => (signedOut.value = true),
+      onPageHide: () => void flush(),
+      onTick: tick,
     })
-    const onPageHide = () => void drafts.flush()
-    window.addEventListener('pagehide', onPageHide)
-    runtime = {
-      attemptId,
-      log,
-      clock,
-      sync,
-      releaseLock,
-      onPageHide,
-      releaseScreen: keepScreenOn(),
-      timer: setInterval(tick, 1000),
-    }
     tick()
 
     if (!locked.value) {
@@ -126,36 +94,10 @@ export const useExamStore = defineStore('exam', () => {
         attemptId,
         log,
         recording: local.exam.profile.recording,
+        // In an oral exam the student talks the whole time: sound says nothing there.
+        listen: local.exam.profile.mode !== 'oral',
         now: () => clock.now(),
       })
-    }
-  }
-
-  /** Choices are saved at once; text after a pause, on blur, on page hide and before finishing. */
-  function answer(questionId: string, value: AnswerValue) {
-    if (!runtime || locked.value) return
-    answers.value = { ...answers.value, [questionId]: value }
-    if (questions.value.find((q) => q.id === questionId)?.type === 'text') {
-      drafts.schedule(questionId)
-    } else {
-      drafts.cancel(questionId)
-      void persist(questionId)
-    }
-  }
-
-  async function persist(questionId: string) {
-    const rt = runtime
-    // The stored answer is a reactive proxy for arrays; IndexedDB can only clone the plain value.
-    const value = toRaw(answers.value[questionId])
-    if (!rt || value === undefined) return
-    try {
-      await rt.log.append('answer', { questionId, value }, () => putAnswer(rt.attemptId, questionId, value))
-      saveFailed.value = false
-      rt.sync.wake()
-    } catch (error) {
-      // The device refused to store it (e.g. disk full): say so, never pretend it is saved.
-      console.error('answer not saved', error)
-      saveFailed.value = true
     }
   }
 
@@ -167,7 +109,7 @@ export const useExamStore = defineStore('exam', () => {
     const rt = runtime
     if (!rt || locked.value) return
     endedBy.value = reason
-    await drafts.flush()
+    await flush()
     await proctoring.stop().catch((error) => console.error('proctoring did not stop cleanly', error))
     // Whatever was not pinned is no longer needed, even if proctoring never ran on this device.
     await clearRecording(rt.attemptId).catch(() => undefined)
@@ -182,27 +124,20 @@ export const useExamStore = defineStore('exam', () => {
   function close() {
     generation++
     if (runtime) {
-      void drafts.flush()
+      void flush()
       void proctoring.stop()
-      runtime.sync.stop()
-      clearInterval(runtime.timer)
-      window.removeEventListener('pagehide', runtime.onPageHide)
-      runtime.releaseLock()
-      runtime.releaseScreen()
+      runtime.stop()
     }
-    drafts.discard()
+    reset()
     runtime = null
     attempt.value = null
-    answers.value = {}
     status.value = 'active'
     endedBy.value = null
     chainBroken.value = false
-    saveFailed.value = false
     warning.value = null
     openedElsewhere.value = false
     signedOut.value = false
     handledCommands.clear()
-    useSyncStore().reset()
   }
 
   function tick() {
@@ -228,21 +163,10 @@ export const useExamStore = defineStore('exam', () => {
     }
 
     if (status.value === 'terminated') await finish('examiner')
-    if (endedBy.value && !finished.value) await trySubmit(rt, response)
-  }
-
-  async function trySubmit(rt: Runtime, response: SyncResponse) {
-    const head = rt.log.head()
-    if (response.ackedSeq < head.seq && !response.chainBroken) return // the next sync delivers the rest
-    try {
-      const result = await submitAttempt(rt.attemptId, { lastSeq: head.seq, lastHash: head.hash })
-      status.value = result.status
-      await updateAttempt(rt.attemptId, { status: result.status })
-    } catch (error) {
-      // 409: an event appended meanwhile is still on its way; network errors: retried after the next sync.
-      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) signedOut.value = true
-      else if (error instanceof ApiError && error.status !== 409) console.error('submit refused', error)
-    }
+    if (!endedBy.value || finished.value) return
+    const outcome = await submitWhenDelivered(rt, response)
+    if (outcome === 'signed-out') signedOut.value = true
+    else if (outcome !== 'waiting') status.value = outcome.status
   }
 
   return {
@@ -266,13 +190,9 @@ export const useExamStore = defineStore('exam', () => {
     open,
     answer,
     /** Saves typed text right away (on blur), without waiting for the pause. */
-    saveNow: drafts.flush,
+    saveNow: flush,
     finish,
     goTo,
     close,
   }
 })
-
-export function isAnswered(value: AnswerValue | undefined): boolean {
-  return Array.isArray(value) ? value.length > 0 : !!value?.trim()
-}

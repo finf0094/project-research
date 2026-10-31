@@ -1,14 +1,14 @@
 import type { DeviceTier, RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import type { EventLog } from '@/modules/offline'
 import type { Pose } from './calibration'
-import { lowerTier } from './device-tier'
+import { UNMEASURED, createTierWatch, lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
 import { startRecorder } from './recorder'
 import { createSensors } from './sensors'
 import {
   ANALYSIS_FPS,
   DARK_BRIGHTNESS,
-  HINTS,
+  HINTED,
   NOISE_RMS,
   createSignalTracker,
   riskLevel,
@@ -19,6 +19,8 @@ export interface ProctorOptions {
   attemptId: string
   log: EventLog
   recording: RecordingMode
+  /** Watch the noise level (off for oral exams). */
+  listen: boolean
   tier: DeviceTier
   /** Neutral head pose from preflight calibration. */
   baseline: Pose
@@ -46,19 +48,6 @@ const SELF_CONTROL_AFTER_MS = 15 * 60_000
 const CONTROL_SECONDS = 20
 /** Object detection is the heaviest model: run it every few seconds only. */
 const OBJECTS_EVERY_MS = 2000
-/** Average analysis time above which the tier is lowered one step. */
-const SLOW_ANALYSIS_MS = 250
-/** The first frames warm the models up and are slow by nature; they never count. */
-const WARMUP_FRAMES = 5
-/** The average must stay slow this many frames in a row before the tier drops. */
-const SLOW_FRAMES = 5
-/** Signals each tier no longer measures; they are switched off when the tier drops, never left stuck on. */
-const UNMEASURED: Record<DeviceTier, ObservedKind[]> = {
-  full: [],
-  lite: ['object_detected'],
-  minimal: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'],
-}
-
 /**
  * Local adaptive proctoring: measures, turns measurements into signals, shows hints, and decides how much
  * evidence to keep. It never judges; signals and fragments go into the sealed event log.
@@ -76,9 +65,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   let lastFragment = -Infinity
   let lastControl = now()
   let lastObjects = -Infinity
-  let analysisMs = 0
-  let frames = 0
-  let slowFrames = 0
+  const tooSlow = createTierWatch()
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const evidence = createEvidence(attemptId, log)
@@ -92,7 +79,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   /** Shows the hint for the first active signal (or the lingering tab hint) and logs it once a minute per kind. */
   function showHint() {
     const kind: SignalKind | null =
-      [...active].find((k) => HINTS[k]) ?? (now() < returnHintUntil ? 'tab_hidden' : null)
+      [...active].find((k) => HINTED.has(k)) ?? (now() < returnHintUntil ? 'tab_hidden' : null)
     options.onHint(kind)
     if (
       kind &&
@@ -155,18 +142,14 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     }
     if (frame?.lookingAway != null) observe('looking_away', frame.lookingAway)
     if (frame?.object != null) observe('object_detected', frame.object)
-    observe('noise', sensors.loudness() > NOISE_RMS)
+    if (options.listen) observe('noise', sensors.loudness() > NOISE_RMS)
     adaptTier(performance.now() - started)
   }
 
   /** Keeps the exam smooth on weak computers: lowers the tier when analysis is consistently slow. */
   function adaptTier(ms: number) {
-    if (++frames <= WARMUP_FRAMES || tier === 'minimal') return
-    analysisMs = analysisMs ? analysisMs * 0.8 + ms * 0.2 : ms
-    slowFrames = analysisMs > SLOW_ANALYSIS_MS ? slowFrames + 1 : 0
-    if (slowFrames < SLOW_FRAMES) return
+    if (tier === 'minimal' || !tooSlow(ms)) return
     tier = lowerTier(tier)
-    slowFrames = 0
     void log.append('proctoring.mode', { tier })
     for (const kind of UNMEASURED[tier]) {
       tracker.reset(kind)

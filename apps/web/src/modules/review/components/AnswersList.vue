@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { ReviewedAnswer } from '@exam/contracts'
+import { useI18n } from 'vue-i18n'
 
 defineProps<{ answers: ReviewedAnswer[] }>()
+const { t } = useI18n()
 
 function show(a: ReviewedAnswer) {
-  if (a.value === null) return 'Нет ответа'
+  if (a.value === null) return t('review.answers.none')
   const byId = new Map(a.question.options.map((o) => [o.id, o.text]))
   return Array.isArray(a.value)
     ? a.value.map((id) => byId.get(id) ?? id).join(', ')
@@ -18,7 +20,7 @@ function show(a: ReviewedAnswer) {
       <div class="head">
         <p class="question">{{ a.question.text }}</p>
         <span class="score">{{
-          a.autoScore === null ? 'вручную' : `${a.autoScore}/${a.question.points}`
+          a.autoScore === null ? $t('review.answers.manual') : `${a.autoScore}/${a.question.points}`
         }}</span>
       </div>
       <p class="value" :class="{ muted: a.value === null }">{{ show(a) }}</p>

@@ -21,40 +21,38 @@ function submit() {
   emit('save', {
     verdict: verdict.value,
     comment: comment.value,
-    score: score.value === '' ? null : score.value,
+    score: props.withScore && score.value !== '' ? score.value : null,
   })
 }
 
-const OPTIONS: { value: Verdict; text: string }[] = [
-  { value: 'clean', text: 'Нарушений не выявлено' },
-  { value: 'violation', text: 'Нарушение подтверждено' },
-  { value: 'needs_review', text: 'Нужна дополнительная проверка' },
-]
+const VERDICTS: Verdict[] = ['clean', 'violation', 'needs_review']
 </script>
 
 <template>
   <form class="form" @submit.prevent="submit">
     <fieldset class="verdicts">
-      <legend>Решение</legend>
-      <label v-for="o in OPTIONS" :key="o.value" class="verdict" :class="{ checked: verdict === o.value }">
-        <input v-model="verdict" type="radio" name="verdict" :value="o.value" />
-        {{ o.text }}
+      <legend>{{ $t('review.decision.title') }}</legend>
+      <label v-for="v in VERDICTS" :key="v" class="verdict" :class="{ checked: verdict === v }">
+        <input v-model="verdict" type="radio" name="verdict" :value="v" />
+        {{ $t(`review.decision.${v}`) }}
       </label>
     </fieldset>
     <label v-if="withScore" class="field">
-      Баллы (0–100)
+      {{ $t('review.decision.score') }}
       <input v-model.number="score" type="number" min="0" max="100" step="1" required />
     </label>
     <label class="field">
-      Комментарий
+      {{ $t('review.decision.comment') }}
       <textarea
         v-model="comment"
         rows="4"
         maxlength="5000"
-        placeholder="Что вы увидели и почему так решили"
+        :placeholder="$t('review.decision.commentPlaceholder')"
       />
     </label>
-    <AppButton type="submit" block :disabled="!verdict" :loading="saving">Сохранить решение</AppButton>
+    <AppButton type="submit" block :disabled="!verdict" :loading="saving">{{
+      $t('review.decision.save')
+    }}</AppButton>
   </form>
 </template>
 

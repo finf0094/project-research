@@ -6,13 +6,43 @@ export function formatDuration(ms: number): string {
   return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`
 }
 
-const timeFormat = new Intl.DateTimeFormat('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-const dateFormat = new Intl.DateTimeFormat('ru', {
-  day: 'numeric',
-  month: 'long',
-  hour: '2-digit',
-  minute: '2-digit',
-})
+// Browsers report Kazakh as supported but many ship no data for it ("M10 31"), so its months are spelled here.
+const KK_MONTHS = [
+  'қаңтар',
+  'ақпан',
+  'наурыз',
+  'сәуір',
+  'мамыр',
+  'маусым',
+  'шілде',
+  'тамыз',
+  'қыркүйек',
+  'қазан',
+  'қараша',
+  'желтоқсан',
+]
+
+let locale = 'ru'
+let timeFormat: Intl.DateTimeFormat
+let dateFormat: Intl.DateTimeFormat
+
+/** Dates follow the interface language; the app calls this whenever the language changes. */
+export function setFormatLocale(next: string) {
+  locale = next
+  timeFormat = new Intl.DateTimeFormat(next, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  dateFormat = new Intl.DateTimeFormat(next, {
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+setFormatLocale('ru')
 
 export const formatTime = (ts: number) => timeFormat.format(ts)
-export const formatDateTime = (ts: number) => dateFormat.format(ts)
+
+export function formatDateTime(ts: number): string {
+  if (locale !== 'kk') return dateFormat.format(ts)
+  const d = new Date(ts)
+  return `${d.getDate()} ${KK_MONTHS[d.getMonth()]}, ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}

@@ -88,16 +88,26 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   not as separate commands (commands are `warn` and `capture`).
 - Append-only event log: enforced by database triggers (UPDATE/DELETE/TRUNCATE), not by role grants.
 - Final answers are projected during sync and rebuilt from the log during analysis (no separate job).
-- Face detection runs on the main thread at 1–4 frames per second instead of a Web Worker.
-- The recording ring buffer (last ~3 minutes) lives in memory: a reload loses it and any fragment still waiting
-  for future chunks. Pinned fragments are in IndexedDB and survive.
+- Face, gaze and object detection run on the main thread at 1–4 frames per second instead of a Web Worker;
+  the device tier (full / lite / minimal) is measured at preflight and lowered automatically when analysis
+  stays slow.
+- Server-side analysis (section 17.3) uses ONNX models (UltraFace RFB-320 for faces, SSD MobileNet v1 for
+  phones and books) on one frame per second of every uploaded chunk, run by the worker outside any row lock.
+  A finding counts as a _discrepancy_ only inside a control fragment and only where the device's tier was
+  measuring that kind; dark frames never produce "no face". Models are pinned by SHA-256 (`pnpm models`).
+- Oral exams: LiveKit rooms (one per attempt) with tokens from the API; the ticket is drawn at random from the
+  question pool when the attempt starts. The student's camera is recorded in full locally, as for written
+  exams. **Not tested against a live LiveKit server here** (running the server binary was not possible in this
+  environment); the client is covered by unit tests with a mocked room and by a browser run without a server.
+  Without `LIVEKIT_*` settings the API answers 503 and both sides see "video call unavailable".
+- The recording ring (last ~3 minutes, 10 s chunks) and pending fragment requests live in IndexedDB, so a
+  reload or crash loses neither.
+- Languages: Russian (default), Kazakh and English through vue-i18n; each module owns its texts
+  (`modules/*/messages.ts`) and the other languages must match the Russian keys at compile time.
+  Kazakh dates are spelled by the app, since browsers often ship no Kazakh calendar data.
 - Runtime: Node.js 22.18+ (type stripping) instead of 24; no reka-ui (native `<dialog>` and inputs suffice).
 
 **Not implemented yet**
 
-- Server-side re-analysis of fragments with ML models (section 17.3); the server does reconcile control
-  fragments it asked for but never received.
-- Head pose / gaze and object detection on the client; device performance tiers with automatic downgrade;
-  Wake Lock.
-- Oral exam (LiveKit), exam authoring UI, admin role, KK/EN translations (vue-i18n), Swagger docs,
-  room hub for classrooms.
+- Exam authoring UI and an admin role (exams come from `pnpm seed` or SQL), Swagger docs, the room hub for
+  classrooms.

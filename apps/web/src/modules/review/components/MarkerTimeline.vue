@@ -2,7 +2,6 @@
 import type { Marker } from '@exam/contracts'
 import { computed } from 'vue'
 import { formatTime } from '@/shared/lib/format'
-import { MARKER_LABEL } from '../labels'
 
 const props = defineProps<{ markers: Marker[]; start: number; end: number; selected: string | null }>()
 const emit = defineEmits<{ select: [id: string] }>()
@@ -14,7 +13,12 @@ const ticks = computed(() => [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, t: props.s
 
 <template>
   <figure class="timeline">
-    <svg viewBox="0 0 100 24" preserveAspectRatio="none" role="group" aria-label="Метки на шкале экзамена">
+    <svg
+      viewBox="0 0 100 24"
+      preserveAspectRatio="none"
+      role="group"
+      :aria-label="$t('review.attempt.timeline')"
+    >
       <rect x="0" y="9" width="100" height="6" rx="3" class="track" />
       <rect
         v-for="m in markers"
@@ -28,7 +32,7 @@ const ticks = computed(() => [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, t: props.s
         :class="[m.status, { selected: m.id === selected }]"
         tabindex="0"
         role="button"
-        :aria-label="`${MARKER_LABEL[m.kind]}, ${formatTime(m.startAt)}`"
+        :aria-label="`${$t(`review.marker.${m.kind}`)}, ${formatTime(m.startAt)}`"
         @click="emit('select', m.id)"
         @keydown.enter.prevent="emit('select', m.id)"
         @keydown.space.prevent="emit('select', m.id)"

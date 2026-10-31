@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { AppButton } from '@/shared/ui'
 import { listExams } from '../api'
 import ExamCard from '../components/ExamCard.vue'
-import { attemptPath } from '../routes'
+import { attemptPath } from '../paths'
 
 const router = useRouter()
 const exams = ref<StudentExamListItem[] | null>(null)
@@ -25,11 +25,12 @@ onMounted(load)
 
 <template>
   <main class="page">
-    <h1>Мои экзамены</h1>
+    <h1>{{ $t('exam.list.title') }}</h1>
     <p v-if="failed" class="muted">
-      Не удалось загрузить список. <AppButton variant="ghost" @click="load">Повторить</AppButton>
+      {{ $t('exam.list.loadFailed') }}
+      <AppButton variant="ghost" @click="load">{{ $t('common.retry') }}</AppButton>
     </p>
-    <p v-else-if="exams && exams.length === 0" class="muted">Пока нет назначенных экзаменов.</p>
+    <p v-else-if="exams && exams.length === 0" class="muted">{{ $t('exam.list.empty') }}</p>
     <div v-else class="grid">
       <ExamCard
         v-for="exam in exams"

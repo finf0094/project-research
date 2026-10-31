@@ -25,8 +25,9 @@ export default [
   // Module boundaries: other modules are reached only through their index.ts, never by a relative path
   // that climbs out of the module; shared code knows nothing about modules or the app.
   ...[
-    { files: ['apps/web/src/modules/*/*.{ts,vue}'], climb: '../*' },
-    { files: ['apps/web/src/modules/*/*/**/*.{ts,vue}'], climb: '../../*' },
+    { files: ['apps/web/src/modules/*/*.{ts,vue}'], climb: ['../*'] },
+    // Modules are at most two folders deep (pages/, components/), so climbing two levels leaves the module.
+    { files: ['apps/web/src/modules/*/*/**/*.{ts,vue}'], climb: ['../../*', '../../../*'] },
     { files: ['apps/web/src/app/**/*.{ts,vue}'], climb: null },
   ].map(({ files, climb }) => ({
     files,
@@ -37,7 +38,7 @@ export default [
           patterns: [
             { group: ['@/modules/*/*'], message: 'Import a module through its index.ts' },
             ...(climb
-              ? [{ group: [climb], message: 'Do not reach into another module by a relative path' }]
+              ? [{ group: climb, message: 'Do not reach into another module by a relative path' }]
               : []),
           ],
         },

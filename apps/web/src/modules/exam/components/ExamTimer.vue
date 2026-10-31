@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { formatDuration } from '@/shared/lib/format'
 
 const props = defineProps<{ remainingMs: number }>()
+const { t } = useI18n()
 const LOW_MS = 5 * 60_000
 const low = computed(() => props.remainingMs <= LOW_MS)
 // The visible timer is not announced every second; screen readers hear only the moment time runs low.
-const announcement = computed(() => (low.value ? 'Осталось меньше 5 минут' : ''))
+const announcement = computed(() => (low.value ? t('exam.timer.low') : ''))
 </script>
 
 <template>
-  <span class="timer" :class="{ low }" role="timer" aria-label="Осталось времени">
+  <span class="timer" :class="{ low }" role="timer" :aria-label="$t('exam.timer.label')">
     {{ formatDuration(remainingMs) }}
   </span>
   <span class="visually-hidden" aria-live="assertive">{{ announcement }}</span>

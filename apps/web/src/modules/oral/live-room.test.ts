@@ -3,29 +3,32 @@ import { effectScope } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 import { useLiveRoom } from './live-room'
 
+type Handler = (...args: unknown[]) => void
+type Publication = { track?: { mediaStreamTrack: unknown } }
+
 const { FakeRoom, rooms } = vi.hoisted(() => {
   const rooms: InstanceType<typeof FakeRoom>[] = []
+  /** Just enough of livekit-client's Room: events, connect (which reports "connected") and publishing. */
   class FakeRoom {
-    handlers = new Map<string, (...args: unknown[]) => void>()
-    remoteParticipants = new Map<
-      string,
-      { trackPublications: Map<string, { track?: { mediaStreamTrack: unknown } }> }
-    >()
+    handlers = new Map<string, Handler[]>()
+    remoteParticipants = new Map<string, { videoTrackPublications: Map<string, Publication> }>()
+    canPlaybackAudio = true
     localParticipant = {
       publishTrack: vi.fn(async (_track: unknown, _options?: unknown) => undefined),
-      unpublishTrack: vi.fn(async (_track: unknown, _options?: unknown) => undefined),
+      unpublishTrack: vi.fn(async (track: { stop(): void }) => track.stop()),
     }
-    connect = vi.fn(async () => undefined)
+    connect = vi.fn(async () => this.emit('state', 'connected'))
     disconnect = vi.fn(async () => undefined)
+    startAudio = vi.fn(async () => undefined)
     constructor() {
       rooms.push(this)
     }
-    on(event: string, handler: (...args: unknown[]) => void) {
-      this.handlers.set(event, handler)
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, [...(this.handlers.get(event) ?? []), handler])
       return this
     }
     emit(event: string, ...args: unknown[]) {
-      this.handlers.get(event)?.(...args)
+      this.handlers.get(event)?.forEach((h) => h(...args))
     }
   }
   return { FakeRoom, rooms }
@@ -37,7 +40,7 @@ vi.mock('livekit-client', () => ({
     ConnectionStateChanged: 'state',
     TrackSubscribed: 'subscribed',
     TrackUnsubscribed: 'unsubscribed',
-    ParticipantDisconnected: 'left',
+    AudioPlaybackStatusChanged: 'audio',
   },
   ConnectionState: {
     Connecting: 'connecting',
@@ -46,7 +49,7 @@ vi.mock('livekit-client', () => ({
     SignalReconnecting: 'signalReconnecting',
     Disconnected: 'disconnected',
   },
-  Track: { Source: { Camera: 'camera', Microphone: 'microphone' } },
+  Track: { Source: { Camera: 'camera', Microphone: 'microphone' }, Kind: { Audio: 'audio', Video: 'video' } },
 }))
 
 class FakeTrack {
@@ -64,6 +67,10 @@ class FakeTrack {
 }
 
 const access = async () => ({ url: 'wss://live.test', token: 't', room: 'attempt-1' })
+const camera = () => new MediaStream([new FakeTrack('video'), new FakeTrack('audio')] as never)
+const published = (room = rooms[0]!) =>
+  room.localParticipant.publishTrack.mock.calls.map((c) => c[0] as unknown as FakeTrack)
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 beforeEach(() => {
   rooms.length = 0
@@ -90,49 +97,84 @@ function setup() {
 
 describe('useLiveRoom', () => {
   it('publishes clones of the camera, so leaving the call never stops the recording camera', async () => {
-    const camera = [new FakeTrack('video'), new FakeTrack('audio')]
+    const stream = camera()
     const { call } = setup()
-    await call.join(access, new MediaStream(camera as never))
+    call.setLocal(stream)
+    await call.join(access)
+    await settle()
     expect(call.state.value).toBe('connected')
-    const published = rooms[0]!.localParticipant.publishTrack.mock.calls.map(
-      (c) => c[0] as unknown as FakeTrack,
-    )
-    expect(published).toHaveLength(2)
-    expect(published.some((t) => camera.includes(t))).toBe(false)
+    const sent = published()
+    expect(sent).toHaveLength(2)
+    expect(sent.some((t) => stream.getTracks().includes(t as never))).toBe(false)
 
     await call.leave()
-    expect(published.every((t) => t.stopped)).toBe(true)
-    expect(camera.some((t) => t.stopped)).toBe(false)
-    expect(rooms[0]!.disconnect).toHaveBeenCalled()
+    expect(sent.every((t) => t.stopped)).toBe(true)
+    expect(stream.getTracks().some((t) => (t as unknown as FakeTrack).stopped)).toBe(false)
   })
 
-  it('shows the other side once their track arrives and drops it when they leave', async () => {
+  it('publishes a camera that arrives after joining, and replaces it after a restart', async () => {
+    const { call } = setup()
+    await call.join(access)
+    call.setLocal(camera())
+    call.setLocal(camera()) // two changes in a row: one run at a time, only the last one is sent
+    await settle()
+    expect(published()).toHaveLength(2)
+    call.setLocal(camera()) // the camera restarted
+    await settle()
+    const sent = published()
+    expect(sent).toHaveLength(4)
+    expect(sent.slice(0, 2).every((t) => t.stopped)).toBe(true)
+    expect(sent.slice(2).some((t) => t.stopped)).toBe(false)
+  })
+
+  it('shows the other side once their camera arrives', async () => {
     const { call } = setup()
     await call.join(access)
     const room = rooms[0]!
-    const pubs = new Map([['v', { track: { mediaStreamTrack: new FakeTrack('video') } }]])
-    room.remoteParticipants.set('examiner', { trackPublications: pubs })
-    room.emit('subscribed')
+    const video = { kind: 'video', mediaStreamTrack: new FakeTrack('video') }
+    room.remoteParticipants.set('examiner', { videoTrackPublications: new Map([['v', { track: video }]]) })
+    room.emit('subscribed', video)
     expect(call.remote.value).not.toBeNull()
     room.remoteParticipants.clear()
-    room.emit('left')
+    room.emit('unsubscribed', video)
     expect(call.remote.value).toBeNull()
   })
 
-  it('tells "not configured" (503) apart from a lost connection', async () => {
+  it('tells "not configured" (503) apart from a lost connection, and rejoins when back online', async () => {
     const { call } = setup()
     await call.join(() => Promise.reject(new ApiError(503, 'Oral exams are not configured')))
     expect(call.state.value).toBe('unavailable')
-    await call.join(() => Promise.reject(new TypeError('Failed to fetch')))
+    let fail = true
+    await call.join(() => (fail ? Promise.reject(new TypeError('Failed to fetch')) : access()))
     expect(call.state.value).toBe('disconnected')
+    fail = false
+    window.dispatchEvent(new Event('online'))
+    await settle()
+    expect(call.state.value).toBe('connected')
   })
 
-  it('follows reconnects and leaves the call when the page goes away', async () => {
+  it('never leaves a call open after the page is gone, even when joining finishes later', async () => {
     const { call, dispose } = setup()
-    await call.join(access)
-    rooms[0]!.emit('state', 'reconnecting')
-    expect(call.state.value).toBe('reconnecting')
+    let grant: () => void = () => undefined
+    const slow = () => new Promise<void>((resolve) => (grant = resolve)).then(access)
+    const joining = call.join(slow)
+    await settle() // the room exists, the token request is still on its way
+    expect(rooms).toHaveLength(1)
     dispose()
-    expect(rooms[0]!.disconnect).toHaveBeenCalled()
+    grant()
+    await joining
+    expect(rooms[0]!.connect).not.toHaveBeenCalled()
+    await call.join(access) // a late join after dispose does nothing
+    expect(rooms).toHaveLength(1)
+  })
+
+  it('asks for a click when the browser blocks the sound', async () => {
+    const { call } = setup()
+    await call.join(access)
+    rooms[0]!.canPlaybackAudio = false
+    rooms[0]!.emit('audio')
+    expect(call.audioBlocked.value).toBe(true)
+    await call.startAudio()
+    expect(rooms[0]!.startAudio).toHaveBeenCalled()
   })
 })

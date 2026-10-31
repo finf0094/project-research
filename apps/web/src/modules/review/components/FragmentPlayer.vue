@@ -22,8 +22,10 @@ function next() {
 <template>
   <div class="player">
     <video v-if="src" ref="video" :src="src" controls preload="metadata" @ended="next" />
-    <p v-else class="empty">Для этой метки нет записи. Решение — по журналу событий.</p>
-    <p v-if="sources.length > 1" class="muted parts">Часть {{ index + 1 }} из {{ sources.length }}</p>
+    <p v-else class="empty">{{ $t('review.player.empty') }}</p>
+    <p v-if="sources.length > 1" class="muted parts">
+      {{ $t('review.player.part', { n: index + 1, total: sources.length }) }}
+    </p>
   </div>
 </template>
 

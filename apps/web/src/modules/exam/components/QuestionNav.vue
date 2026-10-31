@@ -2,7 +2,7 @@
 import type { AnswerValue, Question } from '@exam/contracts'
 import { computed } from 'vue'
 import { ProgressRing } from '@/shared/ui'
-import { isAnswered } from '../exam.store'
+import { isAnswered } from '../answers'
 
 const props = defineProps<{ questions: Question[]; answers: Record<string, AnswerValue>; current: number }>()
 const emit = defineEmits<{ select: [index: number] }>()
@@ -19,13 +19,13 @@ function nextUnanswered() {
 </script>
 
 <template>
-  <nav class="nav" aria-label="Вопросы">
+  <nav class="nav" :aria-label="$t('exam.nav.label')">
     <div class="progress">
       <ProgressRing :value="answered" :max="questions.length" />
       <div>
-        <p class="label">Отвечено</p>
+        <p class="label">{{ $t('exam.nav.answered') }}</p>
         <button v-if="answered < questions.length" type="button" class="link" @click="nextUnanswered">
-          К следующему без ответа →
+          {{ $t('exam.nav.nextUnanswered') }}
         </button>
       </div>
     </div>
@@ -37,7 +37,9 @@ function nextUnanswered() {
           class="cell"
           :class="{ current: i === current, done: isAnswered(answers[q.id]) }"
           :aria-current="i === current ? 'step' : undefined"
-          :aria-label="`Вопрос ${i + 1}${isAnswered(answers[q.id]) ? ', есть ответ' : ''}`"
+          :aria-label="
+            $t(isAnswered(answers[q.id]) ? 'exam.nav.questionAnswered' : 'exam.nav.question', { n: i + 1 })
+          "
           @click="emit('select', i)"
         >
           {{ i + 1 }}

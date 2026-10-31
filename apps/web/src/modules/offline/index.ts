@@ -20,3 +20,4 @@ export {
 export { startSync, type SyncHandle, type SyncStatus } from './sync-loop'
 export { useSyncStore } from './sync.store'
 export { default as SyncStatusBadge } from './components/SyncStatusBadge.vue'
+export { offlineMessages } from './messages'

@@ -7,7 +7,7 @@ const model = defineModel<string>({ default: '' })
 <template>
   <label class="answer">
     <span class="visually-hidden">{{ label }}</span>
-    <textarea v-model="model" rows="6" placeholder="Ваш ответ" maxlength="20000" />
+    <textarea v-model="model" rows="6" :placeholder="$t('exam.question.placeholder')" maxlength="20000" />
   </label>
 </template>
 

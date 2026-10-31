@@ -4,18 +4,13 @@ defineProps<{ attemptId: string; signedOut: boolean; saveFailed: boolean; chainB
 
 <template>
   <div v-if="signedOut || saveFailed || chainBroken" class="notices" role="alert">
-    <p v-if="saveFailed" class="notice">
-      Не удалось сохранить ответ на устройстве. Освободите место на диске и выберите ответ ещё раз.
-    </p>
-    <p v-if="signedOut" class="notice">
-      Сессия входа закончилась. Ответы сохраняются на устройстве —
-      <RouterLink :to="`/login?next=/attempts/${attemptId}`">войдите снова</RouterLink>, чтобы они
-      отправились.
-    </p>
-    <p v-if="chainBroken" class="notice">
-      Сервер не смог подтвердить часть сохранённых данных. Продолжайте экзамен — преподаватель проверит работу
-      вручную.
-    </p>
+    <p v-if="saveFailed" class="notice">{{ $t('exam.notices.saveFailed') }}</p>
+    <i18n-t v-if="signedOut" keypath="exam.notices.signedOut" tag="p" class="notice">
+      <template #link>
+        <RouterLink :to="`/login?next=/attempts/${attemptId}`">{{ $t('exam.notices.signIn') }}</RouterLink>
+      </template>
+    </i18n-t>
+    <p v-if="chainBroken" class="notice">{{ $t('exam.notices.chainBroken') }}</p>
   </div>
 </template>
 

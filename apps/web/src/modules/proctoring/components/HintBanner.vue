@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useProctoringStore } from '../proctoring.store'
-import { HINTS } from '../signals'
 
 const proctoring = useProctoringStore()
-const text = computed(() => (proctoring.hint ? HINTS[proctoring.hint] : null))
+const { t } = useI18n()
+const text = computed(() => (proctoring.hint ? t(`proctoring.hint.${proctoring.hint}`) : null))
 </script>
 
 <template>

@@ -19,10 +19,10 @@ watch(
 onUnmounted(() => exam.close())
 
 const title = computed(() => {
-  if (!exam.finished) return 'Ответы сохранены'
-  if (exam.endedBy === 'examiner') return 'Преподаватель завершил экзамен'
-  if (exam.endedBy === 'time') return 'Время вышло'
-  return 'Экзамен сдан'
+  if (!exam.finished) return 'exam.done.saved'
+  if (exam.endedBy === 'examiner') return 'exam.done.byExaminer'
+  if (exam.endedBy === 'time') return 'exam.done.byTime'
+  return 'exam.done.submitted'
 })
 const uploading = computed(() => sync.status.pendingChunks > 0)
 </script>
@@ -31,29 +31,26 @@ const uploading = computed(() => sync.status.pendingChunks > 0)
   <main class="page">
     <AppCard tone="ink" class="hero">
       <CircleCheck :size="56" class="icon" aria-hidden="true" />
-      <h1>{{ title }}</h1>
-      <p v-if="!exam.finished" class="lead">
-        Ответы сохранены на устройстве и отправятся, как только появится интернет. Не закрывайте эту страницу.
-      </p>
-      <p v-else class="lead">
-        Засчитаны все ответы, данные до завершения. Результат появится после проверки преподавателем.
-      </p>
+      <h1>{{ $t(title) }}</h1>
+      <p class="lead">{{ $t(exam.finished ? 'exam.done.countedHint' : 'exam.done.savedHint') }}</p>
     </AppCard>
 
     <AppCard v-if="exam.signedOut" role="alert" class="warn">
-      Сессия входа закончилась.
-      <RouterLink :to="`/login?next=${route.fullPath}`">Войдите снова</RouterLink>, чтобы отправить ответы.
+      <i18n-t keypath="exam.done.signedOut" tag="span">
+        <template #link>
+          <RouterLink :to="`/login?next=${route.fullPath}`">{{ $t('exam.done.signIn') }}</RouterLink>
+        </template>
+      </i18n-t>
     </AppCard>
 
     <AppCard v-else-if="exam.finished" role="status" aria-live="polite">
-      <p v-if="uploading">
-        Отправляем запись: осталось фрагментов — {{ sync.status.pendingChunks }}. Можно не ждать: загрузка
-        продолжится при следующем входе.
-      </p>
-      <p v-else>Всё отправлено. Страницу можно закрыть.</p>
+      <p v-if="uploading">{{ $t('exam.done.uploading', { n: sync.status.pendingChunks }) }}</p>
+      <p v-else>{{ $t('exam.done.allSent') }}</p>
     </AppCard>
 
-    <AppButton variant="ink" class="back" @click="$router.push('/exams')">К моим экзаменам</AppButton>
+    <AppButton variant="ink" class="back" @click="$router.push('/exams')">{{
+      $t('exam.done.back')
+    }}</AppButton>
   </main>
 </template>
 

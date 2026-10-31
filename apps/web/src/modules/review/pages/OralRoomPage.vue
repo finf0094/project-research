@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AttemptDetail } from '@exam/contracts'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { RoomVideo, TicketList, examinerRoomAccess, useLiveRoom } from '@/modules/oral'
 import { AppButton, AppCard, AppDialog } from '@/shared/ui'
@@ -8,40 +9,59 @@ import { getAttempt, sendCommand } from '../api'
 
 /** The examiner's side of an oral exam: the student on video, the drawn ticket, and ending the exam. */
 const route = useRoute()
+const { t } = useI18n()
 const attemptId = String(route.params.attemptId)
 const detail = ref<AttemptDetail | null>(null)
 const call = useLiveRoom()
-const camera = ref<MediaStream | null>(null)
 const ending = ref(false)
 const error = ref('')
+let camera: MediaStream | null = null
+let unmounted = false
+
+const running = computed(() => detail.value?.summary.status === 'active')
+
+/** The examiner's own camera and microphone; a dead or missing one is asked for again. */
+async function ensureCamera() {
+  if (camera?.getTracks().some((t) => t.readyState === 'live')) return
+  try {
+    const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    // The page may have closed while the permission prompt was open.
+    if (unmounted) return media.getTracks().forEach((t) => t.stop())
+    camera = media
+    error.value = ''
+  } catch {
+    error.value = t('review.room.noCamera')
+  }
+  call.setLocal(camera)
+}
 
 async function join() {
-  error.value = ''
-  try {
-    camera.value ??= await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-  } catch {
-    error.value = 'Нет доступа к камере и микрофону: студент вас не увидит и не услышит.'
-  }
-  await call.join(() => examinerRoomAccess(attemptId), camera.value)
+  await ensureCamera()
+  if (!unmounted) await call.join(() => examinerRoomAccess(attemptId))
 }
 
 onMounted(async () => {
   try {
     detail.value = await getAttempt(attemptId)
-    await join()
+    // A finished attempt has nobody to talk to: no call, no camera.
+    if (running.value) await join()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось открыть попытку'
+    error.value = e instanceof Error ? e.message : t('common.somethingWrong')
   }
 })
-onUnmounted(() => camera.value?.getTracks().forEach((t) => t.stop()))
+onUnmounted(() => {
+  unmounted = true
+  camera?.getTracks().forEach((t) => t.stop())
+})
 
 async function end() {
   ending.value = false
   try {
     await sendCommand(attemptId, { type: 'terminate' })
     await call.leave()
+    detail.value = await getAttempt(attemptId)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось завершить экзамен'
+    error.value = e instanceof Error ? e.message : t('common.somethingWrong')
   }
 }
 </script>
@@ -49,27 +69,40 @@ async function end() {
 <template>
   <main class="page">
     <header>
-      <RouterLink :to="`/examiner/attempts/${attemptId}`" class="crumb">Разбор попытки</RouterLink>
-      <h1>{{ detail?.summary.student.name ?? 'Устный экзамен' }}</h1>
+      <RouterLink :to="`/examiner/attempts/${attemptId}`" class="crumb">{{
+        $t('review.room.back')
+      }}</RouterLink>
+      <h1>{{ detail?.summary.student.name ?? $t('review.room.title') }}</h1>
     </header>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
 
     <div class="layout">
       <AppCard class="stack">
-        <RoomVideo :stream="call.remote.value" :state="call.state.value" who="Студент" @retry="join" />
+        <RoomVideo
+          v-if="running"
+          :stream="call.remote.value"
+          :state="call.state.value"
+          :audio-blocked="call.audioBlocked.value"
+          :who="$t('review.room.student')"
+          @retry="join"
+          @start-audio="call.startAudio"
+        />
+        <p v-else-if="detail" class="muted">{{ $t('review.room.ended') }}</p>
       </AppCard>
       <AppCard as="aside" class="stack">
         <TicketList v-if="detail" :questions="detail.answers.map((a) => a.question)" />
-        <AppButton variant="danger" @click="ending = true">Завершить экзамен</AppButton>
-        <p class="muted note">Баллы выставляются на странице разбора, когда запись будет обработана.</p>
+        <AppButton v-if="running" variant="danger" @click="ending = true">{{
+          $t('review.room.end')
+        }}</AppButton>
+        <p class="muted note">{{ $t('review.room.scoreNote') }}</p>
       </AppCard>
     </div>
 
-    <AppDialog :open="ending" title="Завершить экзамен?" @close="ending = false">
-      <p>Экзамен студента будет остановлен, видеосвязь закроется.</p>
+    <AppDialog :open="ending" :title="$t('review.room.confirmTitle')" @close="ending = false">
+      <p>{{ $t('review.room.confirmText') }}</p>
       <template #actions>
-        <AppButton variant="secondary" @click="ending = false">Отмена</AppButton>
-        <AppButton variant="danger" @click="end">Завершить</AppButton>
+        <AppButton variant="secondary" @click="ending = false">{{ $t('common.cancel') }}</AppButton>
+        <AppButton variant="danger" @click="end">{{ $t('review.room.confirm') }}</AppButton>
       </template>
     </AppDialog>
   </main>

@@ -25,7 +25,7 @@ function toggle(id: string) {
   <!-- Native radios/checkboxes inside labels: keyboard and screen readers work without extra code. -->
   <fieldset class="choices">
     <legend class="visually-hidden">
-      {{ multiple ? 'Выберите один или несколько ответов' : 'Выберите один ответ' }}
+      {{ $t(multiple ? 'exam.question.chooseMany' : 'exam.question.chooseOne') }}
     </legend>
     <label
       v-for="(option, i) in options"

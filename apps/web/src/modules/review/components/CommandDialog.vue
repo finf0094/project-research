@@ -26,28 +26,32 @@ watch(
         class="section"
         @submit.prevent="message.trim() && emit('send', { type: 'warn', message: message.trim() })"
       >
-        <label for="warn-text">Сообщение студенту</label>
+        <label for="warn-text">{{ $t('review.command.message') }}</label>
         <textarea
           id="warn-text"
           v-model="message"
           rows="3"
           maxlength="500"
-          placeholder="Например: пожалуйста, смотрите на экран"
+          :placeholder="$t('review.command.messagePlaceholder')"
         />
-        <AppButton type="submit" variant="secondary" :disabled="!message.trim()">Отправить</AppButton>
+        <AppButton type="submit" variant="secondary" :disabled="!message.trim()">{{
+          $t('review.command.send')
+        }}</AppButton>
       </form>
       <form class="section row" @submit.prevent="emit('send', { type: 'extend', minutes })">
-        <label for="extend-min">Добавить минут</label>
+        <label for="extend-min">{{ $t('review.command.extend') }}</label>
         <input id="extend-min" v-model.number="minutes" type="number" min="1" max="120" />
-        <AppButton type="submit" variant="secondary">Продлить</AppButton>
+        <AppButton type="submit" variant="secondary">{{ $t('review.command.extendSubmit') }}</AppButton>
       </form>
       <AppButton v-if="!confirmTerminate" variant="danger" @click="confirmTerminate = true">
-        Завершить экзамен студента
+        {{ $t('review.command.terminate') }}
       </AppButton>
       <div v-else class="confirm" role="alert">
-        <p>Студент больше не сможет отвечать. Уже данные ответы сохранятся.</p>
-        <AppButton variant="danger" @click="emit('send', { type: 'terminate' })">Да, завершить</AppButton>
-        <AppButton variant="ghost" @click="confirmTerminate = false">Отмена</AppButton>
+        <p>{{ $t('review.command.terminateWarning') }}</p>
+        <AppButton variant="danger" @click="emit('send', { type: 'terminate' })">{{
+          $t('review.command.terminateConfirm')
+        }}</AppButton>
+        <AppButton variant="ghost" @click="confirmTerminate = false">{{ $t('common.cancel') }}</AppButton>
       </div>
     </div>
   </AppDialog>

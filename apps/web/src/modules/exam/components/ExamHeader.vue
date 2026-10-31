@@ -12,14 +12,14 @@ defineEmits<{ finish: [] }>()
     <div class="title">
       <AppLogo :wordmark="false" />
       <div>
-        <p class="name">{{ title }}</p>
+        <h1 class="name">{{ title }}</h1>
         <p class="muted step">{{ step }}</p>
       </div>
     </div>
     <SyncStatusBadge />
     <div class="actions">
       <ExamTimer :remaining-ms="remainingMs" />
-      <AppButton :loading="finishing" @click="$emit('finish')">Сдать</AppButton>
+      <AppButton :loading="finishing" @click="$emit('finish')">{{ $t('exam.header.submit') }}</AppButton>
     </div>
   </header>
 </template>
@@ -43,7 +43,12 @@ defineEmits<{ finish: [] }>()
   min-width: 0;
 }
 .name {
+  /* The page's heading, styled as plain header text. */
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
   font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.4;
 }
 .step {
   font-size: var(--text-sm);

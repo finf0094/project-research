@@ -1,9 +1,8 @@
 export interface Check {
-  id: string
-  title: string
+  id: 'browser' | 'storage' | 'persist'
   ok: boolean
-  /** What the student can do about it; empty when there is nothing to do. */
-  hint: string
+  /** Whether the student should read the advice for this check. */
+  advise: boolean
 }
 
 /**
@@ -19,28 +18,9 @@ export async function runBrowserChecks(): Promise<Check[]> {
     estimate?.quota && estimate.usage !== undefined ? (estimate.quota - estimate.usage) / 1_048_576 : null
   const enoughSpace = freeMb === null || freeMb > 200
   return [
-    {
-      id: 'browser',
-      title: 'Браузер',
-      ok: supported,
-      hint: supported ? '' : 'Откройте экзамен в свежей версии Chrome, Edge, Firefox или Safari.',
-    },
-    {
-      id: 'storage',
-      title: 'Место для ответов на устройстве',
-      ok: enoughSpace,
-      hint: enoughSpace
-        ? ''
-        : 'Освободите место на диске: ответы и запись хранятся на устройстве, пока не отправятся.',
-    },
-    {
-      id: 'persist',
-      title: 'Надёжное хранение',
-      // Not every browser grants persistence; the exam still works, so this is informational.
-      ok: true,
-      hint: persisted
-        ? ''
-        : 'Браузер может очистить данные при нехватке места — не закрывайте вкладку до отправки.',
-    },
+    { id: 'browser', ok: supported, advise: !supported },
+    { id: 'storage', ok: enoughSpace, advise: !enoughSpace },
+    // Not every browser grants persistence; the exam still works, so this is informational.
+    { id: 'persist', ok: true, advise: !persisted },
   ]
 }

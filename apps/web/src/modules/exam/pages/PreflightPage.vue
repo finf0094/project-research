@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ArrowLeft, CircleCheck, CircleAlert } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { DeviceCheck } from '@/modules/proctoring'
 import { ApiError } from '@/shared/lib/http'
 import { AppButton, AppCard } from '@/shared/ui'
 import { beginAttempt } from '../local-attempt'
 import { runBrowserChecks, type Check } from '../preflight'
-import { attemptPath } from '../routes'
+import { attemptPath } from '../paths'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const checks = ref<Check[] | null>(null)
 const consent = ref(false)
 const deviceReady = ref(false)
@@ -18,6 +20,7 @@ const starting = ref(false)
 const error = ref('')
 
 onMounted(async () => (checks.value = await runBrowserChecks()))
+const FACTS = ['answers', 'video', 'server', 'decision'] as const
 const ready = computed(() => !!checks.value?.every((c) => c.ok) && deviceReady.value && consent.value)
 
 async function start() {
@@ -27,8 +30,7 @@ async function start() {
     const attempt = await beginAttempt(String(route.params.examId))
     await router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
   } catch (e) {
-    error.value =
-      e instanceof ApiError ? e.message : 'Нет связи с сервером. Для начала экзамена нужен интернет.'
+    error.value = e instanceof ApiError ? e.message : t('exam.preflight.offline')
   } finally {
     starting.value = false
   }
@@ -38,52 +40,44 @@ async function start() {
 <template>
   <main class="page">
     <header class="top">
-      <AppButton variant="secondary" aria-label="Назад" @click="router.push('/exams')"
+      <AppButton variant="secondary" :aria-label="$t('common.back')" @click="router.push('/exams')"
         ><ArrowLeft :size="20"
       /></AppButton>
-      <h1>Подготовимся к экзамену</h1>
+      <h1>{{ $t('exam.preflight.title') }}</h1>
     </header>
 
     <div class="grid">
       <AppCard>
-        <h2>Проверка</h2>
+        <h2>{{ $t('exam.preflight.checks') }}</h2>
         <DeviceCheck class="device" @ready="deviceReady = $event" />
-        <p v-if="!checks" class="muted">Проверяем…</p>
+        <p v-if="!checks" class="muted">{{ $t('exam.preflight.checking') }}</p>
         <ul v-else class="checks">
           <li v-for="check in checks" :key="check.id" class="check">
             <CircleCheck v-if="check.ok" class="ok" :size="22" aria-hidden="true" />
             <CircleAlert v-else class="bad" :size="22" aria-hidden="true" />
             <div>
-              <p class="title">{{ check.title }}</p>
-              <p v-if="check.hint" class="muted hint">{{ check.hint }}</p>
+              <p class="title">{{ $t(`exam.preflight.${check.id}.title`) }}</p>
+              <p v-if="check.advise" class="muted hint">{{ $t(`exam.preflight.${check.id}.hint`) }}</p>
             </div>
           </li>
         </ul>
-        <p class="muted hint">Время экзамена ещё не идёт: таймер включится только после начала.</p>
+        <p class="muted hint">{{ $t('exam.preflight.timerHint') }}</p>
       </AppCard>
 
       <AppCard tone="tint" class="privacy">
-        <h2>Что происходит с данными</h2>
+        <h2>{{ $t('exam.preflight.dataTitle') }}</h2>
         <ol class="facts">
-          <li>
-            <strong>Ответы</strong> сохраняются на вашем устройстве и отправляются, когда есть интернет.
-            Пропадание сети не считается нарушением.
+          <li v-for="fact in FACTS" :key="fact">
+            <strong>{{ $t(`exam.preflight.${fact}`) }}</strong> {{ $t(`exam.preflight.${fact}Text`) }}
           </li>
-          <li>
-            <strong>Видео и звук</strong> пишутся только на вашем компьютере, хранятся последние несколько
-            минут.
-          </li>
-          <li>
-            <strong>На сервер</strong> отправляются короткие фрагменты — в спорные моменты и несколько
-            случайных проверок. Не вся запись.
-          </li>
-          <li><strong>Решение</strong> принимает только преподаватель. Записи удаляются после проверки.</li>
         </ol>
         <label class="consent">
           <input v-model="consent" type="checkbox" />
-          Понимаю и согласен(на)
+          {{ $t('exam.preflight.consent') }}
         </label>
-        <AppButton block :disabled="!ready" :loading="starting" @click="start">Начать экзамен</AppButton>
+        <AppButton block :disabled="!ready" :loading="starting" @click="start">{{
+          $t('exam.preflight.start')
+        }}</AppButton>
         <p v-if="error" class="error" role="alert">{{ error }}</p>
       </AppCard>
     </div>

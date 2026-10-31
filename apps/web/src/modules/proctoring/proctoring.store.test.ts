@@ -40,7 +40,7 @@ describe('proctoring store lifecycle', () => {
   it('a stop during the camera prompt does not wait for it, and a late camera is released', async () => {
     const store = useProctoringStore()
     const { log, appended } = fakeLog()
-    void store.start({ attemptId: 'a', log, recording: 'adaptive', now: () => 0 })
+    void store.start({ attemptId: 'a', log, recording: 'adaptive', listen: true, now: () => 0 })
     await flush()
     await store.stop() // resolves although the prompt is still open
     const { media, track } = fakeMedia()
@@ -54,10 +54,10 @@ describe('proctoring store lifecycle', () => {
   it('starts again after a stop that interrupted an earlier start', async () => {
     const store = useProctoringStore()
     const { log } = fakeLog()
-    void store.start({ attemptId: 'a', log, recording: 'adaptive', now: () => 0 })
+    void store.start({ attemptId: 'a', log, recording: 'adaptive', listen: true, now: () => 0 })
     await flush()
     void store.stop()
-    const restarted = store.start({ attemptId: 'a', log, recording: 'adaptive', now: () => 0 })
+    const restarted = store.start({ attemptId: 'a', log, recording: 'adaptive', listen: true, now: () => 0 })
     await vi.waitFor(() => expect(camera.requests).toHaveLength(2))
     camera.requests[1]!.resolve(fakeMedia().media)
     await restarted
@@ -67,7 +67,7 @@ describe('proctoring store lifecycle', () => {
   it('records a lost camera once, and its return', async () => {
     const store = useProctoringStore()
     const { log, appended } = fakeLog()
-    const started = store.start({ attemptId: 'a', log, recording: 'adaptive', now: () => 0 })
+    const started = store.start({ attemptId: 'a', log, recording: 'adaptive', listen: true, now: () => 0 })
     await flush()
     const { media, track } = fakeMedia()
     camera.requests[0]!.resolve(media)

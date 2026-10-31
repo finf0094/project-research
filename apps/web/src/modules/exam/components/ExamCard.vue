@@ -7,7 +7,9 @@ import { AppButton, AppCard, StatusPill } from '@/shared/ui'
 const props = defineProps<{ exam: StudentExamListItem; now: number }>()
 defineEmits<{ start: []; continue: [attemptId: string] }>()
 
-const state = computed(() => {
+const TONE = { open: 'lime', running: 'lime', done: 'ok', upcoming: 'accent', closed: 'off' } as const
+
+const state = computed((): keyof typeof TONE => {
   const { attempt, opensAt, closesAt } = props.exam
   if (attempt && ['active', 'terminated'].includes(attempt.status)) return 'running'
   if (attempt) return 'done'
@@ -20,21 +22,21 @@ const state = computed(() => {
 <template>
   <AppCard class="exam" :tone="state === 'open' || state === 'running' ? 'ink' : 'surface'">
     <div class="head">
-      <StatusPill v-if="state === 'open'" tone="lime" dot>Открыт сейчас</StatusPill>
-      <StatusPill v-else-if="state === 'running'" tone="lime" dot>Идёт</StatusPill>
-      <StatusPill v-else-if="state === 'done'" tone="ok">Сдан</StatusPill>
-      <StatusPill v-else-if="state === 'upcoming'" tone="accent">Скоро</StatusPill>
-      <StatusPill v-else>Закрыт</StatusPill>
+      <StatusPill :tone="TONE[state]" :dot="state === 'open' || state === 'running'">{{
+        $t(`exam.list.state.${state}`)
+      }}</StatusPill>
     </div>
     <h2>{{ exam.title }}</h2>
     <ul class="facts">
-      <li>{{ exam.durationMin }} минут</li>
-      <li>Вопросов: {{ exam.questionCount }}</li>
+      <li>{{ $t('exam.list.minutes', { n: exam.durationMin }, exam.durationMin) }}</li>
+      <li>{{ $t('exam.list.questions', { n: exam.questionCount }) }}</li>
       <li>{{ formatDateTime(exam.opensAt) }} — {{ formatDateTime(exam.closesAt) }}</li>
     </ul>
-    <AppButton v-if="state === 'open'" variant="lime" @click="$emit('start')">Начать →</AppButton>
+    <AppButton v-if="state === 'open'" variant="lime" @click="$emit('start')">{{
+      $t('exam.list.start')
+    }}</AppButton>
     <AppButton v-else-if="state === 'running'" variant="lime" @click="$emit('continue', exam.attempt!.id)">
-      Продолжить →
+      {{ $t('exam.list.continue') }}
     </AppButton>
   </AppCard>
 </template>

@@ -15,21 +15,23 @@ watchEffect(() => {
     <video v-show="proctoring.camera === 'on'" ref="video" muted playsinline autoplay aria-hidden="true" />
     <div class="text">
       <template v-if="proctoring.camera === 'on'">
-        <p class="title">Камера включена</p>
+        <p class="title">{{ $t('proctoring.camera.on') }}</p>
         <p class="muted">
           {{
-            proctoring.recording === 'full'
-              ? 'Экзамен записывается полностью'
-              : 'Запись хранится на устройстве'
+            $t(
+              proctoring.recording === 'full'
+                ? 'proctoring.camera.recordedFull'
+                : 'proctoring.camera.recordedLocally',
+            )
           }}
         </p>
       </template>
       <template v-else-if="proctoring.camera === 'blocked'">
-        <p class="title">Камера выключена</p>
-        <p class="muted">Разрешите доступ к камере в браузере</p>
-        <AppButton variant="ink" @click="proctoring.retry">Включить камеру</AppButton>
+        <p class="title">{{ $t('proctoring.camera.off') }}</p>
+        <p class="muted">{{ $t('proctoring.camera.allow') }}</p>
+        <AppButton variant="ink" @click="proctoring.retry">{{ $t('proctoring.camera.enable') }}</AppButton>
       </template>
-      <p v-else class="muted">Включаем камеру…</p>
+      <p v-else class="muted">{{ $t('proctoring.camera.starting') }}</p>
     </div>
   </div>
 </template>

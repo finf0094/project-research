@@ -18,8 +18,8 @@ onMounted(async () => {
 
 <template>
   <main class="page">
-    <h1>Экзамены</h1>
-    <p v-if="failed" class="muted">Не удалось загрузить экзамены. Обновите страницу.</p>
+    <h1>{{ $t('review.exams.title') }}</h1>
+    <p v-if="failed" class="muted">{{ $t('review.exams.loadFailed') }}</p>
     <ul v-else class="grid">
       <li v-for="exam in exams" :key="exam.id">
         <RouterLink :to="`/examiner/exams/${exam.id}`" class="card-link">
@@ -27,11 +27,13 @@ onMounted(async () => {
             <h2>{{ exam.title }}</h2>
             <p class="muted">{{ formatDateTime(exam.opensAt) }} — {{ formatDateTime(exam.closesAt) }}</p>
             <div class="counts">
-              <StatusPill tone="accent">Пишут: {{ exam.attempts.active }}</StatusPill>
-              <StatusPill :tone="exam.attempts.toReview ? 'warn' : 'off'"
-                >Ждут проверки: {{ exam.attempts.toReview }}</StatusPill
-              >
-              <StatusPill>Всего попыток: {{ exam.attempts.total }}</StatusPill>
+              <StatusPill tone="accent">{{
+                $t('review.exams.writing', { n: exam.attempts.active })
+              }}</StatusPill>
+              <StatusPill :tone="exam.attempts.toReview ? 'warn' : 'off'">{{
+                $t('review.exams.toReview', { n: exam.attempts.toReview })
+              }}</StatusPill>
+              <StatusPill>{{ $t('review.exams.total', { n: exam.attempts.total }) }}</StatusPill>
             </div>
           </AppCard>
         </RouterLink>

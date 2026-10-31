@@ -20,26 +20,14 @@ let unmounted = false
 const timings: number[] = []
 const poses: Pose[] = []
 
-const checks = computed(() => [
-  {
-    title: 'Камера',
-    ok: state.value === 'running',
-    hint: 'Разрешите доступ к камере и микрофону в браузере.',
-  },
-  {
-    title: 'Вас видно',
-    ok: faces.value === 1,
-    hint:
-      faces.value && faces.value > 1
-        ? 'В кадре должны быть только вы.'
-        : 'Сядьте так, чтобы лицо было в кадре.',
-  },
-  {
-    title: 'Освещение',
-    ok: brightness.value >= DARK_BRIGHTNESS,
-    hint: 'Слишком темно: включите свет или повернитесь к окну.',
-  },
-])
+const checks = computed(
+  () =>
+    [
+      { id: 'camera', ok: state.value === 'running', hint: 'camera' },
+      { id: 'face', ok: faces.value === 1, hint: faces.value && faces.value > 1 ? 'faceMany' : 'faceNone' },
+      { id: 'light', ok: brightness.value >= DARK_BRIGHTNESS, hint: 'light' },
+    ] as const,
+)
 
 async function start() {
   state.value = 'starting'
@@ -97,21 +85,23 @@ onUnmounted(() => {
     <div class="frame">
       <video ref="video" muted playsinline autoplay aria-hidden="true" />
       <p v-if="state !== 'running'" class="overlay">
-        <template v-if="state === 'blocked'">Камера не видна — нужно разрешение браузера</template>
-        <template v-else>Включаем камеру…</template>
+        <template v-if="state === 'blocked'">{{ $t('proctoring.check.blocked') }}</template>
+        <template v-else>{{ $t('proctoring.camera.starting') }}</template>
       </p>
     </div>
     <ul class="checks">
-      <li v-for="check in checks" :key="check.title" class="check">
+      <li v-for="check in checks" :key="check.id" class="check">
         <CircleCheck v-if="check.ok" class="ok" :size="22" aria-hidden="true" />
         <CircleAlert v-else class="bad" :size="22" aria-hidden="true" />
         <div>
-          <p class="title">{{ check.title }}</p>
-          <p v-if="!check.ok" class="muted hint">{{ check.hint }}</p>
+          <p class="title">{{ $t(`proctoring.check.${check.id}`) }}</p>
+          <p v-if="!check.ok" class="muted hint">{{ $t(`proctoring.check.hint.${check.hint}`) }}</p>
         </div>
       </li>
     </ul>
-    <AppButton v-if="state === 'blocked'" variant="ink" @click="start">Проверить снова</AppButton>
+    <AppButton v-if="state === 'blocked'" variant="ink" @click="start">{{
+      $t('proctoring.check.again')
+    }}</AppButton>
   </div>
 </template>
 

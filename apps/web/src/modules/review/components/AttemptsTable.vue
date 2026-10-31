@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AttemptSummary } from '@exam/contracts'
 import { StatusPill } from '@/shared/ui'
-import { CONNECTION_LABEL, STATUS_LABEL } from '../labels'
+import { CONNECTION_TONE, STATUS_TONE } from '../labels'
 
 /** `oral`: running attempts are live calls the examiner joins. */
 defineProps<{ attempts: AttemptSummary[]; oral?: boolean }>()
@@ -17,24 +17,26 @@ defineEmits<{
     <table>
       <thead>
         <tr>
-          <th scope="col">Студент</th>
-          <th scope="col">Статус</th>
-          <th scope="col">Сеть</th>
-          <th scope="col">Ответы</th>
-          <th scope="col">Метки</th>
-          <th scope="col">Приоритет проверки</th>
-          <th scope="col"><span class="visually-hidden">Действия</span></th>
+          <th scope="col">{{ $t('review.table.student') }}</th>
+          <th scope="col">{{ $t('review.table.status') }}</th>
+          <th scope="col">{{ $t('review.table.network') }}</th>
+          <th scope="col">{{ $t('review.table.answers') }}</th>
+          <th scope="col">{{ $t('review.table.markers') }}</th>
+          <th scope="col">{{ $t('review.table.risk') }}</th>
+          <th scope="col">
+            <span class="visually-hidden">{{ $t('review.table.actions') }}</span>
+          </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="a in attempts" :key="a.id">
           <th scope="row" class="name">{{ a.student.name }}</th>
           <td>
-            <StatusPill :tone="STATUS_LABEL[a.status].tone">{{ STATUS_LABEL[a.status].text }}</StatusPill>
+            <StatusPill :tone="STATUS_TONE[a.status]">{{ $t(`review.status.${a.status}`) }}</StatusPill>
           </td>
           <td>
-            <StatusPill v-if="a.connection" :tone="CONNECTION_LABEL[a.connection].tone" dot>
-              {{ CONNECTION_LABEL[a.connection].text }}
+            <StatusPill v-if="a.connection" :tone="CONNECTION_TONE[a.connection]" dot>
+              {{ $t(`review.connection.${a.connection}`) }}
             </StatusPill>
             <span v-else class="muted">—</span>
           </td>
@@ -47,11 +49,23 @@ defineEmits<{
             >
           </td>
           <td class="actions">
-            <button v-if="oral && a.status === 'active'" type="button" class="link" @click="$emit('room', a)">
-              Войти в комнату
+            <button
+              v-if="oral && a.status === 'active'"
+              type="button"
+              class="link"
+              :aria-label="$t('review.table.roomOf', { name: a.student.name })"
+              @click="$emit('room', a)"
+            >
+              {{ $t('review.table.room') }}
             </button>
-            <button v-if="a.status === 'active'" type="button" class="link" @click="$emit('act', a)">
-              Действия
+            <button
+              v-if="a.status === 'active'"
+              type="button"
+              class="link"
+              :aria-label="$t('review.table.actOf', { name: a.student.name })"
+              @click="$emit('act', a)"
+            >
+              {{ $t('review.table.act') }}
             </button>
             <button
               v-else-if="a.status === 'ready_for_review' || a.status === 'decided'"
@@ -59,7 +73,7 @@ defineEmits<{
               class="link"
               @click="$emit('review', a)"
             >
-              Разбор →
+              {{ $t('review.table.review') }}
             </button>
           </td>
         </tr>

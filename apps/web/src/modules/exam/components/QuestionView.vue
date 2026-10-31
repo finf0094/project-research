@@ -8,11 +8,6 @@ import TextAnswer from './TextAnswer.vue'
 const props = defineProps<{ question: Question; index: number; value: AnswerValue | undefined }>()
 const emit = defineEmits<{ answer: [value: AnswerValue] }>()
 
-const TYPE_LABEL = {
-  single: 'Один вариант',
-  multiple: 'Несколько вариантов',
-  text: 'Развёрнутый ответ',
-} as const
 const number = computed(() => String(props.index + 1).padStart(2, '0'))
 </script>
 
@@ -20,8 +15,8 @@ const number = computed(() => String(props.index + 1).padStart(2, '0'))
   <article class="question" :aria-labelledby="`q-${question.id}`">
     <header class="meta">
       <span class="number" aria-hidden="true">{{ number }}</span>
-      <StatusPill tone="accent">{{ TYPE_LABEL[question.type] }}</StatusPill>
-      <span class="muted points">{{ question.points }} б.</span>
+      <StatusPill tone="accent">{{ $t(`exam.question.type.${question.type}`) }}</StatusPill>
+      <span class="muted points">{{ $t('exam.question.points', { n: question.points }) }}</span>
     </header>
     <h2 :id="`q-${question.id}`" class="text">{{ question.text }}</h2>
 

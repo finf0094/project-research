@@ -3,14 +3,15 @@ import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CameraPreview, HintBanner } from '@/modules/proctoring'
-import { AppButton, AppCard, AppDialog } from '@/shared/ui'
+import { AppButton, AppCard } from '@/shared/ui'
 import ExamHeader from '../components/ExamHeader.vue'
+import ExaminerMessage from '../components/ExaminerMessage.vue'
 import ExamNotices from '../components/ExamNotices.vue'
+import ExamUnavailable from '../components/ExamUnavailable.vue'
 import FinishDialog from '../components/FinishDialog.vue'
 import QuestionNav from '../components/QuestionNav.vue'
 import QuestionView from '../components/QuestionView.vue'
 import { useExamStore } from '../exam.store'
-import { attemptPath } from '../routes'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,19 +30,13 @@ async function open(id: string) {
 }
 watch(attemptId, open, { immediate: true })
 
-// An oral attempt has its own page (live call); a stale link or bookmark lands there.
-watch(
-  () => exam.attempt?.exam.profile.mode,
-  (mode) => mode === 'oral' && router.replace(attemptPath(attemptId.value, mode)),
-)
-
 // Leaving for the "done" page keeps the session running: it still has to deliver answers and recordings.
 watch(
   () => exam.locked,
   (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
 )
 onUnmounted(() => {
-  if (!exam.locked && exam.attempt?.exam.profile.mode !== 'oral') exam.close()
+  if (!exam.locked) exam.close()
 })
 
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)
@@ -53,25 +48,13 @@ function confirmFinish() {
 </script>
 
 <template>
-  <main v-if="loadError" class="center">
-    <AppCard>
-      <h1>Не удалось открыть экзамен</h1>
-      <p class="muted">Для первого открытия на этом устройстве нужен интернет. Проверьте подключение.</p>
-      <AppButton @click="open(attemptId)">Повторить</AppButton>
-    </AppCard>
-  </main>
-
-  <main v-else-if="exam.openedElsewhere" class="center">
-    <AppCard>
-      <h1>Экзамен открыт в другой вкладке</h1>
-      <p class="muted">Продолжайте там. Закройте эту вкладку, чтобы ответы не перепутались.</p>
-    </AppCard>
-  </main>
+  <ExamUnavailable v-if="loadError" reason="load" @retry="open(attemptId)" />
+  <ExamUnavailable v-else-if="exam.openedElsewhere" reason="elsewhere" />
 
   <div v-else-if="exam.attempt && exam.question" class="exam">
     <ExamHeader
       :title="exam.attempt.exam.title"
-      :step="`Вопрос ${exam.current + 1} из ${exam.questions.length}`"
+      :step="$t('exam.header.step', { n: exam.current + 1, total: exam.questions.length })"
       :remaining-ms="exam.remainingMs"
       :finishing="exam.locked"
       @finish="confirming = true"
@@ -107,15 +90,15 @@ function confirmFinish() {
           <AppButton
             variant="secondary"
             :disabled="exam.current === 0"
-            aria-label="Предыдущий вопрос"
+            :aria-label="$t('exam.page.previous')"
             @click="exam.goTo(exam.current - 1)"
           >
             <ArrowLeft :size="20" />
           </AppButton>
           <AppButton v-if="exam.current < exam.questions.length - 1" @click="exam.goTo(exam.current + 1)">
-            Следующий вопрос <ArrowRight :size="20" />
+            {{ $t('exam.page.next') }} <ArrowRight :size="20" />
           </AppButton>
-          <AppButton v-else variant="ink" @click="confirming = true">Сдать экзамен</AppButton>
+          <AppButton v-else variant="ink" @click="confirming = true">{{ $t('exam.page.finish') }}</AppButton>
         </footer>
       </AppCard>
     </div>
@@ -126,10 +109,7 @@ function confirmFinish() {
       @confirm="confirmFinish"
       @cancel="confirming = false"
     />
-    <AppDialog :open="!!exam.warning" title="Сообщение преподавателя" @close="exam.warning = null">
-      <p>{{ exam.warning }}</p>
-      <template #actions><AppButton @click="exam.warning = null">Понятно</AppButton></template>
-    </AppDialog>
+    <ExaminerMessage :message="exam.warning" @close="exam.warning = null" />
   </div>
 </template>
 
@@ -166,13 +146,6 @@ function confirmFinish() {
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
-}
-.center {
-  display: grid;
-  place-items: center;
-  min-height: 100dvh;
-  padding: var(--space-4);
-  text-align: center;
 }
 @media (width < 900px) {
   .body {

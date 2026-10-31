@@ -6,18 +6,14 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>()
 </script>
 
 <template>
-  <AppDialog :open="open" title="Сдать экзамен?" @close="emit('cancel')">
-    <p v-if="unanswered > 0">
-      Без ответа осталось вопросов: <strong>{{ unanswered }}</strong
-      >. После сдачи изменить ответы будет нельзя.
+  <AppDialog :open="open" :title="$t('exam.finish.title')" @close="emit('cancel')">
+    <p>
+      {{ unanswered > 0 ? $t('exam.finish.unanswered', { n: unanswered }) : $t('exam.finish.allAnswered') }}
     </p>
-    <p v-else>Вы ответили на все вопросы. После сдачи изменить ответы будет нельзя.</p>
-    <p class="muted note">
-      Если сейчас нет интернета — ничего страшного: ответы сохранены и отправятся сами.
-    </p>
+    <p class="muted note">{{ $t('exam.finish.offline') }}</p>
     <template #actions>
-      <AppButton variant="secondary" @click="emit('cancel')">Вернуться</AppButton>
-      <AppButton @click="emit('confirm')">Сдать</AppButton>
+      <AppButton variant="secondary" @click="emit('cancel')">{{ $t('exam.finish.back') }}</AppButton>
+      <AppButton @click="emit('confirm')">{{ $t('exam.finish.submit') }}</AppButton>
     </template>
   </AppDialog>
 </template>

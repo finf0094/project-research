@@ -6,7 +6,7 @@ defineProps<{ questions: Question[] }>()
 
 <template>
   <section class="ticket">
-    <h2>Билет</h2>
+    <h2>{{ $t('oral.ticket') }}</h2>
     <ol>
       <li v-for="q in questions" :key="q.id">{{ q.text }}</li>
     </ol>
