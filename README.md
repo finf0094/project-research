@@ -98,8 +98,8 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
 - Oral exams: LiveKit rooms (one per attempt) with tokens from the API; the ticket is drawn at random from the
   question pool when the attempt starts. The student's camera is recorded in full locally, as for written
   exams. Tested against LiveKit server 1.9.11 (`--dev`) with two browsers: `e2e/oral-call.spec.ts` checks that both
-  sides receive live video and sound, that the call comes back after the student reloads, and that ending the
-  exam closes it (run with `E2E_LIVEKIT=1` while LiveKit and the API's `LIVEKIT_*` settings are up).
+  sides receive live video and play live sound, that the call comes back after the student reloads, and that ending the
+  exam closes it (run with `E2E_LIVEKIT=1` on a fresh seed while LiveKit and the API's `LIVEKIT_*` settings are up).
   Without `LIVEKIT_*` settings the API answers 503 and both sides see "video call unavailable".
 - The recording ring (last ~3 minutes, 10 s chunks) and pending fragment requests live in IndexedDB, so a
   reload or crash loses neither.
