@@ -4,9 +4,10 @@ type Listener = (attemptId: string) => void
 
 /**
  * Fans out the database's `attempt_updates` notifications (sent by a trigger, whichever process changed
- * the attempt) to the examiners watching that exam. One LISTEN per API process, started on first use.
+ * the attempt) to the examiners watching that exam. One LISTEN per API process, started on first use;
+ * `onMissed` runs after the database link came back, since notifications sent meanwhile are lost.
  */
-export function createLiveUpdates(listen: Listen) {
+export function createLiveUpdates(listen: Listen, onMissed: () => void) {
   const byExam = new Map<string, Set<Listener>>()
   let started: Promise<unknown> | null = null
 
@@ -17,7 +18,7 @@ export function createLiveUpdates(listen: Listen) {
 
   return {
     async subscribe(examId: string, listener: Listener): Promise<() => void> {
-      started ??= listen('attempt_updates', deliver).catch((error: unknown) => {
+      started ??= listen('attempt_updates', deliver, onMissed).catch((error: unknown) => {
         started = null
         throw error
       })

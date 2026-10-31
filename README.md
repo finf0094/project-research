@@ -84,7 +84,8 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   through the API, not presigned links.
 - Live monitoring: Server-Sent Events per exam (`GET /examiner/exams/:id/stream`), fed by PostgreSQL
   `LISTEN/NOTIFY` from a trigger on `attempts`, so changes made by the worker process arrive too and several
-  API instances need no extra pub/sub. The page reloads the list on each event and polls every 30 s as a safety net.
+  API instances need no extra pub/sub. The page reloads the list on each event (at most twice a second) and every 15 s; the periodic reload also
+  shows students who went silent as offline, since that changes no row.
 - API paths: `/attempts/:id/sync`, `/attempts/:id/chunks/:hash`, `/examiner/*` instead of `/sync`, `/blobs/{sha}`,
   `/review/*`. Deadline extensions and termination reach the client as `deadline`/`status` in the sync response,
   not as separate commands (commands are `warn` and `capture`).

@@ -8,10 +8,12 @@ import { installAuth } from './modules/auth/guard.ts'
 import { authRoutes } from './modules/auth/routes.ts'
 import { attemptsRoutes } from './modules/attempts/routes.ts'
 import { blobsRoutes } from './modules/blobs/routes.ts'
+import { authoringRoutes } from './modules/exams/authoring-routes.ts'
 import { examsRoutes } from './modules/exams/routes.ts'
 import { oralRoutes } from './modules/oral/routes.ts'
 import { reviewRoutes } from './modules/review/routes.ts'
 import { syncRoutes } from './modules/sync/routes.ts'
+import { usersRoutes } from './modules/users/routes.ts'
 
 export async function buildApp(deps: Deps, { logger = true } = {}) {
   const app = Fastify({
@@ -45,6 +47,8 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
     blobsRoutes,
     reviewRoutes,
     oralRoutes,
+    authoringRoutes,
+    usersRoutes,
   ]) {
     await app.register(module, { prefix: '/api', deps })
   }

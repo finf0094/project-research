@@ -1,4 +1,4 @@
--- Live monitoring (architecture, section 19.2): every change the examiner's page shows is announced to
+-- Live monitoring (architecture, section 19.2): changes to what the examiner's page shows are announced to
 -- listening API processes, whichever process made it (API or worker). The payload is "<exam_id>:<attempt_id>".
 CREATE FUNCTION attempts_notify() RETURNS trigger AS $$
 BEGIN

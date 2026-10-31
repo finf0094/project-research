@@ -5,8 +5,11 @@ import * as schema from './schema.ts'
 export function createDb(url: string) {
   const sql = postgres(url, { max: 10 })
   /** LISTEN on a channel (one dedicated connection, re-established by postgres.js after a drop). */
-  const listen = async (channel: string, onMessage: (payload: string) => void) => {
-    const { unlisten } = await sql.listen(channel, onMessage)
+  const listen = async (channel: string, onMessage: (payload: string) => void, onReconnect?: () => void) => {
+    let first = true
+    // postgres.js calls this on every (re)LISTEN; notifications sent while it was down are lost.
+    const onListen = () => (first ? (first = false) : onReconnect?.())
+    const { unlisten } = await sql.listen(channel, onMessage, onListen)
     return unlisten
   }
   return { db: drizzle(sql, { schema }), listen, close: () => sql.end() }

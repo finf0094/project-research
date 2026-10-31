@@ -1,6 +1,6 @@
 {$SITE_ADDRESS::80} {
 	handle /api/* {
-		# Not compressed and flushed at once: live monitoring is an event stream (SSE).
+		# Not compressed, so the live-monitoring event stream (SSE) is never held back by the encoder.
 		reverse_proxy api:3000 {
 			flush_interval -1
 		}

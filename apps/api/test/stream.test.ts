@@ -1,8 +1,9 @@
 import type { AddressInfo } from 'node:net'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { attempts } from '../src/db/schema.ts'
-import { createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
+import { attempts, users } from '../src/db/schema.ts'
+import { hashPassword } from '../src/modules/auth/service.ts'
+import { PASSWORD, createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
 
 let ctx: TestContext
 let seeded: Awaited<ReturnType<typeof seedExam>>
@@ -55,12 +56,30 @@ describe('live monitoring stream', () => {
   })
 
   it('is only for the exam owner', async () => {
-    const student = await signIn(ctx.app, 'student@test.edu')
-    const res = await ctx.app.inject({
-      method: 'GET',
-      url: `/api/examiner/exams/${seeded.exam.id}/stream`,
-      headers: student,
+    const stream = (headers: { cookie: string }) =>
+      ctx.app.inject({ method: 'GET', url: `/api/examiner/exams/${seeded.exam.id}/stream`, headers })
+    expect((await stream(await signIn(ctx.app, 'student@test.edu'))).statusCode).toBe(403)
+    await ctx.deps.db
+      .insert(users)
+      .values({
+        email: 'other@test.edu',
+        name: 'Other',
+        role: 'examiner',
+        passwordHash: await hashPassword(PASSWORD),
+      })
+    expect((await stream(await signIn(ctx.app, 'other@test.edu'))).statusCode).toBe(404)
+  })
+
+  it('does not hold up shutdown while examiners are watching', async () => {
+    await ctx.app.listen({ port: 0, host: '127.0.0.1' })
+    const { port } = ctx.app.server.address() as AddressInfo
+    const examiner = await signIn(ctx.app, 'teacher@test.edu')
+    const stream = await fetch(`http://127.0.0.1:${port}/api/examiner/exams/${seeded.exam.id}/stream`, {
+      headers: examiner,
     })
-    expect(res.statusCode).toBe(403)
+    expect(stream.status).toBe(200)
+    const closed = ctx.app.close().then(() => 'closed')
+    const timeout = new Promise((resolve) => setTimeout(() => resolve('hung'), 3000))
+    expect(await Promise.race([closed, timeout])).toBe('closed')
   })
 })

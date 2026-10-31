@@ -50,6 +50,13 @@
       "when": 1793482667396,
       "tag": "0006_attempt_notify",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793483084570,
+      "tag": "0007_attempt_notify_progress",
+      "breakpoints": true
     }
   ]
 }

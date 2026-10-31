@@ -8,14 +8,16 @@ const PASSWORD = 'password'
 const { db, close } = createDb(loadConfig().DATABASE_URL)
 
 const passwordHash = await hashPassword(PASSWORD)
-const [teacher, ...students] = await db
+const [teacher, ...others] = await db
   .insert(users)
   .values([
     { email: 'teacher@example.edu', name: 'Айгерим Сапарова', role: 'examiner', passwordHash },
     { email: 'student1@example.edu', name: 'Нурлан Ахметов', role: 'student', passwordHash },
     { email: 'student2@example.edu', name: 'Мария Ким', role: 'student', passwordHash },
+    { email: 'admin@example.edu', name: 'Администратор', role: 'admin', passwordHash },
   ])
   .returning()
+const students = others.filter((u) => u.role === 'student')
 
 const now = Date.now()
 const [exam] = await db
@@ -119,4 +121,6 @@ await db
   .insert(examParticipants)
   .values([exam!, oral!].flatMap((e) => students.map((s) => ({ examId: e.id, userId: s.id }))))
 await close()
-console.log(`Seeded. Sign in as teacher@example.edu or student1@example.edu with password "${PASSWORD}".`)
+console.log(
+  `Seeded. Sign in as teacher@example.edu, student1@example.edu or admin@example.edu with password "${PASSWORD}".`,
+)
