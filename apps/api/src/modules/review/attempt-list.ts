@@ -1,0 +1,95 @@
+import type { AttemptSummary, MarkerKind, Verdict } from '@exam/contracts'
+import { and, asc, count, desc, eq, ne, sql } from 'drizzle-orm'
+import { answers, attempts, decisions, markers, questions, users } from '../../db/schema.ts'
+import type { Deps } from '../../deps.ts'
+import { ownExam, toSummary } from './access.ts'
+import { autoScore } from './grading.ts'
+
+/**
+ * Attempts of one exam, highest risk first (risk only orders the list; it is not a verdict), with their
+ * automatic points and latest decision. Everything is read in a few queries for the whole exam.
+ */
+export async function listAttempts(deps: Deps, ownerId: string, examId: string): Promise<AttemptSummary[]> {
+  const { db } = deps
+  await ownExam(db, ownerId, examId)
+  const rows = await db
+    .select({ attempt: attempts, studentName: users.name })
+    .from(attempts)
+    .innerJoin(users, eq(users.id, attempts.userId))
+    .where(eq(attempts.examId, examId))
+    .orderBy(sql`${attempts.riskScore} desc nulls last`, asc(attempts.startedAt))
+
+  const examQuestions = await db.select().from(questions).where(eq(questions.examId, examId))
+  const answerRows = await db
+    .select({ attemptId: answers.attemptId, questionId: answers.questionId, value: answers.value })
+    .from(answers)
+    .innerJoin(attempts, eq(attempts.id, answers.attemptId))
+    .where(eq(attempts.examId, examId))
+  const markerRows = await db
+    .select({ attemptId: markers.attemptId, kind: markers.kind, n: count() })
+    .from(markers)
+    .innerJoin(attempts, eq(attempts.id, markers.attemptId))
+    .where(and(eq(attempts.examId, examId), ne(markers.status, 'context')))
+    .groupBy(markers.attemptId, markers.kind)
+  // The latest decision per attempt (decisions are append-only).
+  const decisionRows = await db
+    .selectDistinctOn([decisions.attemptId], {
+      attemptId: decisions.attemptId,
+      verdict: decisions.verdict,
+      score: decisions.score,
+    })
+    .from(decisions)
+    .innerJoin(attempts, eq(attempts.id, decisions.attemptId))
+    .where(eq(attempts.examId, examId))
+    .orderBy(decisions.attemptId, desc(decisions.decidedAt))
+
+  const answersOf = group(answerRows)
+  const markersOf = group(markerRows)
+  const decisionOf = new Map(decisionRows.map((d) => [d.attemptId, d]))
+
+  return rows.map(({ attempt, studentName }) => {
+    const given = new Map((answersOf.get(attempt.id) ?? []).map((a) => [a.questionId, a.value]))
+    const asked = attempt.ticket ? examQuestions.filter((q) => attempt.ticket!.includes(q.id)) : examQuestions
+    const points = scorePoints(asked, given)
+    const kinds = (markersOf.get(attempt.id) ?? []).toSorted((a, b) => b.n - a.n)
+    return {
+      ...toSummary(
+        attempt,
+        studentName,
+        given.size,
+        kinds.reduce((sum, k) => sum + k.n, 0),
+        deps.now(),
+      ),
+      topMarkers: kinds.slice(0, 3).map((k) => ({ kind: k.kind as MarkerKind, count: k.n })),
+      points,
+      result: resultOf(decisionOf.get(attempt.id), points),
+    }
+  })
+}
+
+function scorePoints(asked: (typeof questions.$inferSelect)[], given: Map<string, unknown>) {
+  let auto = 0
+  let open = false
+  for (const q of asked) {
+    const score = autoScore(q, (given.get(q.id) ?? null) as Parameters<typeof autoScore>[1])
+    if (score === null) open = true
+    else auto += score
+  }
+  return { auto, max: asked.reduce((sum, q) => sum + q.points, 0), open }
+}
+
+/** The examiner's score if given; otherwise the automatic one, which is final only when nothing is open. */
+function resultOf(
+  decision: { verdict: Verdict; score: number | null } | undefined,
+  points: { auto: number; max: number; open: boolean },
+) {
+  if (!decision) return null
+  const automatic = !points.open && points.max > 0 ? Math.round((points.auto / points.max) * 100) : null
+  return { verdict: decision.verdict, score: decision.score ?? automatic }
+}
+
+function group<T extends { attemptId: string }>(list: T[]) {
+  const map = new Map<string, T[]>()
+  for (const item of list) map.set(item.attemptId, [...(map.get(item.attemptId) ?? []), item])
+  return map
+}

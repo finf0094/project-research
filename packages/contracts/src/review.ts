@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { Id, Sha256, Timestamp, safeText } from './common.ts'
 import { AttemptStatus } from './attempts.ts'
 import { AnswerValue, NetState, SignalKind } from './events.ts'
-import { ExamMode, Question } from './exams.ts'
+import { ExamMode, Question, RecordingMode } from './exams.ts'
 
 export const MarkerKind = z.enum([...SignalKind.options, 'chain_broken', 'missing_fragment', 'offline'])
 export type MarkerKind = z.infer<typeof MarkerKind>
@@ -32,7 +32,8 @@ export type Marker = z.infer<typeof Marker>
 export const Verdict = z.enum(['clean', 'violation', 'needs_review'])
 export type Verdict = z.infer<typeof Verdict>
 
-export const AttemptSummary = z.object({
+/** An attempt as every examiner view shows it. */
+export const AttemptBase = z.object({
   id: Id,
   student: z.object({ id: Id, name: z.string() }),
   status: AttemptStatus,
@@ -43,6 +44,17 @@ export const AttemptSummary = z.object({
   markerCount: z.number().int().nonnegative(),
   riskScore: z.number().int().min(0).max(100).nullable(),
 })
+export type AttemptBase = z.infer<typeof AttemptBase>
+
+/** An attempt in an exam's list: also its points, latest decision and main markers. */
+export const AttemptSummary = AttemptBase.extend({
+  /** The most frequent marker kinds (not context), for the review queue. */
+  topMarkers: z.array(z.object({ kind: MarkerKind, count: z.number().int().positive() })),
+  /** Automatic points so far, out of the attempt's questions; `open`: some answers await the examiner. */
+  points: z.object({ auto: z.number().nonnegative(), max: z.number().nonnegative(), open: z.boolean() }),
+  /** The latest decision; `score` in percent (the examiner's, or the automatic one when nothing is open). */
+  result: z.object({ verdict: Verdict, score: z.number().int().min(0).max(100).nullable() }).nullable(),
+})
 export type AttemptSummary = z.infer<typeof AttemptSummary>
 
 export const ExaminerExam = z.object({
@@ -51,6 +63,18 @@ export const ExaminerExam = z.object({
   mode: ExamMode,
   opensAt: Timestamp,
   closesAt: Timestamp,
+  durationMin: z.number().int().positive(),
+  recording: RecordingMode,
+  /** Questions by type, and their total points (for an oral exam: the pool). */
+  questions: z.object({
+    single: z.number().int().nonnegative(),
+    multiple: z.number().int().nonnegative(),
+    text: z.number().int().nonnegative(),
+    points: z.number().int().nonnegative(),
+  }),
+  participants: z.number().int().nonnegative(),
+  /** When students were allowed to see their results; null while they cannot. */
+  publishedAt: Timestamp.nullable(),
   attempts: z.object({
     active: z.number().int().nonnegative(),
     toReview: z.number().int().nonnegative(),
@@ -83,7 +107,7 @@ export const ServerAnalysis = z.enum(['ok', 'partial', 'unavailable', 'failed'])
 export type ServerAnalysis = z.infer<typeof ServerAnalysis>
 
 export const AttemptDetail = z.object({
-  summary: AttemptSummary,
+  summary: AttemptBase,
   examTitle: z.string(),
   examMode: ExamMode,
   submittedAt: Timestamp.nullable(),

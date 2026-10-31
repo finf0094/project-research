@@ -10,6 +10,11 @@ import { request } from '@/shared/lib/http'
 
 export const listExams = () => request('/examiner/exams', {}, z.array(ExaminerExam))
 
+export const getExam = (examId: string) => request(`/examiner/exams/${examId}`, {}, ExaminerExam)
+
+export const publishResults = (examId: string) =>
+  request(`/examiner/exams/${examId}/publish`, { method: 'POST' })
+
 export const listAttempts = (examId: string) =>
   request(`/examiner/exams/${examId}/attempts`, {}, z.array(AttemptSummary))
 

@@ -12,7 +12,8 @@ import { z } from 'zod'
 import type { ModuleOptions } from '../../deps.ts'
 import { currentUser, requireRole } from '../auth/guard.ts'
 import { attemptDetail, decide, readChunk, sendCommand, updateMarker } from './attempt-review.ts'
-import { listAttempts, listExams } from './monitoring.ts'
+import { listAttempts } from './attempt-list.ts'
+import { examSummary, listExams, publishResults } from './exam-summary.ts'
 import { registerStream } from './stream.ts'
 
 const IdParams = z.object({ id: z.uuid() })
@@ -26,6 +27,17 @@ export const reviewRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { 
   app.get('/examiner/exams', { schema: { response: { 200: z.array(ExaminerExam) } } }, async (request) =>
     listExams(deps.db, me(request)),
   )
+
+  app.get(
+    '/examiner/exams/:id',
+    { schema: { params: IdParams, response: { 200: ExaminerExam } } },
+    async (request) => examSummary(deps.db, me(request), request.params.id),
+  )
+
+  app.post('/examiner/exams/:id/publish', { schema: { params: IdParams } }, async (request, reply) => {
+    await publishResults(deps, me(request), request.params.id)
+    return reply.code(204).send()
+  })
 
   app.get(
     '/examiner/exams/:id/attempts',

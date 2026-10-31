@@ -57,6 +57,13 @@
       "when": 1793483084570,
       "tag": "0007_attempt_notify_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793485105232,
+      "tag": "0008_exam_published",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "exams" ADD COLUMN "published_at" timestamp with time zone;

@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ArrowRight, Plus } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 
 withDefaults(
   defineProps<{
     variant?: 'primary' | 'secondary' | 'lime' | 'ink' | 'ghost' | 'danger'
     /** A trailing round icon (the mockup's call-to-action style): it nudges forward on hover. */
     icon?: 'arrow' | 'plus'
+    /** Makes it a link (navigation styled as a button). */
+    to?: string
     type?: 'button' | 'submit'
     block?: boolean
     loading?: boolean
@@ -16,7 +19,15 @@ withDefaults(
 </script>
 
 <template>
+  <RouterLink v-if="to" :to="to" class="button" :class="[variant, { block }]">
+    <slot />
+    <span v-if="icon" class="chip" aria-hidden="true">
+      <ArrowRight v-if="icon === 'arrow'" :size="18" />
+      <Plus v-else :size="18" />
+    </span>
+  </RouterLink>
   <button
+    v-else
     :type="type"
     class="button"
     :class="[variant, { block }]"
@@ -34,6 +45,7 @@ withDefaults(
 <style scoped>
 .button {
   display: inline-flex;
+  text-decoration: none;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);

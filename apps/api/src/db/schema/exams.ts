@@ -15,6 +15,8 @@ export const exams = pgTable('exams', {
   ownerId: uuid('owner_id')
     .notNull()
     .references(() => users.id),
+  /** When the examiner let students see their results (scores and per-question review). */
+  publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: createdAt(),
 })
 

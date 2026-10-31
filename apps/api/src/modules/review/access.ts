@@ -1,4 +1,4 @@
-import type { AttemptSummary, NetState } from '@exam/contracts'
+import type { AttemptBase, NetState } from '@exam/contracts'
 import { and, eq } from 'drizzle-orm'
 import type { Db, Tx } from '../../db/client.ts'
 import { attempts, exams } from '../../db/schema.ts'
@@ -35,7 +35,7 @@ export function toSummary(
   answered: number,
   markerCount: number,
   now: number,
-): AttemptSummary {
+): AttemptBase {
   const running = attempt.status === 'active' || attempt.status === 'terminated'
   const silent = now - attempt.lastSeenAt.getTime() > SILENCE_MS
   const connection: NetState | null = running ? (silent ? 'offline' : (attempt.connection ?? 'online')) : null
