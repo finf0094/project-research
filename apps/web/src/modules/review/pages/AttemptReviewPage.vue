@@ -21,9 +21,14 @@ const action = useAction()
 /** Saving has its own state: judging markers must not spin the save button. */
 const saving = useAction()
 
+/** Only the newest load is applied: judging and saving both reload, and answers may arrive out of order. */
+let loads = 0
 async function load() {
-  detail.value = await getAttempt(attemptId)
-  selected.value ??= detail.value.markers.find((m) => m.status === 'pending')?.id ?? null
+  const mine = ++loads
+  const fresh = await getAttempt(attemptId)
+  if (mine !== loads) return
+  detail.value = fresh
+  selected.value ??= fresh.markers.find((m) => m.status === 'pending')?.id ?? null
 }
 
 onMounted(() => action.run(load))
@@ -35,12 +40,14 @@ const editable = computed(() => ['ready_for_review', 'decided'].includes(detail.
 
 const judge = (id: string, status: 'confirmed' | 'dismissed') =>
   action.run(async () => {
+    saving.error.value = null // only the latest failure is shown
     await judgeMarker(id, status)
     await load()
   })
 
 async function save(body: DecisionBody) {
   saved.value = false
+  action.error.value = null // only the latest failure is shown
   await saving.run(async () => {
     await decide(attemptId, body)
     saved.value = true // saved even if the reload below fails

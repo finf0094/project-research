@@ -52,7 +52,7 @@ const start = () =>
         <h2>{{ $t('exam.preflight.checks') }}</h2>
         <DeviceCheck class="device" @ready="deviceReady = $event" />
         <p v-if="!checks" class="muted">{{ $t('exam.preflight.checking') }}</p>
-        <CheckList v-else :items="items" />
+        <CheckList v-else class="browser-checks" :items="items" />
         <p class="muted hint">{{ $t('exam.preflight.timerHint') }}</p>
       </AppCard>
 
@@ -77,6 +77,9 @@ const start = () =>
 </template>
 
 <style scoped>
+.browser-checks {
+  margin-block: var(--space-5);
+}
 .page {
   display: grid;
   gap: var(--space-6);

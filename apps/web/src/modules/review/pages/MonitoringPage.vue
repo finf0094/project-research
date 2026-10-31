@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AttemptSummary, ExaminerCommandBody, ExaminerExam } from '@exam/contracts'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
 import { AppCard, StatTile } from '@/shared/ui'
@@ -17,6 +17,8 @@ const attempts = ref<AttemptSummary[]>([])
 const acting = ref<AttemptSummary | null>(null)
 const stale = ref(false)
 const action = useAction({ 409: 'review.notRunning' as const })
+// An error belongs to the student it was about: it goes when the dialog closes or another opens.
+watch(acting, () => (action.error.value = null))
 
 async function refresh() {
   try {
