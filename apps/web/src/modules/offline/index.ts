@@ -10,7 +10,7 @@ export {
   putChunks,
   saveAttempt,
   updateAttempt,
-} from './store'
+} from './local-data'
 export { startSync, type SyncHandle, type SyncStatus } from './sync-loop'
 export { useSyncStore } from './sync.store'
 export { default as SyncStatusBadge } from './components/SyncStatusBadge.vue'

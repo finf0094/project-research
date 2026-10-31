@@ -11,15 +11,8 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import type { ModuleOptions } from '../../deps.ts'
 import { currentUser, requireRole } from '../auth/guard.ts'
-import {
-  attemptDetail,
-  decide,
-  listAttempts,
-  listExams,
-  readChunk,
-  sendCommand,
-  updateMarker,
-} from './service.ts'
+import { attemptDetail, decide, readChunk, sendCommand, updateMarker } from './attempt-review.ts'
+import { listAttempts, listExams } from './monitoring.ts'
 
 const IdParams = z.object({ id: z.uuid() })
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { AttemptSummary, ExaminerCommandBody, ExaminerExam } from '@exam/contracts'
-import { useIntervalFn } from '@vueuse/core'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AppCard, StatTile } from '@/shared/ui'
 import { listAttempts, listExams, sendCommand } from '../api'
@@ -31,7 +30,8 @@ onMounted(async () => {
   await refresh()
 })
 // Polling keeps the server simple (no SSE); five seconds is fresh enough for a proctor.
-useIntervalFn(refresh, POLL_MS)
+const poll = setInterval(refresh, POLL_MS)
+onUnmounted(() => clearInterval(poll))
 
 const count = (pred: (a: AttemptSummary) => boolean) => attempts.value.filter(pred).length
 const stats = computed(() => ({

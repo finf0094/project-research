@@ -51,6 +51,28 @@ describe('buildMarkers', () => {
     expect(markers.some((m) => m.kind === 'missing_fragment')).toBe(true)
   })
 
+  it('flags a control fragment the server asked for but never received', () => {
+    const answeredRequest = buildMarkers(
+      [
+        ev(
+          1,
+          'evidence.fragment',
+          { reason: 'control', tStart: 61_000, tEnd: 81_000, chunks: ['a'] },
+          81_000,
+        ),
+      ],
+      { endAt: 900_000, uploaded: new Set(['a']), chainBrokenAt: null, captureRequests: [60_000] },
+    )
+    expect(answeredRequest.some((m) => m.kind === 'missing_fragment')).toBe(false)
+    const ignored = buildMarkers([], {
+      endAt: 900_000,
+      uploaded: none,
+      chainBrokenAt: null,
+      captureRequests: [60_000],
+    })
+    expect(ignored).toEqual([expect.objectContaining({ kind: 'missing_fragment', startAt: 60_000 })])
+  })
+
   it('adds a marker for a broken chain and caps the score at 100', () => {
     const markers = buildMarkers([ev(1, 'proctor.signal', { kind: 'multiple_faces', active: true }, 0)], {
       endAt: 3_600_000,

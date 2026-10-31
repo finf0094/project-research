@@ -3,7 +3,15 @@ import type { EventLog } from '@/modules/offline'
 import { createEvidence } from './evidence'
 import { startRecorder, type Recorder } from './recorder'
 import { createSensors } from './sensors'
-import { ANALYSIS_FPS, HINTS, createSignalTracker, riskLevel, type ObservedKind } from './signals'
+import {
+  ANALYSIS_FPS,
+  DARK_BRIGHTNESS,
+  HINTS,
+  NOISE_RMS,
+  createSignalTracker,
+  riskLevel,
+  type ObservedKind,
+} from './signals'
 
 export interface ProctorOptions {
   attemptId: string
@@ -21,11 +29,17 @@ export interface Proctor {
   stop(): Promise<void>
 }
 
-const DARK_BRIGHTNESS = 45
-const NOISE_RMS = 0.08
 const HINT_REPEAT_MS = 60_000
+/** The "stay on the tab" hint is only visible after the student comes back, so it lingers a little. */
+const RETURN_HINT_MS = 10_000
 const RECENT_MS = 2 * 60_000
 const RISK_FRAGMENT_MS = 30_000
+/**
+ * The server asks for control fragments at random moments. Without network it cannot, so the client
+ * takes one itself when none was taken for this long (the server reconciles both kinds after the exam).
+ */
+const SELF_CONTROL_AFTER_MS = 15 * 60_000
+const CONTROL_SECONDS = 20
 
 /**
  * Local adaptive proctoring: measures, turns measurements into signals, shows hints, and decides
@@ -36,10 +50,12 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   const sensors = await createSensors(stream)
   const tracker = createSignalTracker()
   const active = new Set<SignalKind>()
-  const activations: number[] = []
+  let activations: number[] = []
   const lastHint = new Map<SignalKind, number>()
+  let returnHintUntil = 0
   let risk: RiskLevel = 'low'
   let lastRiskFragment = -Infinity
+  let lastControl = now()
   let timer: ReturnType<typeof setTimeout> | undefined
 
   let recorder: Recorder | null = null
@@ -49,6 +65,21 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     evidence.onChunk()
   })
 
+  /** Shows the hint for the first active signal (or the lingering tab hint) and logs it once a minute per kind. */
+  function showHint() {
+    const kind: SignalKind | null =
+      [...active].find((k) => HINTS[k]) ?? (now() < returnHintUntil ? 'tab_hidden' : null)
+    options.onHint(kind)
+    if (
+      kind &&
+      document.visibilityState === 'visible' &&
+      now() - (lastHint.get(kind) ?? -Infinity) > HINT_REPEAT_MS
+    ) {
+      lastHint.set(kind, now())
+      void log.append('hint.shown', { kind })
+    }
+  }
+
   function setSignal(kind: SignalKind, on: boolean) {
     if (on === active.has(kind)) return
     if (on) {
@@ -57,23 +88,21 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     } else {
       active.delete(kind)
     }
+    if (kind === 'tab_hidden' && !on) returnHintUntil = now() + RETURN_HINT_MS
     void log.append('proctor.signal', { kind, active: on })
-    if (on && HINTS[kind] && now() - (lastHint.get(kind) ?? -Infinity) > HINT_REPEAT_MS) {
-      lastHint.set(kind, now())
-      void log.append('hint.shown', { kind })
-    }
-    options.onHint([...active].find((k) => HINTS[k]) ?? null)
+    showHint()
     updateRisk()
   }
 
   function updateRisk() {
-    const recent = activations.filter((t) => now() - t < RECENT_MS).length
-    const next = riskLevel(active, recent)
+    activations = activations.filter((t) => now() - t < RECENT_MS)
+    const next = riskLevel(active, activations.length)
     if (next === risk) return
     void log.append('risk.changed', { from: risk, to: next })
     risk = next
     options.onRisk(next)
-    if (next === 'high' && now() - lastRiskFragment > 2 * RISK_FRAGMENT_MS) {
+    // With full recording every chunk is already kept; a risk fragment would only upload them twice.
+    if (next === 'high' && recording !== 'full' && now() - lastRiskFragment > 2 * RISK_FRAGMENT_MS) {
       lastRiskFragment = now()
       evidence.request('risk', now() - RISK_FRAGMENT_MS, now() + RISK_FRAGMENT_MS)
     }
@@ -85,13 +114,18 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   }
 
   function tick() {
+    const dark = sensors.brightness() < DARK_BRIGHTNESS
+    observe('too_dark', dark)
     const faces = sensors.faces(performance.now())
     if (faces !== null) {
-      observe('face_missing', faces === 0)
+      // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.
+      observe('face_missing', faces === 0 && !dark)
       observe('multiple_faces', faces >= 2)
     }
-    observe('too_dark', sensors.brightness() < DARK_BRIGHTNESS)
     observe('noise', sensors.loudness() > NOISE_RMS)
+    updateRisk()
+    showHint()
+    if (now() - lastControl > SELF_CONTROL_AFTER_MS) capture(CONTROL_SECONDS)
     timer = setTimeout(tick, 1000 / ANALYSIS_FPS[risk])
   }
 
@@ -106,10 +140,13 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   document.addEventListener('paste', onPaste)
   tick()
 
+  function capture(seconds: number) {
+    lastControl = now()
+    evidence.request('control', now(), now() + seconds * 1000)
+  }
+
   return {
-    capture(seconds) {
-      evidence.request('control', now(), now() + seconds * 1000)
-    },
+    capture,
     async stop() {
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisibility)

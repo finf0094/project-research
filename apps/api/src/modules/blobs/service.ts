@@ -18,7 +18,7 @@ export async function putChunk(
   mime: string,
   body: Buffer,
 ) {
-  const attempt = await deps.db.transaction((tx) => ownAttempt(tx, userId, attemptId))
+  const attempt = await ownAttempt(deps.db, userId, attemptId)
   const windowEnd = (attempt.submittedAt?.getTime() ?? Infinity) + deps.config.UPLOAD_WINDOW_HOURS * 3_600_000
   if (deps.now() > windowEnd || ['ready_for_review', 'decided'].includes(attempt.status)) {
     throw conflict('Upload window is closed')

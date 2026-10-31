@@ -3,6 +3,7 @@ import { CircleAlert, CircleCheck } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { AppButton } from '@/shared/ui'
 import { createSensors, requestCamera, type Sensors } from '../sensors'
+import { DARK_BRIGHTNESS } from '../signals'
 
 const emit = defineEmits<{ ready: [ready: boolean] }>()
 
@@ -13,6 +14,7 @@ const brightness = ref(255)
 let stream: MediaStream | null = null
 let sensors: Sensors | null = null
 let timer: ReturnType<typeof setInterval> | undefined
+let unmounted = false
 
 const checks = computed(() => [
   {
@@ -30,7 +32,7 @@ const checks = computed(() => [
   },
   {
     title: 'Освещение',
-    ok: brightness.value >= 45,
+    ok: brightness.value >= DARK_BRIGHTNESS,
     hint: 'Слишком темно: включите свет или повернитесь к окну.',
   },
 ])
@@ -44,8 +46,10 @@ async function start() {
     emit('ready', false)
     return
   }
+  if (unmounted) return release()
   if (video.value) video.value.srcObject = stream
   sensors = await createSensors(stream)
+  if (unmounted) return release()
   state.value = 'running'
   timer = setInterval(() => {
     faces.value = sensors?.faces(performance.now()) ?? null
@@ -59,10 +63,14 @@ async function start() {
 
 // The check frees the camera when it is done; the exam page asks for it again (the permission is remembered).
 onMounted(start)
-onUnmounted(() => {
+function release() {
   clearInterval(timer)
   sensors?.dispose()
   stream?.getTracks().forEach((t) => t.stop())
+}
+onUnmounted(() => {
+  unmounted = true
+  release()
 })
 </script>
 

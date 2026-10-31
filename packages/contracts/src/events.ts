@@ -14,7 +14,7 @@ export const SignalKind = z.enum([
   'too_dark',
   'noise',
   'tab_hidden',
-  'fullscreen_exit',
+  'camera_off',
   'paste',
 ])
 export type SignalKind = z.infer<typeof SignalKind>

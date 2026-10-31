@@ -1,0 +1,16 @@
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		root * /srv
+		# The service worker must always be revalidated, or clients keep an old app shell.
+		@sw path /sw.js /registerSW.js
+		header @sw Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

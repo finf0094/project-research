@@ -39,16 +39,23 @@ export function createEvidence(attemptId: string, log: EventLog, recorder: () =>
 
   /** Pins every request whose time range the recorder has already covered (or all of them when `final`). */
   function flush(final = false) {
-    flushing = flushing.then(async () => {
+    const run = flushing.then(async () => {
       const chunks = recorder()?.chunks() ?? []
       const recordedUntil = chunks.at(-1)?.tEnd ?? 0
       for (const request of [...pending]) {
         if (!final && recordedUntil < request.tEnd) continue
-        pending.splice(pending.indexOf(request), 1)
-        await pin(request, chunks)
+        try {
+          await pin(request, chunks)
+          pending.splice(pending.indexOf(request), 1)
+        } catch (error) {
+          // Kept for the next flush (e.g. after the student frees disk space); one failure must not stop the rest.
+          console.error('could not save evidence', error)
+          if (final) pending.splice(pending.indexOf(request), 1)
+        }
       }
     })
-    return flushing.catch((error) => console.error('could not save evidence', error))
+    flushing = run.catch(() => undefined)
+    return flushing
   }
 
   return {

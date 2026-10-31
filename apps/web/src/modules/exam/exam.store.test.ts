@@ -5,11 +5,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAttempt, listEvents, saveAttempt, type LocalAttempt } from '@/modules/offline'
 import { useExamStore } from './exam.store'
 
+// Proctoring needs a camera; here only the order of calls matters.
+const proctoring = vi.hoisted(() => ({
+  start: vi.fn(async () => undefined),
+  stop: vi.fn(async () => undefined),
+  capture: vi.fn(),
+}))
+vi.mock('@/modules/proctoring', () => ({ useProctoringStore: () => proctoring }))
+
 let ATTEMPT = ''
 let server: { status: SyncResponse['status']; commands: Command[]; submits: number; deadline: number }
 
 const questions = [
-  { id: 'q1', type: 'single' as const, text: 'Q1', options: [{ id: 'a', text: 'A' }], points: 1 },
+  { id: 'q1', type: 'multiple' as const, text: 'Q1', options: [{ id: 'a', text: 'A' }], points: 1 },
   { id: 'q2', type: 'text' as const, text: 'Q2', options: [], points: 1 },
 ]
 
@@ -78,16 +86,19 @@ describe('exam store', () => {
     await seed()
     const exam = useExamStore()
     await exam.open(ATTEMPT)
-    exam.answer('q1', 'a')
+    exam.answer('q1', ['a'])
     exam.answer('q2', 'typed just before finishing')
     await exam.finish()
     await vi.waitFor(() => expect(exam.finished).toBe(true), { timeout: 10_000 })
 
     const log = await listEvents(ATTEMPT)
     expect(log.map((e) => e.type)).toEqual(['session.started', 'answer', 'answer', 'session.submitted'])
+    expect(log[1]!.data).toEqual({ questionId: 'q1', value: ['a'] })
     expect(log[2]!.data).toEqual({ questionId: 'q2', value: 'typed just before finishing' })
+    expect(exam.saveFailed).toBe(false)
     expect(server.submits).toBe(1)
     expect(exam.endedBy).toBe('student')
+    expect(proctoring.stop).toHaveBeenCalled()
   })
 
   it('finishes by itself when the examiner terminates the attempt', async () => {
@@ -109,14 +120,18 @@ describe('exam store', () => {
 
   it('shows a repeated command once and acknowledges it in the chain', async () => {
     await seed()
-    server.commands = [{ id: crypto.randomUUID(), type: 'warn', message: 'Look at the screen' }]
+    server.commands = [
+      { id: crypto.randomUUID(), type: 'warn', message: 'Look at the screen' },
+      { id: crypto.randomUUID(), type: 'capture', seconds: 20 },
+    ]
     const exam = useExamStore()
     await exam.open(ATTEMPT)
     await vi.waitFor(() => expect(exam.warning).toBe('Look at the screen'), { timeout: 10_000 })
     exam.warning = null
     await new Promise((r) => setTimeout(r, 50))
     expect(exam.warning).toBeNull()
-    expect((await types()).filter((t) => t === 'command.received')).toHaveLength(1)
+    expect((await types()).filter((t) => t === 'command.received')).toHaveLength(2)
+    expect(proctoring.capture).toHaveBeenCalledTimes(1)
   })
 
   it('continues submitting after a reload without reopening the session', async () => {

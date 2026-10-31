@@ -1,0 +1,44 @@
+# Local production-like stack: docker compose -f infra/docker-compose.yml up --build
+# Then run migrations once: docker compose -f infra/docker-compose.yml run --rm api node src/db/migrate.ts
+x-api-env: &api-env
+  DATABASE_URL: postgres://exam:exam@postgres:5432/exam
+  MASTER_KEY: ${MASTER_KEY:?set MASTER_KEY to 32 random bytes in base64}
+  STORAGE_DIR: /data/recordings
+  TRUST_PROXY: 'true'
+  COOKIE_SECURE: ${COOKIE_SECURE:-true}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: exam
+      POSTGRES_PASSWORD: exam
+      POSTGRES_DB: exam
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'exam']
+      interval: 5s
+
+  api:
+    build: { context: .., dockerfile: infra/Dockerfile.api }
+    environment: *api-env
+    volumes: [recordings:/data/recordings]
+    depends_on: { postgres: { condition: service_healthy } }
+
+  worker:
+    build: { context: .., dockerfile: infra/Dockerfile.api }
+    command: ['node', 'src/worker.ts']
+    environment: *api-env
+    volumes: [recordings:/data/recordings]
+    depends_on: { postgres: { condition: service_healthy } }
+
+  web:
+    build: { context: .., dockerfile: infra/Dockerfile.web }
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports: ['80:80', '443:443']
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  recordings:

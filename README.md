@@ -58,13 +58,46 @@ pnpm --filter @exam/web dev                # app on :5173 (proxies /api)
 pnpm lint          # ESLint, including module boundaries
 pnpm typecheck
 pnpm test          # unit tests; API tests need a database exam_test (TEST_DATABASE_URL)
+pnpm --filter @exam/web e2e   # Playwright, against the running stack with a fresh seed
 ```
 
-## Deliberate simplifications compared to the architecture document
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit and API tests and the web build.
 
-- **Worker queue**: a polling loop over PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED`) instead of pg-boss.
-- **Recordings storage**: a filesystem `BlobStorage` for development; production plugs in S3/MinIO behind the same interface.
-- **Live monitoring**: the examiner page polls every 5 s instead of SSE.
-- **Face detection** runs on the main thread at 1–4 frames per second instead of a Web Worker (a few ms per second).
-- **Not implemented yet**: server-side re-analysis of fragments with ML models, the oral exam (LiveKit), exam authoring UI,
-  KK/EN translations, room hub for classrooms.
+## Production-like stack
+
+```bash
+MASTER_KEY=$(node -e "console.log(crypto.randomBytes(32).toString('base64'))") \
+  docker compose -f infra/docker-compose.yml up --build
+docker compose -f infra/docker-compose.yml run --rm api node src/db/migrate.ts
+```
+
+Caddy serves the built SPA (with its service worker) and proxies `/api`; API and worker share one image.
+
+## Differences from the architecture document
+
+Deliberate simplifications (KISS) and things not built yet — stated here so the code and the document never disagree silently.
+
+**Simplified**
+
+- Worker queue: a polling loop over PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED`) instead of pg-boss.
+- Recordings: filesystem `BlobStorage` behind an interface (S3/MinIO plugs in there); the examiner gets chunks
+  through the API, not presigned links.
+- Live monitoring: the examiner page polls every 5 s instead of SSE.
+- API paths: `/attempts/:id/sync`, `/attempts/:id/chunks/:hash`, `/examiner/*` instead of `/sync`, `/blobs/{sha}`,
+  `/review/*`. Deadline extensions and termination reach the client as `deadline`/`status` in the sync response,
+  not as separate commands (commands are `warn` and `capture`).
+- Append-only event log: enforced by database triggers (UPDATE/DELETE/TRUNCATE), not by role grants.
+- Final answers are projected during sync and rebuilt from the log during analysis (no separate job).
+- Face detection runs on the main thread at 1–4 frames per second instead of a Web Worker.
+- The recording ring buffer (last ~3 minutes) lives in memory: a reload loses it and any fragment still waiting
+  for future chunks. Pinned fragments are in IndexedDB and survive.
+- Runtime: Node.js 22.18+ (type stripping) instead of 24; no reka-ui (native `<dialog>` and inputs suffice).
+
+**Not implemented yet**
+
+- Server-side re-analysis of fragments with ML models (section 17.3); the server does reconcile control
+  fragments it asked for but never received.
+- Head pose / gaze and object detection on the client; device performance tiers with automatic downgrade;
+  Wake Lock.
+- Oral exam (LiveKit), exam authoring UI, admin role, KK/EN translations (vue-i18n), Swagger docs,
+  room hub for classrooms.

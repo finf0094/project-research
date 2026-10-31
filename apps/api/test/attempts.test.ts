@@ -292,7 +292,9 @@ describe('resume on another device', () => {
   it('returns the answers the server already holds', async () => {
     const session = await start()
     const chain = await clientChain(session)
-    await sync(session.attemptId, [await chain.next('answer', { questionId: seeded.single.id, value: 'b' }, ctx.clock.now)])
+    await sync(session.attemptId, [
+      await chain.next('answer', { questionId: seeded.single.id, value: 'b' }, ctx.clock.now),
+    ])
     const again = await start()
     expect(again.answers).toEqual({ [seeded.single.id]: 'b' })
     expect(again.ackedSeq).toBe(1)

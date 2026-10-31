@@ -16,7 +16,13 @@ watchEffect(() => {
     <div class="text">
       <template v-if="proctoring.camera === 'on'">
         <p class="title">Камера включена</p>
-        <p class="muted">Запись хранится на устройстве</p>
+        <p class="muted">
+          {{
+            proctoring.recording === 'full'
+              ? 'Экзамен записывается полностью'
+              : 'Запись хранится на устройстве'
+          }}
+        </p>
       </template>
       <template v-else-if="proctoring.camera === 'blocked'">
         <p class="title">Камера выключена</p>

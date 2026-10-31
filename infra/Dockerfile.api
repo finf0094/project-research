@@ -1,0 +1,14 @@
+# API and worker share this image; the command picks the role.
+# The workspace layout is kept on purpose: Node runs the TypeScript sources directly, and it only strips
+# types outside node_modules, so @exam/* must stay symlinks to packages/ instead of copies.
+FROM node:22-alpine
+RUN corepack enable
+WORKDIR /repo
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages ./packages
+COPY apps/api ./apps/api
+RUN pnpm install --frozen-lockfile --prod --filter "@exam/api..."
+WORKDIR /repo/apps/api
+ENV NODE_ENV=production
+USER node
+CMD ["node", "src/main.ts"]

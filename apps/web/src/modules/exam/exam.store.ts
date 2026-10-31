@@ -1,6 +1,6 @@
 import type { AnswerValue, AttemptStatus, Question, SyncResponse } from '@exam/contracts'
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, toRaw } from 'vue'
 import {
   createServerClock,
   listAnswers,
@@ -15,30 +15,18 @@ import {
   type ServerClock,
   type SyncHandle,
 } from '@/modules/offline'
+import { useProctoringStore } from '@/modules/proctoring'
 import { ApiError } from '@/shared/lib/http'
 import { submitAttempt } from './api'
 import { loadAttempt } from './local-attempt'
 import { acquireTabLock } from './tab-lock'
+import { createTextDrafts } from './text-drafts'
 
 const FINISHED: readonly AttemptStatus[] = ['submitted', 'ready_for_review', 'decided']
-/** Typing is saved after a short pause: every save is a sealed event, so not one per keystroke. */
-const TEXT_SAVE_DELAY_MS = 800
 
-/** What the proctoring module needs to write into the attempt's chain. */
-export interface AttemptSession {
+interface Runtime {
   attemptId: string
   log: EventLog
-  now: () => number
-}
-
-/** The exam drives proctoring through this: control fragments on request, and a final stop before finishing. */
-export interface AttachedProctor {
-  capture(seconds: number): void
-  /** Saves the last evidence; must finish before the chain is closed with `session.submitted`. */
-  stop(): Promise<void>
-}
-
-interface Runtime extends AttemptSession {
   clock: ServerClock
   sync: SyncHandle
   timer: ReturnType<typeof setInterval>
@@ -47,8 +35,8 @@ interface Runtime extends AttemptSession {
 }
 
 /**
- * The running attempt: answers, navigation, time and finishing. Every change goes into the local event log
- * first; the sync loop delivers it whenever the network allows. Nothing here waits for the network.
+ * The running attempt: answers, navigation, time, proctoring and finishing. Every change goes into the
+ * local event log first; the sync loop delivers it whenever the network allows. Nothing here waits for it.
  */
 export const useExamStore = defineStore('exam', () => {
   const attempt = shallowRef<LocalAttempt | null>(null)
@@ -63,14 +51,13 @@ export const useExamStore = defineStore('exam', () => {
   const warning = ref<string | null>(null)
   const openedElsewhere = ref(false)
   const signedOut = ref(false)
-  const session = shallowRef<AttemptSession | null>(null)
 
+  const proctoring = useProctoringStore()
+  const drafts = createTextDrafts(persist)
   let runtime: Runtime | null = null
   /** Bumped by open/close so a slow open() that lost the race cleans up instead of starting a second session. */
   let generation = 0
-  let proctor: AttachedProctor | null = null
   const handledCommands = new Set<string>()
-  const textTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   const questions = computed<Question[]>(() => attempt.value?.exam.questions ?? [])
   const question = computed(() => questions.value[current.value])
@@ -116,33 +103,37 @@ export const useExamStore = defineStore('exam', () => {
       onStatus: syncStore.set,
       onUnauthorized: () => (signedOut.value = true),
     })
-    const onPageHide = () => void flushText()
+    const onPageHide = () => void drafts.flush()
     window.addEventListener('pagehide', onPageHide)
-    const now = () => clock.now()
-    runtime = { attemptId, log, now, clock, sync, releaseLock, onPageHide, timer: setInterval(tick, 1000) }
-    session.value = { attemptId, log, now }
+    runtime = { attemptId, log, clock, sync, releaseLock, onPageHide, timer: setInterval(tick, 1000) }
     tick()
+
+    if (!locked.value) {
+      void proctoring.start({
+        attemptId,
+        log,
+        recording: local.exam.profile.recording,
+        now: () => clock.now(),
+      })
+    }
   }
 
-  /** Choices are saved at once; text is saved after a pause, on blur, on page hide and before finishing. */
+  /** Choices are saved at once; text after a pause, on blur, on page hide and before finishing. */
   function answer(questionId: string, value: AnswerValue) {
     if (!runtime || locked.value) return
     answers.value = { ...answers.value, [questionId]: value }
-    clearTimeout(textTimers.get(questionId))
-    if (typeof value === 'string' && questions.value.find((q) => q.id === questionId)?.type === 'text') {
-      textTimers.set(
-        questionId,
-        setTimeout(() => void persist(questionId), TEXT_SAVE_DELAY_MS),
-      )
+    if (questions.value.find((q) => q.id === questionId)?.type === 'text') {
+      drafts.schedule(questionId)
     } else {
+      drafts.cancel(questionId)
       void persist(questionId)
     }
   }
 
   async function persist(questionId: string) {
-    textTimers.delete(questionId)
     const rt = runtime
-    const value = answers.value[questionId]
+    // The stored answer is a reactive proxy for arrays; IndexedDB can only clone the plain value.
+    const value = toRaw(answers.value[questionId])
     if (!rt || value === undefined) return
     try {
       await rt.log.append('answer', { questionId, value }, () => putAnswer(rt.attemptId, questionId, value))
@@ -155,17 +146,16 @@ export const useExamStore = defineStore('exam', () => {
     }
   }
 
-  async function flushText() {
-    await Promise.all([...textTimers.keys()].map((id) => (clearTimeout(textTimers.get(id)), persist(id))))
-  }
-
-  /** Locks the answers and submits as soon as everything is on the server; survives reloads and outages. */
+  /**
+   * Locks the answers and submits as soon as everything is on the server; survives reloads and outages.
+   * Proctoring stops first: its last evidence must be in the chain before `session.submitted` closes it.
+   */
   async function finish(reason: EndReason = 'student') {
     const rt = runtime
     if (!rt || locked.value) return
     endedBy.value = reason
-    await flushText()
-    await proctor?.stop().catch((error) => console.error('proctoring did not stop cleanly', error))
+    await drafts.flush()
+    await proctoring.stop().catch((error) => console.error('proctoring did not stop cleanly', error))
     await rt.log.append('session.submitted', {}, () => updateAttempt(rt.attemptId, { endedBy: reason }))
     rt.sync.wake()
   }
@@ -174,21 +164,18 @@ export const useExamStore = defineStore('exam', () => {
     current.value = Math.min(Math.max(index, 0), questions.value.length - 1)
   }
 
-  function attachProctor(next: AttachedProctor | null) {
-    proctor = next
-  }
-
   function close() {
     generation++
     if (runtime) {
-      void flushText()
+      void drafts.flush()
+      void proctoring.stop()
       runtime.sync.stop()
       clearInterval(runtime.timer)
       window.removeEventListener('pagehide', runtime.onPageHide)
       runtime.releaseLock()
     }
+    drafts.discard()
     runtime = null
-    session.value = null
     attempt.value = null
     answers.value = {}
     status.value = 'active'
@@ -220,7 +207,7 @@ export const useExamStore = defineStore('exam', () => {
       if (handledCommands.has(command.id)) continue
       handledCommands.add(command.id)
       if (command.type === 'warn') warning.value = command.message
-      if (command.type === 'capture') proctor?.capture(command.seconds)
+      if (command.type === 'capture') proctoring.capture(command.seconds)
       await rt.log.append('command.received', { commandId: command.id })
     }
 
@@ -257,17 +244,15 @@ export const useExamStore = defineStore('exam', () => {
     warning,
     openedElsewhere,
     signedOut,
-    session,
     questions,
     question,
     answeredCount,
     open,
     answer,
-    finish,
     /** Saves typed text right away (on blur), without waiting for the pause. */
-    saveNow: flushText,
+    saveNow: drafts.flush,
+    finish,
     goTo,
-    attachProctor,
     close,
   }
 })

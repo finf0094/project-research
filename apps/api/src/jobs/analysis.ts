@@ -24,24 +24,35 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   face_missing: 15,
   tab_hidden: 20,
   paste: 15,
-  fullscreen_exit: 10,
+  camera_off: 15,
   noise: 10,
   chain_broken: 40,
   missing_fragment: 20,
 }
 
+/** A control fragment counts as answering a request if it starts within this window after it. */
+const CONTROL_ANSWER_WINDOW_MS = 10 * 60_000
+
 /**
  * Turns the event log into timeline markers:
  * - paired proctor.signal on/off events become intervals (an unclosed signal lasts until `endAt`);
  * - offline periods become context markers;
- * - a broken chain and chunks that never arrived become markers of their own.
+ * - a broken chain, chunks that never arrived, and control fragments the server asked for but never got
+ *   become markers of their own (the last one is how disabled client-side recording shows up).
  */
 export function buildMarkers(
   events: StoredEvent[],
-  opts: { endAt: number; uploaded: ReadonlySet<string>; chainBrokenAt: number | null },
+  opts: {
+    endAt: number
+    uploaded: ReadonlySet<string>
+    chainBrokenAt: number | null
+    captureRequests?: number[]
+  },
 ): MarkerDraft[] {
   const fragments = events.flatMap((e) =>
-    e.type === 'evidence.fragment' ? [e.data as { tStart: number; tEnd: number; chunks: string[] }] : [],
+    e.type === 'evidence.fragment'
+      ? [e.data as { reason: string; tStart: number; tEnd: number; chunks: string[] }]
+      : [],
   )
   const chunksFor = (startAt: number, endAt: number) =>
     fragments
@@ -85,6 +96,22 @@ export function buildMarkers(
   }
   for (const f of fragments) {
     if (f.chunks.some((c) => !opts.uploaded.has(c))) add('missing_fragment', f.tStart, f.tEnd, 'pending')
+  }
+  for (const requestedAt of opts.captureRequests ?? []) {
+    const answered = fragments.some(
+      (f) =>
+        f.reason === 'control' &&
+        f.tStart >= requestedAt - 60_000 &&
+        f.tStart <= requestedAt + CONTROL_ANSWER_WINDOW_MS,
+    )
+    if (!answered)
+      markers.push({
+        kind: 'missing_fragment',
+        startAt: requestedAt,
+        endAt: requestedAt,
+        status: 'pending',
+        chunks: [],
+      })
   }
   return markers.sort((a, b) => a.startAt - b.startAt)
 }

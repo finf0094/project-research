@@ -7,6 +7,7 @@ export interface RecordedChunk {
 export interface Recorder {
   /** Chunks still in the ring, oldest first. */
   chunks(): RecordedChunk[]
+  /** Resolves once the last chunk has been delivered to `onChunk`. */
   stop(): Promise<void>
 }
 
@@ -27,8 +28,7 @@ export function startRecorder(
   const mimeType = MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m))
   const ring: RecordedChunk[] = []
   let running = true
-  let current: MediaRecorder | null = null
-  let stopped: () => void = () => undefined
+  let current: { recorder: MediaRecorder; done: Promise<void> } | null = null
 
   function cycle() {
     const recorder = new MediaRecorder(stream, {
@@ -39,29 +39,29 @@ export function startRecorder(
     const parts: Blob[] = []
     const tStart = now()
     recorder.ondataavailable = (e) => e.data.size && parts.push(e.data)
-    recorder.onstop = () => {
-      const chunk = { tStart, tEnd: now(), blob: new Blob(parts, { type: recorder.mimeType }) }
-      ring.push(chunk)
-      while (ring.length && chunk.tEnd - ring[0]!.tEnd > KEEP_MS) ring.shift()
-      onChunk(chunk)
-      if (running) cycle()
-      else stopped()
-    }
+    // `done` settles only after onstop has handed the chunk over, so stop() never races a chunk in flight.
+    const done = new Promise<void>((resolve) => {
+      recorder.onstop = () => {
+        const chunk = { tStart, tEnd: now(), blob: new Blob(parts, { type: recorder.mimeType }) }
+        ring.push(chunk)
+        while (ring.length && chunk.tEnd - ring[0]!.tEnd > KEEP_MS) ring.shift()
+        onChunk(chunk)
+        resolve()
+        if (running) cycle()
+      }
+    })
     recorder.start()
-    current = recorder
+    current = { recorder, done }
     setTimeout(() => recorder.state === 'recording' && recorder.stop(), CHUNK_MS)
   }
 
   cycle()
   return {
     chunks: () => [...ring],
-    stop() {
+    async stop() {
       running = false
-      return new Promise((resolve) => {
-        stopped = resolve
-        if (current?.state === 'recording') current.stop()
-        else resolve()
-      })
+      if (current?.recorder.state === 'recording') current.recorder.stop()
+      await current?.done
     },
   }
 }

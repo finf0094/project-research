@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import type { AttemptSession, AttemptStatus, SubmitBody } from '@exam/contracts'
 import { genesisHash } from '@exam/integrity'
 import { and, eq } from 'drizzle-orm'
-import type { Tx } from '../../db/client.ts'
+import type { Db, Tx } from '../../db/client.ts'
 import { answers, attempts, exams } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
@@ -96,7 +96,7 @@ export async function submitAttempt(deps: Deps, userId: string, attemptId: strin
 }
 
 export async function ownAttempt(
-  tx: Tx,
+  tx: Db | Tx,
   userId: string,
   attemptId: string,
   lock = false,

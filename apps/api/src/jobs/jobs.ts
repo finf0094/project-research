@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, lt, or, sql } from 'drizzle-orm'
 import type { Tx } from '../db/client.ts'
-import { answers, attempts, blobs, decisions, events, markers, sessions } from '../db/schema.ts'
+import { answers, attempts, blobs, commands, decisions, events, markers, sessions } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { examQuestions } from '../modules/exams/service.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
@@ -95,10 +95,19 @@ async function analyze(deps: Deps, tx: Tx, attempt: typeof attempts.$inferSelect
       .values([...final].map(([questionId, a]) => ({ attemptId: attempt.id, questionId, ...a })))
   }
 
+  // Only requests the client acknowledged: an unanswered one means it heard the request and sent nothing.
+  const captures = await tx
+    .select({ at: commands.createdAt })
+    .from(commands)
+    .where(
+      and(eq(commands.attemptId, attempt.id), eq(commands.type, 'capture'), isNotNull(commands.deliveredAt)),
+    )
+
   const drafts = buildMarkers(log, {
     endAt: Math.min(attempt.submittedAt?.getTime() ?? deps.now(), attempt.deadline.getTime()),
     uploaded: new Set(uploaded.map((b) => b.hash)),
     chainBrokenAt: attempt.chainBrokenAt,
+    captureRequests: captures.map((c) => c.at.getTime()),
   })
   await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
   if (drafts.length) await tx.insert(markers).values(drafts.map((m) => ({ ...m, attemptId: attempt.id })))

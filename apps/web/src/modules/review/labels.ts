@@ -8,7 +8,7 @@ export const MARKER_LABEL: Record<MarkerKind, string> = {
   too_dark: 'Слишком темно',
   noise: 'Голос или шум',
   tab_hidden: 'Уход со вкладки',
-  fullscreen_exit: 'Выход из полноэкранного режима',
+  camera_off: 'Камера выключена',
   paste: 'Вставка текста',
   chain_broken: 'Журнал событий нарушен',
   missing_fragment: 'Фрагмент записи не загружен',

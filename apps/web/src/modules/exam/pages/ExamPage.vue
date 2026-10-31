@@ -2,7 +2,7 @@
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CameraPreview, HintBanner, useProctoringStore } from '@/modules/proctoring'
+import { CameraPreview, HintBanner } from '@/modules/proctoring'
 import { AppButton, AppCard, AppDialog } from '@/shared/ui'
 import ExamHeader from '../components/ExamHeader.vue'
 import ExamNotices from '../components/ExamNotices.vue'
@@ -14,24 +14,17 @@ import { useExamStore } from '../exam.store'
 const route = useRoute()
 const router = useRouter()
 const exam = useExamStore()
-const proctoring = useProctoringStore()
 const attemptId = computed(() => String(route.params.attemptId))
 const confirming = ref(false)
 const loadError = ref(false)
 
-// The page composes the two modules: the exam session and on-device proctoring writing into its chain.
 async function open(id: string) {
   loadError.value = false
   try {
     await exam.open(id)
   } catch {
     loadError.value = true
-    return
   }
-  const session = exam.session
-  if (!session || exam.locked) return
-  exam.attachProctor({ capture: proctoring.capture, stop: proctoring.stop })
-  await proctoring.start({ ...session, recording: exam.attempt!.exam.profile.recording })
 }
 watch(attemptId, open, { immediate: true })
 
@@ -41,10 +34,7 @@ watch(
   (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
 )
 onUnmounted(() => {
-  if (exam.locked) return
-  exam.attachProctor(null)
-  void proctoring.stop()
-  exam.close()
+  if (!exam.locked) exam.close()
 })
 
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)

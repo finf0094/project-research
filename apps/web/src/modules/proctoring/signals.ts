@@ -44,8 +44,16 @@ export function createSignalTracker() {
   }
 }
 
-/** Environment problems the student should fix; they never raise the risk. */
-const ENVIRONMENT: ReadonlySet<SignalKind> = new Set(['too_dark'])
+/** Mean frame brightness (0..255) below which the room counts as too dark. */
+export const DARK_BRIGHTNESS = 45
+/** Microphone RMS above which the room counts as noisy. */
+export const NOISE_RMS = 0.08
+
+/**
+ * Problems of the environment or the device; they never raise the risk (and with the camera off
+ * there is nothing to record anyway). The examiner still sees them on the timeline.
+ */
+const ENVIRONMENT: ReadonlySet<SignalKind> = new Set(['too_dark', 'camera_off'])
 
 /**
  * How much evidence to collect right now (review section 10.1). Risk never depends on the network.
@@ -69,4 +77,5 @@ export const HINTS: Partial<Record<SignalKind, string>> = {
   too_dark: 'Слишком темно. Включите свет или повернитесь к окну.',
   noise: 'Вокруг шумно. Постарайтесь найти тихое место.',
   tab_hidden: 'Пожалуйста, оставайтесь на вкладке экзамена.',
+  camera_off: 'Камера выключена. Включите её, чтобы продолжить под наблюдением.',
 }

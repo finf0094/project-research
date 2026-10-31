@@ -5,7 +5,7 @@ import type { ServerClock } from './clock'
 import { initialConnection, nextConnection, retryDelay, type SyncOutcome } from './connection'
 import { db } from './db'
 import type { EventLog } from './event-log'
-import { countChunks } from './store'
+import { countChunks } from './local-data'
 
 export interface SyncStatus {
   connection: NetState

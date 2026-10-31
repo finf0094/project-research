@@ -29,5 +29,9 @@ export default defineConfig({
   css: { transformer: 'lightningcss' },
   build: { cssMinify: 'lightningcss', target: 'es2023' },
   server: { proxy: { '/api': 'http://localhost:3000' } },
-  test: { environment: 'happy-dom', setupFiles: ['fake-indexeddb/auto'] },
+  test: {
+    environment: 'happy-dom',
+    setupFiles: ['fake-indexeddb/auto'],
+    exclude: ['e2e/**', 'node_modules/**'],
+  },
 })

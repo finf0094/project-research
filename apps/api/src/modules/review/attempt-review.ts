@@ -1,84 +1,12 @@
-import type {
-  AttemptDetail,
-  AttemptSummary,
-  DecisionBody,
-  ExaminerCommandBody,
-  ExaminerExam,
-  NetState,
-} from '@exam/contracts'
-import { and, asc, count, desc, eq, ne, sql } from 'drizzle-orm'
-import type { Db, Tx } from '../../db/client.ts'
-import {
-  answers,
-  attempts,
-  blobs,
-  commands,
-  decisions,
-  events,
-  exams,
-  markers,
-  users,
-} from '../../db/schema.ts'
+import type { AttemptDetail, DecisionBody, ExaminerCommandBody } from '@exam/contracts'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { answers, attempts, blobs, commands, decisions, events, markers, users } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { conflict, notFound } from '../../shared/errors.ts'
 import { blobKey } from '../../shared/storage.ts'
 import { examQuestions, toStudentQuestion } from '../exams/service.ts'
+import { ownAttemptOf, toSummary } from './access.ts'
 import { autoScore } from './grading.ts'
-
-/** A student that has not synced for this long is shown as offline, whatever its last reported state. */
-const SILENCE_MS = 30_000
-
-export async function listExams(db: Db, ownerId: string): Promise<ExaminerExam[]> {
-  const rows = await db
-    .select({
-      exam: exams,
-      total: count(attempts.id),
-      active: count(sql`case when ${attempts.status} = 'active' then 1 end`),
-      toReview: count(sql`case when ${attempts.status} = 'ready_for_review' then 1 end`),
-    })
-    .from(exams)
-    .leftJoin(attempts, eq(attempts.examId, exams.id))
-    .where(eq(exams.ownerId, ownerId))
-    .groupBy(exams.id)
-    .orderBy(desc(exams.opensAt))
-  return rows.map(({ exam, total, active, toReview }) => ({
-    id: exam.id,
-    title: exam.title,
-    opensAt: exam.opensAt.getTime(),
-    closesAt: exam.closesAt.getTime(),
-    attempts: { total, active, toReview },
-  }))
-}
-
-/** Attempts of one exam, highest risk first. Risk only orders the list; it is not a verdict. */
-export async function listAttempts(deps: Deps, ownerId: string, examId: string): Promise<AttemptSummary[]> {
-  await ownExam(deps.db, ownerId, examId)
-  const rows = await deps.db
-    .select({ attempt: attempts, studentName: users.name })
-    .from(attempts)
-    .innerJoin(users, eq(users.id, attempts.userId))
-    .where(eq(attempts.examId, examId))
-    .orderBy(sql`${attempts.riskScore} desc nulls last`, asc(attempts.startedAt))
-  const answered = await countPerAttempt(
-    deps.db
-      .select({ id: answers.attemptId, n: count() })
-      .from(answers)
-      .innerJoin(attempts, eq(attempts.id, answers.attemptId))
-      .where(eq(attempts.examId, examId))
-      .groupBy(answers.attemptId),
-  )
-  const flagged = await countPerAttempt(
-    deps.db
-      .select({ id: markers.attemptId, n: count() })
-      .from(markers)
-      .innerJoin(attempts, eq(attempts.id, markers.attemptId))
-      .where(and(eq(attempts.examId, examId), ne(markers.status, 'context')))
-      .groupBy(markers.attemptId),
-  )
-  return rows.map(({ attempt, studentName }) =>
-    toSummary(attempt, studentName, answered.get(attempt.id) ?? 0, flagged.get(attempt.id) ?? 0, deps.now()),
-  )
-}
 
 export async function attemptDetail(deps: Deps, ownerId: string, attemptId: string): Promise<AttemptDetail> {
   const { db } = deps
@@ -192,50 +120,4 @@ export async function readChunk(deps: Deps, ownerId: string, attemptId: string, 
   const data = row ? await deps.storage.get(blobKey(attemptId, hash)) : null
   if (!row || !data) throw notFound('Recording not found')
   return { data, mime: row.mime }
-}
-async function ownExam(db: Db | Tx, ownerId: string, examId: string) {
-  const [exam] = await db
-    .select()
-    .from(exams)
-    .where(and(eq(exams.id, examId), eq(exams.ownerId, ownerId)))
-  if (!exam) throw notFound('Exam not found')
-  return exam
-}
-
-async function ownAttemptOf(db: Db | Tx, ownerId: string, attemptId: string, lock = false) {
-  const query = db
-    .select({ attempt: attempts, exam: exams })
-    .from(attempts)
-    .innerJoin(exams, eq(exams.id, attempts.examId))
-    .where(and(eq(attempts.id, attemptId), eq(exams.ownerId, ownerId)))
-  const [row] = lock ? await query.for('update', { of: attempts }) : await query
-  if (!row) throw notFound('Attempt not found')
-  return row
-}
-
-async function countPerAttempt(query: Promise<{ id: string; n: number }[]>) {
-  return new Map((await query).map((r) => [r.id, r.n]))
-}
-
-function toSummary(
-  attempt: typeof attempts.$inferSelect,
-  studentName: string,
-  answered: number,
-  markerCount: number,
-  now: number,
-): AttemptSummary {
-  const running = attempt.status === 'active' || attempt.status === 'terminated'
-  const silent = now - attempt.lastSeenAt.getTime() > SILENCE_MS
-  const connection: NetState | null = running ? (silent ? 'offline' : (attempt.connection ?? 'online')) : null
-  return {
-    id: attempt.id,
-    student: { id: attempt.userId, name: studentName },
-    status: attempt.status,
-    startedAt: attempt.startedAt.getTime(),
-    lastSeenAt: attempt.lastSeenAt.getTime(),
-    connection,
-    answered,
-    markerCount,
-    riskScore: attempt.riskScore,
-  }
 }

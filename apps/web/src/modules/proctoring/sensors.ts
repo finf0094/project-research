@@ -43,6 +43,12 @@ export async function createSensors(stream: MediaStream): Promise<Sensors> {
   const context = canvas.getContext('2d', { willReadFrequently: true })!
 
   const audio = new AudioContext()
+  // Without a user gesture (e.g. after a reload) the context starts suspended and hears nothing.
+  const resume = () => void audio.resume()
+  if (audio.state === 'suspended') {
+    window.addEventListener('pointerdown', resume, { once: true })
+    window.addEventListener('keydown', resume, { once: true })
+  }
   const analyser = audio.createAnalyser()
   analyser.fftSize = 1024
   audio.createMediaStreamSource(stream).connect(analyser)
@@ -69,6 +75,8 @@ export async function createSensors(stream: MediaStream): Promise<Sensors> {
       return Math.sqrt(sum / samples.length)
     },
     dispose() {
+      window.removeEventListener('pointerdown', resume)
+      window.removeEventListener('keydown', resume)
       detector?.close()
       void audio.close()
       video.srcObject = null
