@@ -4,7 +4,7 @@ import { ApiError } from '@/shared/lib/http'
 import { useLiveRoom } from './live-room'
 
 type Handler = (...args: unknown[]) => void
-type Publication = { track?: { mediaStreamTrack: unknown } }
+type Publication = { track?: { mediaStreamTrack: unknown }; isMuted?: boolean }
 
 const { FakeRoom, rooms } = vi.hoisted(() => {
   const rooms: InstanceType<typeof FakeRoom>[] = []
@@ -41,6 +41,9 @@ vi.mock('livekit-client', () => ({
     TrackSubscribed: 'subscribed',
     TrackUnsubscribed: 'unsubscribed',
     AudioPlaybackStatusChanged: 'audio',
+    TrackMuted: 'muted',
+    TrackUnmuted: 'unmuted',
+    ParticipantDisconnected: 'left',
   },
   ConnectionState: {
     Connecting: 'connecting',
@@ -135,7 +138,7 @@ describe('useLiveRoom', () => {
     room.remoteParticipants.set('examiner', { videoTrackPublications: new Map([['v', { track: video }]]) })
     room.emit('subscribed', video)
     expect(call.remote.value).not.toBeNull()
-    room.remoteParticipants.clear()
+    // LiveKit reports the track gone while its publication still holds it.
     room.emit('unsubscribed', video)
     expect(call.remote.value).toBeNull()
   })
@@ -176,5 +179,24 @@ describe('useLiveRoom', () => {
     expect(call.audioBlocked.value).toBe(true)
     await call.startAudio()
     expect(rooms[0]!.startAudio).toHaveBeenCalled()
+  })
+  it('retries a failed publish and stops its clones', async () => {
+    const { call } = setup()
+    await call.join(access)
+    const room = rooms[0]!
+    room.localParticipant.publishTrack.mockRejectedValueOnce(new Error('timeout'))
+    call.setLocal(camera())
+    await settle()
+    const failed = published()
+    room.emit('state', 'reconnecting')
+    room.emit('state', 'connected') // back: the camera is sent again
+    await settle()
+    expect(failed.every((t) => t.stopped)).toBe(true)
+    expect(published()).toHaveLength(4)
+    expect(
+      published()
+        .slice(2)
+        .some((t) => t.stopped),
+    ).toBe(false)
   })
 })

@@ -12,7 +12,6 @@ export const proctoringMessages = defineMessages({
         camera_off: 'Камера выключена. Включите её, чтобы продолжить под наблюдением.',
         looking_away: 'Пожалуйста, смотрите на экран.',
         object_detected: 'Уберите телефон и книги из поля зрения камеры.',
-        paste: '',
       },
       camera: {
         on: 'Камера включена',
@@ -49,7 +48,6 @@ export const proctoringMessages = defineMessages({
         camera_off: 'Камера өшірулі. Бақылаумен жалғастыру үшін оны қосыңыз.',
         looking_away: 'Экранға қараңыз.',
         object_detected: 'Телефон мен кітаптарды камераның көру аймағынан алып тастаңыз.',
-        paste: '',
       },
       camera: {
         on: 'Камера қосулы',
@@ -86,7 +84,6 @@ export const proctoringMessages = defineMessages({
         camera_off: 'The camera is off. Turn it on to continue under supervision.',
         looking_away: 'Please look at the screen.',
         object_detected: 'Move phones and books out of the camera’s view.',
-        paste: '',
       },
       camera: {
         on: 'Camera on',

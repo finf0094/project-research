@@ -32,20 +32,34 @@ export function useLiveRoom() {
   let sent: { from: MediaStream | null; tracks: MediaStreamTrack[] } = { from: null, tracks: [] }
   let publishing: Promise<void> = Promise.resolve()
   let disposed = false
-  const audio = new Set<HTMLMediaElement>()
+  /** Audio elements by track: LiveKit detaches before it reports the track gone, so they are tracked here. */
+  const audio = new Map<RemoteTrack, HTMLMediaElement>()
 
   function onTrack(current: Room, track: RemoteTrack, subscribed: boolean) {
     if (room !== current) return
     if (track.kind === Track.Kind.Audio) {
-      if (subscribed) audio.add(document.body.appendChild(track.attach()))
-      else track.detach().forEach((el) => (audio.delete(el), el.remove()))
+      if (subscribed) {
+        audio.set(track, document.body.appendChild(track.attach()))
+      } else {
+        audio.get(track)?.remove()
+        audio.delete(track)
+      }
       return
     }
-    // The first camera of the other side; a single tile, so a second participant does not flicker it.
+    showRemote(current, subscribed ? null : track)
+  }
+
+  /**
+   * The first camera of the other side (a single tile, so a second participant does not flicker it).
+   * `leaving` is excluded: while LiveKit reports a track gone, its publication still holds it.
+   */
+  function showRemote(current: Room, leaving: RemoteTrack | null = null) {
+    if (room !== current) return
     const video = [...current.remoteParticipants.values()]
       .flatMap((p) => [...p.videoTrackPublications.values()])
-      .find((pub) => pub.track)?.track
-    remote.value = video ? new MediaStream([video.mediaStreamTrack]) : null
+      .find((pub) => pub.track && pub.track !== leaving && !pub.isMuted)?.track
+    if (video?.mediaStreamTrack !== remote.value?.getTracks()[0])
+      remote.value = video ? new MediaStream([video.mediaStreamTrack]) : null
   }
 
   /** Joins with access from `access`; a 503 means live video is not set up on this server. */
@@ -57,16 +71,25 @@ export function useLiveRoom() {
     const current = new Room({ dynacast: true })
     room = current
     current
-      .on(RoomEvent.ConnectionStateChanged, (s) => room === current && (state.value = STATE[s]))
+      .on(RoomEvent.ConnectionStateChanged, (s) => {
+        if (room !== current) return
+        state.value = STATE[s]
+        // A camera change made while reconnecting is sent once the call is back.
+        if (s === ConnectionState.Connected) void sync()
+      })
       .on(RoomEvent.TrackSubscribed, (track) => onTrack(current, track, true))
       .on(RoomEvent.TrackUnsubscribed, (track) => onTrack(current, track, false))
-      .on(RoomEvent.AudioPlaybackStatusChanged, () => (audioBlocked.value = !current.canPlaybackAudio))
+      .on(RoomEvent.TrackMuted, () => showRemote(current))
+      .on(RoomEvent.TrackUnmuted, () => showRemote(current))
+      .on(RoomEvent.ParticipantDisconnected, () => showRemote(current))
+      .on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        if (room === current) audioBlocked.value = !current.canPlaybackAudio
+      })
     try {
       const { url, token } = await access()
       if (room !== current) return
       await current.connect(url, token)
       if (room !== current) return void current.disconnect()
-      void sync()
     } catch (error) {
       console.error('could not join the oral exam room', error)
       if (room !== current) return
@@ -82,26 +105,33 @@ export function useLiveRoom() {
     void sync()
   }
 
-  /** Brings the published tracks in line with `wanted`, one run at a time. */
+  /** Brings the published tracks in line with `wanted`, one run at a time; a failed run is retried next time. */
   function sync(): Promise<void> {
-    publishing = publishing.then(async () => {
+    const run = async () => {
       const current = room
       if (!current || state.value !== 'connected' || sent.from === wanted) return
       const old = sent
-      sent = { from: wanted, tracks: wanted?.getTracks().map((t) => t.clone()) ?? [] }
-      // Unpublishing stops the clones (LiveKit's default for local tracks).
-      for (const track of old.tracks)
-        await current.localParticipant.unpublishTrack(track).catch(() => track.stop())
+      const target = wanted
+      sent = { from: null, tracks: target?.getTracks().map((t) => t.clone()) ?? [] }
+      for (const track of old.tracks) {
+        await current.localParticipant.unpublishTrack(track).catch(() => undefined)
+        track.stop()
+      }
+      let ok = true
       for (const track of sent.tracks) {
         if (room !== current) break
         const source = track.kind === 'video' ? Track.Source.Camera : Track.Source.Microphone
         await current.localParticipant.publishTrack(track, { source }).catch((error: unknown) => {
           // The call itself goes on: the student still sees and hears the examiner.
           console.error('could not publish', error)
+          ok = false
         })
       }
-      if (room !== current) sent.tracks.forEach((t) => t.stop())
-    })
+      if (room !== current) return sent.tracks.forEach((t) => t.stop())
+      // Only a complete publish counts as done; otherwise the next change or reconnect tries again.
+      if (ok) sent.from = target
+    }
+    publishing = publishing.then(run, run)
     return publishing
   }
 
@@ -119,7 +149,8 @@ export function useLiveRoom() {
   }
 
   /** Lets the remote audio play after a click (browsers block sound that starts on its own). */
-  const startAudio = () => room?.startAudio()
+  const startAudio = () =>
+    room?.startAudio().catch((error: unknown) => console.error('sound still blocked', error))
 
   const rejoin = () => state.value === 'disconnected' && getAccess && void join(getAccess)
   window.addEventListener('online', rejoin)

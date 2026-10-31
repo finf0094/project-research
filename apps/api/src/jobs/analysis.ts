@@ -1,5 +1,13 @@
-import type { DeviceTier, MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
+import type { MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
 import type { Interval } from '../ml/observations.ts'
+import { reconcile } from './reconcile.ts'
+
+export interface Fragment {
+  reason: string
+  tStart: number
+  tEnd: number
+  chunks: string[]
+}
 
 export interface StoredEvent {
   seq: number
@@ -35,13 +43,6 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   missing_fragment: 20,
 }
 
-/** What the device measures at each tier: silence about anything else is not a discrepancy. */
-const MEASURED: Record<DeviceTier, ReadonlySet<MarkerKind>> = {
-  full: new Set(['face_missing', 'multiple_faces', 'object_detected']),
-  lite: new Set(['face_missing', 'multiple_faces']),
-  minimal: new Set(),
-}
-
 /** A control fragment counts as answering a request if it starts within this window after it. */
 const CONTROL_ANSWER_WINDOW_MS = 10 * 60_000
 
@@ -63,11 +64,7 @@ export function buildMarkers(
     serverFindings?: Interval[] | null
   },
 ): MarkerDraft[] {
-  const fragments = events.flatMap((e) =>
-    e.type === 'evidence.fragment'
-      ? [e.data as { reason: string; tStart: number; tEnd: number; chunks: string[] }]
-      : [],
-  )
+  const fragments = events.flatMap((e) => (e.type === 'evidence.fragment' ? [e.data as Fragment] : []))
   const chunksFor = (startAt: number, endAt: number) =>
     fragments
       .filter((f) => f.tStart <= endAt && f.tEnd >= startAt)
@@ -146,35 +143,8 @@ export function buildMarkers(
     if (!answered) system('missing_fragment', requestedAt)
   }
 
-  // Reconciliation (architecture, section 17.4): the server's finding is a second opinion. When the device
-  // reported the same thing it confirms it. When the device stayed silent although it was measuring that
-  // kind, inside a control fragment (a random sample the student could not predict), it is a discrepancy:
-  // the strongest hint that client-side proctoring was tampered with.
-  const overlaps = (a: { startAt: number; endAt: number }, b: { startAt: number; endAt: number }) =>
-    a.startAt <= b.endAt && a.endAt >= b.startAt
-  const clientMarkers = markers.filter((m) => m.source === 'client')
-  const tiers = events.flatMap((e) =>
-    e.type === 'proctoring.mode' ? [{ at: e.clientAt, tier: (e.data as { tier: DeviceTier }).tier }] : [],
-  )
-  const measured = (kind: MarkerKind, at: number) => {
-    const tier = tiers.findLast((t) => t.at <= at)?.tier
-    return tier !== undefined && MEASURED[tier].has(kind)
-  }
-  const inControl = (finding: Interval) =>
-    fragments.some((f) => f.reason === 'control' && overlaps(finding, { startAt: f.tStart, endAt: f.tEnd }))
-  for (const finding of opts.serverFindings ?? []) {
-    const dark = clientMarkers.some((m) => m.kind === 'too_dark' && overlaps(m, finding))
-    // The detector misses faces in the dark too; the device does not count that, and neither does the server.
-    if (finding.kind === 'face_missing' && dark) continue
-    const confirmed = clientMarkers.some((m) => m.kind === finding.kind && overlaps(m, finding))
-    markers.push({
-      ...finding,
-      status: 'pending',
-      source: 'model',
-      discrepancy: !confirmed && inControl(finding) && measured(finding.kind, finding.startAt),
-      chunks: chunksFor(finding.startAt, finding.endAt),
-    })
-  }
+  const fromModels = reconcile(opts.serverFindings ?? [], markers, events, fragments)
+  markers.push(...fromModels.map((f) => ({ ...f, chunks: chunksFor(f.startAt, f.endAt) })))
   return markers.sort((a, b) => a.startAt - b.startAt)
 }
 

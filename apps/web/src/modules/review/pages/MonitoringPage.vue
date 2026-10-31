@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { AttemptSummary, ExaminerCommandBody, ExaminerExam } from '@exam/contracts'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
 import { AppCard, StatTile } from '@/shared/ui'
 import { listAttempts, listExams, sendCommand } from '../api'
 import AttemptsTable from '../components/AttemptsTable.vue'
@@ -11,13 +11,12 @@ import CommandDialog from '../components/CommandDialog.vue'
 const POLL_MS = 5000
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const examId = String(route.params.examId)
 const exam = ref<ExaminerExam | null>(null)
 const attempts = ref<AttemptSummary[]>([])
 const acting = ref<AttemptSummary | null>(null)
 const stale = ref(false)
-const actionError = ref('')
+const actionError = ref<ErrorKey | null>(null)
 
 async function refresh() {
   try {
@@ -45,13 +44,13 @@ const stats = computed(() => ({
 
 async function send(body: ExaminerCommandBody) {
   if (!acting.value) return
-  actionError.value = ''
+  actionError.value = null
   try {
     await sendCommand(acting.value.id, body)
     acting.value = null
     await refresh()
   } catch (e) {
-    actionError.value = e instanceof Error ? e.message : t('common.somethingWrong')
+    actionError.value = errorKey(e)
   }
 }
 </script>
@@ -92,7 +91,7 @@ async function send(body: ExaminerCommandBody) {
 
     <CommandDialog :attempt="acting" @send="send" @close="acting = null" />
     <p v-if="actionError" class="error" role="alert">
-      {{ $t('review.monitoring.actionFailed', { error: actionError }) }}
+      {{ $t(actionError) }}
     </p>
   </main>
 </template>

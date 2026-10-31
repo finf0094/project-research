@@ -1,20 +1,19 @@
 import type { ExamMode } from '@exam/contracts'
 import type { RouteLocationNormalized, RouteRecordRaw } from 'vue-router'
-import { loadAttempt } from './local-attempt'
+import { getAttempt } from '@/modules/offline'
 import { attemptPath } from './paths'
 
 /**
  * Sends an attempt to the page of its mode before any page mounts (a stale link or bookmark may point to
- * the other one). If the attempt cannot be loaded here (offline, never opened), the page shows why.
+ * the other one). Only the local copy is asked, so navigation never waits for the network; an attempt
+ * this device has not seen yet is redirected by the page once it is loaded.
  */
 function pageOf(mode: ExamMode) {
   return async (to: RouteLocationNormalized) => {
-    const id = String(to.params.attemptId)
-    const actual = await loadAttempt(id).then(
-      (a) => a.exam.profile.mode,
-      () => mode,
-    )
-    return actual === mode ? true : attemptPath(id, actual)
+    const actual = (await getAttempt(String(to.params.attemptId)).catch(() => undefined))?.exam.profile.mode
+    return !actual || actual === mode
+      ? true
+      : { path: attemptPath(String(to.params.attemptId), actual), query: to.query, hash: to.hash }
   }
 }
 

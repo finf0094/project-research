@@ -31,7 +31,7 @@ type Schema = typeof commonMessages.ru &
   typeof proctoringMessages.ru &
   typeof reviewMessages.ru
 
-// Keys are checked at compile time: t('exam.typo') does not build.
+// Gives key completion in editors; vue-i18n still accepts any string, so i18n.test.ts checks the keys.
 declare module 'vue-i18n' {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface DefineLocaleMessage extends Schema {}

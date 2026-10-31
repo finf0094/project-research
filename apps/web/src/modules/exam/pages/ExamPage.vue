@@ -1,73 +1,28 @@
 <script setup lang="ts">
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
-import { computed, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { CameraPreview, HintBanner } from '@/modules/proctoring'
+import { computed } from 'vue'
+import { CameraPreview } from '@/modules/proctoring'
 import { AppButton, AppCard } from '@/shared/ui'
-import ExamHeader from '../components/ExamHeader.vue'
-import ExaminerMessage from '../components/ExaminerMessage.vue'
-import ExamNotices from '../components/ExamNotices.vue'
-import ExamUnavailable from '../components/ExamUnavailable.vue'
-import FinishDialog from '../components/FinishDialog.vue'
+import ExamLayout from '../components/ExamLayout.vue'
 import QuestionNav from '../components/QuestionNav.vue'
 import QuestionView from '../components/QuestionView.vue'
-import { useExamStore } from '../exam.store'
+import { useAttemptPage } from '../use-attempt-page'
 
-const route = useRoute()
-const router = useRouter()
-const exam = useExamStore()
-const attemptId = computed(() => String(route.params.attemptId))
-const confirming = ref(false)
-const loadError = ref(false)
-
-async function open(id: string) {
-  loadError.value = false
-  try {
-    await exam.open(id)
-  } catch {
-    loadError.value = true
-  }
-}
-watch(attemptId, open, { immediate: true })
-
-// Leaving for the "done" page keeps the session running: it still has to deliver answers and recordings.
-watch(
-  () => exam.locked,
-  (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
-)
-onUnmounted(() => {
-  if (!exam.locked) exam.close()
-})
-
+const { exam, attemptId, loadError, confirming, open, finish } = useAttemptPage('written')
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)
-
-function confirmFinish() {
-  confirming.value = false
-  void exam.finish()
-}
 </script>
 
 <template>
-  <ExamUnavailable v-if="loadError" reason="load" @retry="open(attemptId)" />
-  <ExamUnavailable v-else-if="exam.openedElsewhere" reason="elsewhere" />
-
-  <div v-else-if="exam.attempt && exam.question" class="exam">
-    <ExamHeader
-      :title="exam.attempt.exam.title"
-      :step="$t('exam.header.step', { n: exam.current + 1, total: exam.questions.length })"
-      :remaining-ms="exam.remainingMs"
-      :finishing="exam.locked"
-      @finish="confirming = true"
-    />
-    <ExamNotices
-      :attempt-id="attemptId"
-      :signed-out="exam.signedOut"
-      :save-failed="exam.saveFailed"
-      :chain-broken="exam.chainBroken"
-    />
-    <HintBanner />
-
-    <div class="body">
+  <ExamLayout
+    v-model:confirming="confirming"
+    :attempt-id="attemptId"
+    :step="$t('exam.header.step', { n: exam.current + 1, total: exam.questions.length })"
+    :load-error="loadError"
+    :unanswered="unanswered"
+    @retry="open(attemptId)"
+    @finish="finish"
+  >
+    <div v-if="exam.question" class="body">
       <AppCard as="aside" class="side">
         <QuestionNav
           :questions="exam.questions"
@@ -102,25 +57,10 @@ function confirmFinish() {
         </footer>
       </AppCard>
     </div>
-
-    <FinishDialog
-      :open="confirming"
-      :unanswered="unanswered"
-      @confirm="confirmFinish"
-      @cancel="confirming = false"
-    />
-    <ExaminerMessage :message="exam.warning" @close="exam.warning = null" />
-  </div>
+  </ExamLayout>
 </template>
 
 <style scoped>
-.exam {
-  display: grid;
-  gap: var(--space-4);
-  min-height: 100dvh;
-  padding: var(--space-4);
-  align-content: start;
-}
 .body {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);

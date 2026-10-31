@@ -1,20 +1,19 @@
 <script setup lang="ts">
 import type { AttemptDetail } from '@exam/contracts'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { RoomVideo, TicketList, examinerRoomAccess, useLiveRoom } from '@/modules/oral'
+import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
 import { AppButton, AppCard, AppDialog } from '@/shared/ui'
 import { getAttempt, sendCommand } from '../api'
 
 /** The examiner's side of an oral exam: the student on video, the drawn ticket, and ending the exam. */
 const route = useRoute()
-const { t } = useI18n()
 const attemptId = String(route.params.attemptId)
 const detail = ref<AttemptDetail | null>(null)
 const call = useLiveRoom()
 const ending = ref(false)
-const error = ref('')
+const error = ref<ErrorKey | 'review.room.noCamera' | null>(null)
 let camera: MediaStream | null = null
 let unmounted = false
 
@@ -28,9 +27,9 @@ async function ensureCamera() {
     // The page may have closed while the permission prompt was open.
     if (unmounted) return media.getTracks().forEach((t) => t.stop())
     camera = media
-    error.value = ''
+    error.value = null
   } catch {
-    error.value = t('review.room.noCamera')
+    error.value = 'review.room.noCamera'
   }
   call.setLocal(camera)
 }
@@ -46,7 +45,7 @@ onMounted(async () => {
     // A finished attempt has nobody to talk to: no call, no camera.
     if (running.value) await join()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t('common.somethingWrong')
+    error.value = errorKey(e)
   }
 })
 onUnmounted(() => {
@@ -59,9 +58,11 @@ async function end() {
   try {
     await sendCommand(attemptId, { type: 'terminate' })
     await call.leave()
+    camera?.getTracks().forEach((t) => t.stop())
+    camera = null
     detail.value = await getAttempt(attemptId)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t('common.somethingWrong')
+    error.value = errorKey(e)
   }
 }
 </script>
@@ -74,7 +75,7 @@ async function end() {
       }}</RouterLink>
       <h1>{{ detail?.summary.student.name ?? $t('review.room.title') }}</h1>
     </header>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <p v-if="error" class="error" role="alert">{{ $t(error) }}</p>
 
     <div class="layout">
       <AppCard class="stack">

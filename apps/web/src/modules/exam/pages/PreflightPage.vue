@@ -1,36 +1,34 @@
 <script setup lang="ts">
 import { ArrowLeft, CircleCheck, CircleAlert } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { DeviceCheck } from '@/modules/proctoring'
-import { ApiError } from '@/shared/lib/http'
-import { AppButton, AppCard } from '@/shared/ui'
+import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
+import { AppButton, AppCard, LocaleSwitch } from '@/shared/ui'
 import { beginAttempt } from '../local-attempt'
 import { runBrowserChecks, type Check } from '../preflight'
 import { attemptPath } from '../paths'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const checks = ref<Check[] | null>(null)
 const consent = ref(false)
 const deviceReady = ref(false)
 const starting = ref(false)
-const error = ref('')
+const error = ref<ErrorKey | null>(null)
 
 onMounted(async () => (checks.value = await runBrowserChecks()))
 const FACTS = ['answers', 'video', 'server', 'decision'] as const
 const ready = computed(() => !!checks.value?.every((c) => c.ok) && deviceReady.value && consent.value)
 
 async function start() {
-  error.value = ''
+  error.value = null
   starting.value = true
   try {
     const attempt = await beginAttempt(String(route.params.examId))
     await router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : t('exam.preflight.offline')
+    error.value = errorKey(e)
   } finally {
     starting.value = false
   }
@@ -44,6 +42,7 @@ async function start() {
         ><ArrowLeft :size="20"
       /></AppButton>
       <h1>{{ $t('exam.preflight.title') }}</h1>
+      <LocaleSwitch class="locale" />
     </header>
 
     <div class="grid">
@@ -78,7 +77,7 @@ async function start() {
         <AppButton block :disabled="!ready" :loading="starting" @click="start">{{
           $t('exam.preflight.start')
         }}</AppButton>
-        <p v-if="error" class="error" role="alert">{{ error }}</p>
+        <p v-if="error" class="error" role="alert">{{ $t(error) }}</p>
       </AppCard>
     </div>
   </main>
@@ -96,6 +95,9 @@ async function start() {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+.locale {
+  margin-inline-start: auto;
 }
 .grid {
   display: grid;

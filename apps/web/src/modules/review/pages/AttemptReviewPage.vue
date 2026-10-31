@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { AttemptDetail, DecisionBody } from '@exam/contracts'
 import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
 import { AppCard } from '@/shared/ui'
 import { chunkUrl, decide, getAttempt, judgeMarker } from '../api'
 import AnswersList from '../components/AnswersList.vue'
@@ -13,13 +13,12 @@ import MarkerList from '../components/MarkerList.vue'
 import MarkerTimeline from '../components/MarkerTimeline.vue'
 
 const route = useRoute()
-const { t } = useI18n()
 const attemptId = String(route.params.attemptId)
 const detail = ref<AttemptDetail | null>(null)
 const selected = ref<string | null>(null)
 const saving = ref(false)
 const saved = ref(false)
-const error = ref('')
+const error = ref<ErrorKey | null>(null)
 
 async function load() {
   detail.value = await getAttempt(attemptId)
@@ -28,11 +27,11 @@ async function load() {
 
 /** Runs an action and shows its failure instead of leaving a stale or blank page. */
 async function attempt(action: () => Promise<unknown>) {
-  error.value = ''
+  error.value = null
   try {
     await action()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t('common.somethingWrong')
+    error.value = errorKey(e)
   }
 }
 onMounted(() => attempt(load))
@@ -61,7 +60,7 @@ async function save(body: DecisionBody) {
 </script>
 
 <template>
-  <p v-if="error" class="error" role="alert">{{ $t('review.attempt.actionFailed', { error }) }}</p>
+  <p v-if="error" class="error" role="alert">{{ $t(error) }}</p>
   <main v-if="detail" class="page">
     <AttemptHeader :detail="detail" />
 

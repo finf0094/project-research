@@ -81,7 +81,6 @@ export const examMessages = defineMessages({
         checks: 'Проверка',
         checking: 'Проверяем…',
         timerHint: 'Время экзамена ещё не идёт: таймер включится только после начала.',
-        offline: 'Нет связи с сервером. Для начала экзамена нужен интернет.',
         dataTitle: 'Что происходит с данными',
         answers: 'Ответы',
         answersText:
@@ -135,7 +134,7 @@ export const examMessages = defineMessages({
         elsewhere: 'Емтихан басқа қойындыда ашық',
         elsewhereHint: 'Сонда жалғастырыңыз. Жауаптар араласпауы үшін бұл қойындыны жабыңыз.',
       },
-      header: { submit: 'Тапсыру', step: '{total} сұрақтың {n}-сі', oral: 'Ауызша емтихан' },
+      header: { submit: 'Тапсыру', step: 'Сұрақ {n} / {total}', oral: 'Ауызша емтихан' },
       page: {
         previous: 'Алдыңғы сұрақ',
         next: 'Келесі сұрақ',
@@ -193,7 +192,6 @@ export const examMessages = defineMessages({
         checks: 'Тексеру',
         checking: 'Тексеріп жатырмыз…',
         timerHint: 'Емтихан уақыты әлі басталған жоқ: таймер тек басталғаннан кейін қосылады.',
-        offline: 'Сервермен байланыс жоқ. Емтиханды бастау үшін интернет қажет.',
         dataTitle: 'Деректермен не болады',
         answers: 'Жауаптар',
         answersText:
@@ -307,7 +305,6 @@ export const examMessages = defineMessages({
         checks: 'Checks',
         checking: 'Checking…',
         timerHint: 'The exam time is not running yet: the timer starts only when you begin.',
-        offline: 'No connection to the server. Starting the exam needs internet.',
         dataTitle: 'What happens to your data',
         answers: 'Answers',
         answersText:

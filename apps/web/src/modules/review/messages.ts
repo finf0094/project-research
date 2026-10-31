@@ -18,7 +18,7 @@ export const reviewMessages = defineMessages({
         offline: 'Без интернета',
       },
       status: {
-        active: 'Пишет',
+        active: 'Идёт экзамен',
         terminated: 'Остановлен',
         submitted: 'Сдал · анализ записи',
         ready_for_review: 'Ждёт проверки',
@@ -28,14 +28,14 @@ export const reviewMessages = defineMessages({
       exams: {
         title: 'Экзамены',
         loadFailed: 'Не удалось загрузить экзамены. Обновите страницу.',
-        writing: 'Пишут: {n}',
+        writing: 'Сдают сейчас: {n}',
         toReview: 'Ждут проверки: {n}',
         total: 'Всего попыток: {n}',
       },
       monitoring: {
         exam: 'Экзамен',
         summary: 'Сводка',
-        writing: 'Пишут сейчас',
+        writing: 'Сдают сейчас',
         offline: 'Без сети',
         offlineNote: 'экзамен у них продолжается',
         submitted: 'Сдали',
@@ -43,7 +43,6 @@ export const reviewMessages = defineMessages({
         students: 'Студенты',
         riskNote: 'Приоритет проверки только упорядочивает список. Пропадание интернета на него не влияет.',
         stale: 'Нет связи с сервером, данные могут быть устаревшими.',
-        actionFailed: 'Действие не выполнено: {error}',
       },
       table: {
         student: 'Студент',
@@ -70,7 +69,6 @@ export const reviewMessages = defineMessages({
         terminateConfirm: 'Да, завершить',
       },
       attempt: {
-        actionFailed: 'Не удалось выполнить действие: {error}',
         submittedAt: 'Сдан {at}',
         risk: 'Приоритет {n}',
         partial: 'Запись проверена сервером частично',
@@ -141,7 +139,7 @@ export const reviewMessages = defineMessages({
         offline: 'Интернетсіз',
       },
       status: {
-        active: 'Жазып жатыр',
+        active: 'Емтихан жүріп жатыр',
         terminated: 'Тоқтатылды',
         submitted: 'Тапсырды · жазба талдануда',
         ready_for_review: 'Тексеруді күтуде',
@@ -151,14 +149,14 @@ export const reviewMessages = defineMessages({
       exams: {
         title: 'Емтихандар',
         loadFailed: 'Емтихандарды жүктеу мүмкін болмады. Бетті жаңартыңыз.',
-        writing: 'Жазып жатыр: {n}',
+        writing: 'Қазір тапсырып жатыр: {n}',
         toReview: 'Тексеруді күтуде: {n}',
-        total: 'Барлық әрекет: {n}',
+        total: 'Барлық талпыныс: {n}',
       },
       monitoring: {
         exam: 'Емтихан',
         summary: 'Жиынтық',
-        writing: 'Қазір жазып жатыр',
+        writing: 'Қазір тапсырып жатыр',
         offline: 'Желісіз',
         offlineNote: 'олардың емтиханы жалғасуда',
         submitted: 'Тапсырды',
@@ -166,7 +164,6 @@ export const reviewMessages = defineMessages({
         students: 'Студенттер',
         riskNote: 'Тексеру басымдығы тек тізімді реттейді. Интернеттің үзілуі оған әсер етпейді.',
         stale: 'Сервермен байланыс жоқ, деректер ескірген болуы мүмкін.',
-        actionFailed: 'Әрекет орындалмады: {error}',
       },
       table: {
         student: 'Студент',
@@ -193,8 +190,7 @@ export const reviewMessages = defineMessages({
         terminateConfirm: 'Иә, аяқтау',
       },
       attempt: {
-        actionFailed: 'Әрекетті орындау мүмкін болмады: {error}',
-        submittedAt: 'Тапсырылды {at}',
+        submittedAt: '{at} тапсырылды',
         risk: 'Басымдық {n}',
         partial: 'Жазбаны сервер ішінара тексерді',
         unchecked: 'Жазбаны сервер тексермеді',
@@ -220,7 +216,7 @@ export const reviewMessages = defineMessages({
       },
       player: {
         empty: 'Бұл белгіге жазба жоқ. Шешім — оқиғалар журналы бойынша.',
-        part: '{total} бөліктің {n}-сі',
+        part: 'Бөлік {n} / {total}',
       },
       answers: { none: 'Жауап жоқ', manual: 'қолмен' },
       decision: {
@@ -234,7 +230,7 @@ export const reviewMessages = defineMessages({
         save: 'Шешімді сақтау',
       },
       room: {
-        back: 'Әрекетті талдау',
+        back: 'Талпынысты талдау',
         title: 'Ауызша емтихан',
         student: 'Студент',
         noCamera: 'Камера мен микрофонға рұқсат жоқ: студент сізді көрмейді және естімейді.',
@@ -264,7 +260,7 @@ export const reviewMessages = defineMessages({
         offline: 'Offline',
       },
       status: {
-        active: 'Writing',
+        active: 'In progress',
         terminated: 'Stopped',
         submitted: 'Submitted · analysing',
         ready_for_review: 'Awaiting review',
@@ -274,14 +270,14 @@ export const reviewMessages = defineMessages({
       exams: {
         title: 'Exams',
         loadFailed: 'Could not load the exams. Refresh the page.',
-        writing: 'Writing: {n}',
+        writing: 'In progress: {n}',
         toReview: 'Awaiting review: {n}',
         total: 'Attempts in total: {n}',
       },
       monitoring: {
         exam: 'Exam',
         summary: 'Summary',
-        writing: 'Writing now',
+        writing: 'In progress now',
         offline: 'Offline',
         offlineNote: 'their exam goes on',
         submitted: 'Submitted',
@@ -289,7 +285,6 @@ export const reviewMessages = defineMessages({
         students: 'Students',
         riskNote: 'The review priority only orders the list. Losing the internet does not affect it.',
         stale: 'No connection to the server, the data may be out of date.',
-        actionFailed: 'Action failed: {error}',
       },
       table: {
         student: 'Student',
@@ -316,7 +311,6 @@ export const reviewMessages = defineMessages({
         terminateConfirm: 'Yes, end it',
       },
       attempt: {
-        actionFailed: 'Could not complete the action: {error}',
         submittedAt: 'Submitted {at}',
         risk: 'Priority {n}',
         partial: 'Recording partly checked by the server',
