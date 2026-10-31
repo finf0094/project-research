@@ -1,0 +1,48 @@
+import { spawn } from 'node:child_process'
+
+/**
+ * Runs ffmpeg on one in-memory input and returns its output. Only pipes are allowed (no demuxer may open
+ * files or URLs named inside an upload); output above `maxBytes` or a run longer than `timeoutMs` is killed,
+ * so a crafted file cannot exhaust memory or time. `inputArgs` describe the input (e.g. raw PCM's format).
+ */
+export function ffmpeg(
+  args: string[],
+  input: Buffer,
+  limits: { maxBytes: number; timeoutMs: number },
+  inputArgs: string[] = [],
+) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const child = spawn(
+      'ffmpeg',
+      [
+        ...['-loglevel', 'error', '-nostdin', '-threads', '1'],
+        ...['-protocol_whitelist', 'pipe', ...inputArgs, '-i', 'pipe:0'],
+        ...args,
+        'pipe:1',
+      ],
+      { stdio: ['pipe', 'pipe', 'pipe'] },
+    )
+    const out: Buffer[] = []
+    let size = 0
+    let stderr = ''
+    const fail = (error: Error) => {
+      child.kill('SIGKILL')
+      reject(error)
+    }
+    const timer = setTimeout(() => fail(new Error('ffmpeg timed out')), limits.timeoutMs)
+    child.stdout.on('data', (d: Buffer) => {
+      size += d.length
+      if (size > limits.maxBytes) return fail(new Error('ffmpeg output too large'))
+      out.push(d)
+    })
+    child.stderr.on('data', (d: Buffer) => (stderr = (stderr + d).slice(-2000)))
+    child.on('error', (error) => (clearTimeout(timer), reject(error)))
+    child.on('close', (code) => {
+      clearTimeout(timer)
+      if (code !== 0) return reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`))
+      resolve(Buffer.concat(out))
+    })
+    child.stdin.on('error', () => undefined) // ffmpeg may close stdin early on a broken file; 'close' reports it
+    child.stdin.end(input)
+  })
+}

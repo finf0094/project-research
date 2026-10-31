@@ -4,10 +4,20 @@ import { z } from 'zod'
 import type { ModuleOptions } from '../../deps.ts'
 import { currentUser, requireRole } from '../auth/guard.ts'
 import { examinerRoomAccess, studentRoomAccess } from './service.ts'
+import { recordCallEvent } from './webhooks.ts'
 
 const schema = { params: z.object({ id: z.uuid() }), response: { 200: OralRoomAccess } }
 
 export const oralRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { deps }) => {
+  // LiveKit posts its webhooks as application/webhook+json; the signature covers the exact body text.
+  app.addContentTypeParser('application/webhook+json', { parseAs: 'string' }, (_request, body, done) =>
+    done(null, body),
+  )
+  app.post('/livekit/webhook', { schema: { hide: true } }, async (request, reply) => {
+    await recordCallEvent(deps, String(request.body), request.headers.authorization)
+    return reply.code(200).send()
+  })
+
   app.post('/attempts/:id/oral/token', { onRequest: requireRole('student'), schema }, async (request) =>
     studentRoomAccess(deps, currentUser(request), request.params.id),
   )

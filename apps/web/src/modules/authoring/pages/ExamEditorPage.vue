@@ -85,7 +85,14 @@ watch(
 )
 
 // Any edit makes the last check's list stale: the outline's dots keep showing what is left.
-watch(draft, () => (invalid.value = []), { deep: true })
+watch(
+  draft,
+  () => {
+    invalid.value = []
+    saved.value = false
+  },
+  { deep: true },
+)
 
 const questions = computed({
   get: () => draft.value!.questions,
@@ -101,7 +108,7 @@ async function submit() {
     // Open the first place that needs fixing.
     const first = [...questionsWithIssues(parsed.error.issues)][0]
     const inSettings = parsed.error.issues.some((i) => i.path[0] !== 'questions')
-    step.value = inSettings || first === undefined ? 'settings' : 'questions'
+    step.value = inSettings ? 'settings' : 'questions'
     if (!inSettings && first !== undefined) selected.value = first
     return
   }
@@ -144,7 +151,13 @@ async function submit() {
           :issues="issues"
         />
         <AppCard v-else key="participants" class="narrow">
-          <ParticipantsEditor v-if="examId" :key="examId" :exam-id="examId" :initial="participants" />
+          <ParticipantsEditor
+            v-if="examId"
+            :key="examId"
+            :exam-id="examId"
+            :initial="participants"
+            @saved="participants = $event"
+          />
         </AppCard>
       </Transition>
 

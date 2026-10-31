@@ -47,7 +47,10 @@ export function useDeviceProbe() {
   })
   const ready = computed(() => checks.value.every((c) => c.ok))
 
+  /** Bumped by every start: a slower earlier start that finishes late stops what it began. */
+  let run = 0
   async function start() {
+    const mine = ++run
     release()
     timings.length = poses.length = 0 // a retry measures this camera position afresh
     state.value = 'starting'
@@ -58,27 +61,29 @@ export function useDeviceProbe() {
       state.value = 'blocked'
       return
     }
-    if (disposed) return stopTracks(media)
+    if (disposed || mine !== run) return stopTracks(media)
     stream.value = media
     hasMic.value = media.getAudioTracks().length > 0
     // An unplugged device or a revoked permission ends its track: that check is no longer passed.
     for (const track of media.getVideoTracks()) track.addEventListener('ended', lost)
     for (const track of media.getAudioTracks()) track.addEventListener('ended', micLost)
+    let started: Sensors
     try {
-      sensors = await createSensors(media, 'full', { yaw: 0, pitch: 0 })
+      started = await createSensors(media, 'full', { yaw: 0, pitch: 0 })
     } catch (error) {
       console.error('camera analysis did not start', error)
+      if (mine !== run) return
       release()
       state.value = 'failed'
       return
     }
-    if (disposed) return release()
-    if (state.value !== 'starting') {
-      // A track ended while the analysis loaded: already blocked, so stop what just started.
-      sensors.dispose()
-      sensors = null
+    // Disposed, restarted, or a track ended while the analysis loaded: stop what just started.
+    if (disposed || mine !== run || state.value !== 'starting') {
+      started.dispose()
+      if (disposed) release()
       return
     }
+    sensors = started
     state.value = 'running'
     timer = setInterval(() => void measure(), 500)
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { QuestionInput, QuestionType } from '@exam/contracts'
 import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, nextTick, ref, toRaw } from 'vue'
 import { newQuestion } from '../draft'
 import QuestionEditor from './QuestionEditor.vue'
 import QuestionOutline from './QuestionOutline.vue'
@@ -16,31 +16,56 @@ const selected = defineModel<number>('selected', { required: true })
 const props = defineProps<{ disabled: boolean; oral: boolean; issues: Set<number> }>()
 
 // Stable keys that move with their question (not with its position), so the list glides and the editor
-// keeps its state per question. Rebuilt when the list is replaced from outside (an exam loaded).
+// keeps its state per question. A list this workspace did not write (an exam loaded) gets fresh keys.
 let keys: string[] = []
+let written: QuestionInput[] | null = null
 const keyList = computed(() => {
-  if (keys.length !== model.value.length) keys = model.value.map(() => crypto.randomUUID())
+  if (toRaw(model.value) !== written) keys = model.value.map(() => crypto.randomUUID())
+  written = toRaw(model.value)
   return keys
 })
+function write(list: QuestionInput[], nextKeys: string[], select = selected.value) {
+  keys = nextKeys
+  written = list
+  model.value = list
+  selected.value = select
+  focusEditor()
+}
 const types = computed(() => (props.oral ? (['text'] as const) : (['single', 'multiple', 'text'] as const)))
 const current = computed(() => model.value[selected.value] ?? model.value[0]!)
 
-const replace = (q: QuestionInput) =>
-  (model.value = model.value.map((x, j) => (j === selected.value ? q : x)))
+// Tools that remove or re-create the editor (or get disabled at an end) would drop focus to the page.
+const editor = ref<HTMLElement>()
+const focusEditor = () =>
+  nextTick(() => {
+    const active = document.activeElement
+    if (!active || active === document.body || (active as HTMLButtonElement).disabled)
+      editor.value?.querySelector('textarea')?.focus()
+  })
 
-function insert(at: number, q: QuestionInput) {
-  keys = [...keys.slice(0, at), crypto.randomUUID(), ...keys.slice(at)]
-  model.value = [...model.value.slice(0, at), q, ...model.value.slice(at)]
-  selected.value = at
-}
+const replace = (q: QuestionInput) =>
+  write(
+    model.value.map((x, j) => (j === selected.value ? q : x)),
+    keys,
+  )
+
+const insert = (at: number, q: QuestionInput) =>
+  write(
+    [...model.value.slice(0, at), q, ...model.value.slice(at)],
+    [...keys.slice(0, at), crypto.randomUUID(), ...keys.slice(at)],
+    at,
+  )
 const add = (type: QuestionType) => insert(model.value.length, newQuestion(type))
-const duplicate = () => insert(selected.value + 1, structuredClone(current.value))
+// A plain copy: the question may hold reactive proxies, which structuredClone cannot copy.
+const duplicate = () => insert(selected.value + 1, JSON.parse(JSON.stringify(current.value)) as QuestionInput)
 
 function remove() {
   const i = selected.value
-  keys = keys.filter((_, j) => j !== i)
-  model.value = model.value.filter((_, j) => j !== i)
-  selected.value = Math.min(i, model.value.length - 1)
+  write(
+    model.value.filter((_, j) => j !== i),
+    keys.filter((_, j) => j !== i),
+    Math.min(i, model.value.length - 2),
+  )
 }
 
 function move(by: -1 | 1) {
@@ -50,9 +75,7 @@ function move(by: -1 | 1) {
     ;[next[i], next[i + by]] = [next[i + by]!, next[i]!]
     return next
   }
-  keys = swap(keys)
-  model.value = swap(model.value)
-  selected.value = i + by
+  write(swap(model.value), swap(keys), i + by)
 }
 </script>
 
@@ -69,7 +92,7 @@ function move(by: -1 | 1) {
       @select="selected = $event"
       @add="add"
     />
-    <section class="editor">
+    <section ref="editor" class="editor">
       <p v-if="oral" class="muted hint">{{ $t('authoring.questions.oralHint') }}</p>
       <Transition name="swap" mode="out-in">
         <QuestionEditor

@@ -8,11 +8,11 @@ import { MARKER_ICON, MARKER_TONE } from '../marker-look'
  * The markers of an attempt, each with what it is, when, where it came from and the examiner's judgement.
  * The row opens its fragment on the stage; context markers (offline) explain, they are never judged.
  */
-defineProps<{ markers: Marker[]; selected: string | null; editable: boolean; busy: boolean }>()
+const props = defineProps<{ markers: Marker[]; selected: string | null; editable: boolean; busy: boolean }>()
 const emit = defineEmits<{ select: [id: string]; judge: [id: string, status: UpdateMarkerBody['status']] }>()
-/** Pressing a judgement again takes it back. */
+/** Pressing a judgement again takes it back. While one is saving, presses are ignored (focus stays put). */
 const judge = (m: Marker, status: 'confirmed' | 'dismissed') =>
-  emit('judge', m.id, m.status === status ? 'pending' : status)
+  !props.busy && emit('judge', m.id, m.status === status ? 'pending' : status)
 const origin = (m: Marker) =>
   m.discrepancy
     ? 'discrepancy'
@@ -24,6 +24,12 @@ const origin = (m: Marker) =>
 </script>
 
 <template>
+  <header class="head">
+    <h2>{{ $t('review.attempt.markers') }}</h2>
+    <p class="muted note">
+      {{ $t(markers.length ? 'review.attempt.markersHint' : 'review.attempt.noMarkers') }}
+    </p>
+  </header>
   <TransitionGroup tag="ul" name="list" class="list">
     <li
       v-for="m in markers"
@@ -54,7 +60,7 @@ const origin = (m: Marker) =>
           type="button"
           class="confirm"
           :aria-pressed="m.status === 'confirmed'"
-          :disabled="busy"
+          :aria-disabled="busy"
           @click="judge(m, 'confirmed')"
         >
           {{ $t('review.markers.confirm') }}
@@ -63,7 +69,7 @@ const origin = (m: Marker) =>
           type="button"
           class="dismiss"
           :aria-pressed="m.status === 'dismissed'"
-          :disabled="busy"
+          :aria-disabled="busy"
           @click="judge(m, 'dismissed')"
         >
           {{ $t('review.markers.dismiss') }}
@@ -74,6 +80,19 @@ const origin = (m: Marker) =>
 </template>
 
 <style scoped>
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  h2 {
+    font-size: var(--text-lg);
+  }
+  .note {
+    font-size: var(--text-sm);
+  }
+}
 .list {
   position: relative;
   display: grid;
@@ -150,6 +169,10 @@ const origin = (m: Marker) =>
       scale var(--dur-fast) var(--ease);
     &:active {
       scale: 0.96;
+    }
+    &[aria-disabled='true'] {
+      opacity: 0.6;
+      cursor: progress;
     }
   }
 }

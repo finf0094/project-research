@@ -19,6 +19,7 @@ import { blobKey } from '../../shared/storage.ts'
 import { attemptQuestions, toStudentQuestion } from '../exams/service.ts'
 import { ownAttemptOf, toSummary } from './access.ts'
 import { autoScore } from '../exams/grading.ts'
+import { oralRecordingOf } from '../oral/recording.ts'
 
 export async function attemptDetail(deps: Deps, ownerId: string, attemptId: string): Promise<AttemptDetail> {
   const { db } = deps
@@ -70,6 +71,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       chunks: m.chunks,
     })),
     serverAnalysis: attempt.serverAnalysis,
+    ...(exam.profile.mode === 'oral' ? await oralRecordingOf(db, attempt) : { call: [], audio: null }),
     decision: decision
       ? {
           verdict: decision.verdict,
@@ -114,7 +116,10 @@ export async function updateMarker(
 ) {
   const [marker] = await deps.db.select().from(markers).where(eq(markers.id, markerId))
   if (!marker) throw notFound('Marker not found')
-  await ownAttemptOf(deps.db, ownerId, marker.attemptId)
+  const { attempt } = await ownAttemptOf(deps.db, ownerId, marker.attemptId)
+  // Markers are judged while reviewing, as the decision is; before analysis there is nothing settled to judge.
+  if (!['ready_for_review', 'decided'].includes(attempt.status))
+    throw conflict('Attempt is not ready for review')
   if (marker.status === 'context') throw conflict('Context markers cannot be judged')
   await deps.db.update(markers).set({ status }).where(eq(markers.id, markerId))
 }

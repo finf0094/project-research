@@ -113,6 +113,15 @@ export type TimelineEvent = z.infer<typeof TimelineEvent>
 export const ServerAnalysis = z.enum(['ok', 'partial', 'unavailable', 'failed'])
 export type ServerAnalysis = z.infer<typeof ServerAnalysis>
 
+/** Who was on an oral exam's call. */
+export const CallRole = z.enum(['student', 'examiner'])
+export type CallRole = z.infer<typeof CallRole>
+export const CallEventKind = z.enum(['joined', 'left'])
+export type CallEventKind = z.infer<typeof CallEventKind>
+/** A join or leave on the live call, as the call server reported it. */
+export const CallEvent = z.object({ who: CallRole, kind: CallEventKind, at: Timestamp })
+export type CallEvent = z.infer<typeof CallEvent>
+
 export const AttemptDetail = z.object({
   summary: AttemptBase,
   examId: Id,
@@ -123,6 +132,10 @@ export const AttemptDetail = z.object({
   timeline: z.array(TimelineEvent),
   markers: z.array(Marker),
   serverAnalysis: ServerAnalysis.nullable(),
+  /** Oral exams: who joined and left the call, in order. */
+  call: z.array(CallEvent),
+  /** Oral exams: the whole answer's audio merged by the worker, once ready. */
+  audio: Sha256.nullable(),
   decision: z
     .object({
       verdict: Verdict,

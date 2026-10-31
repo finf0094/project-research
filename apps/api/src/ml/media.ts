@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { ffmpeg } from '../media/ffmpeg.ts'
 
 /** Decoded frame size: SSD sees phones better at this size; UltraFace gets a 2× downscale (`halve`). */
 export const FRAME_W = 640
@@ -10,46 +10,19 @@ const MAX_SECONDS = 12
 const TIMEOUT_MS = 30_000
 
 /** Decodes a recorded chunk into RGB frames (FRAME_W×FRAME_H, one per second) with ffmpeg. */
-export function extractFrames(video: Buffer): Promise<Buffer[]> {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = spawn(
-      'ffmpeg',
-      [
-        ...['-loglevel', 'error', '-nostdin', '-threads', '1'],
-        // Read only the pipe: no demuxer may open URLs or files named inside the upload.
-        ...['-protocol_whitelist', 'pipe', '-i', 'pipe:0'],
-        ...['-t', String(MAX_SECONDS), '-vf', `fps=1,scale=${FRAME_W}:${FRAME_H}`],
-        ...['-frames:v', String(MAX_SECONDS), '-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1'],
-      ],
-      { stdio: ['pipe', 'pipe', 'pipe'] },
-    )
-    const out: Buffer[] = []
-    let size = 0
-    let stderr = ''
-    const fail = (error: Error) => {
-      ffmpeg.kill('SIGKILL')
-      reject(error)
-    }
-    const timer = setTimeout(() => fail(new Error('ffmpeg timed out')), TIMEOUT_MS)
-    ffmpeg.stdout.on('data', (d: Buffer) => {
-      size += d.length
-      if (size > MAX_SECONDS * FRAME_BYTES) return fail(new Error('chunk decodes to too many frames'))
-      out.push(d)
-    })
-    ffmpeg.stderr.on('data', (d: Buffer) => (stderr = (stderr + d).slice(-2000)))
-    ffmpeg.on('error', (error) => (clearTimeout(timer), reject(error)))
-    ffmpeg.on('close', (code) => {
-      clearTimeout(timer)
-      if (code !== 0) return reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`))
-      const all = Buffer.concat(out)
-      const frames: Buffer[] = []
-      for (let offset = 0; offset + FRAME_BYTES <= all.length; offset += FRAME_BYTES)
-        frames.push(all.subarray(offset, offset + FRAME_BYTES))
-      resolve(frames)
-    })
-    ffmpeg.stdin.on('error', () => undefined) // ffmpeg may close stdin early on a broken file; 'close' reports it
-    ffmpeg.stdin.end(video)
-  })
+export async function extractFrames(video: Buffer): Promise<Buffer[]> {
+  const all = await ffmpeg(
+    [
+      ...['-t', String(MAX_SECONDS), '-vf', `fps=1,scale=${FRAME_W}:${FRAME_H}`],
+      ...['-frames:v', String(MAX_SECONDS), '-f', 'rawvideo', '-pix_fmt', 'rgb24'],
+    ],
+    video,
+    { maxBytes: MAX_SECONDS * FRAME_BYTES, timeoutMs: TIMEOUT_MS },
+  )
+  const frames: Buffer[] = []
+  for (let offset = 0; offset + FRAME_BYTES <= all.length; offset += FRAME_BYTES)
+    frames.push(all.subarray(offset, offset + FRAME_BYTES))
+  return frames
 }
 
 /** Halves an RGB frame (2×2 box average): FRAME_W×FRAME_H → FRAME_W/2×FRAME_H/2. */

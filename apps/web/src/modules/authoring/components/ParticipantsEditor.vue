@@ -6,6 +6,8 @@ import { setParticipants } from '../api'
 
 /** Who may take the exam, as student emails; can change at any time, also while the exam runs. */
 const props = defineProps<{ examId: string; initial: string[] }>()
+/** The saved list, so the page keeps it when this step is left and opened again. */
+const emit = defineEmits<{ saved: [participants: string[]] }>()
 const text = ref(props.initial.join('\n'))
 const count = ref(props.initial.length)
 const unknown = ref<string[]>([])
@@ -18,6 +20,7 @@ const save = () =>
     text.value = result.participants.join('\n')
     count.value = result.participants.length
     unknown.value = result.unknown
+    emit('saved', result.participants)
   })
 </script>
 

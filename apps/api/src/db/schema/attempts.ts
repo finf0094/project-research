@@ -48,6 +48,12 @@ export const attempts = pgTable(
     analysisClaimedAt: timestamp('analysis_claimed_at', { withTimezone: true }),
     /** Whether the server's own models checked the recordings; null until analysis. */
     serverAnalysis: text('server_analysis').$type<ServerAnalysis>(),
+    /** Oral exams: the whole answer's audio merged from the recorded chunks (a blob hash), once merged. */
+    audioHash: text('audio_hash'),
+    /** Set when merging is done (even with nothing to merge), so the worker does not take it again. */
+    audioMergedAt: timestamp('audio_merged_at', { withTimezone: true }),
+    /** A worker is merging the audio since then (a lease, like the analysis claim). */
+    audioClaimedAt: timestamp('audio_claimed_at', { withTimezone: true }),
   },
   (t) => [
     unique().on(t.examId, t.userId),

@@ -10,6 +10,7 @@ import AttemptHeader from '../components/AttemptHeader.vue'
 import DecisionForm from '../components/DecisionForm.vue'
 import MarkerList from '../components/MarkerList.vue'
 import MarkerSummary from '../components/MarkerSummary.vue'
+import OralRecording from '../components/OralRecording.vue'
 import ReviewStage from '../components/ReviewStage.vue'
 import { queuePlace, type QueuePlace } from '../review-queue'
 
@@ -94,6 +95,7 @@ async function save(body: DecisionBody) {
     <div class="layout">
       <div class="main stagger">
         <ReviewStage
+          v-if="detail.markers.length"
           :marker="marker"
           :sources="sources"
           :markers="detail.markers"
@@ -102,11 +104,6 @@ async function save(body: DecisionBody) {
           @select="selected = $event"
         />
         <AppCard class="stack">
-          <header class="card-head">
-            <h2>{{ $t('review.attempt.markers') }}</h2>
-            <p class="muted note">{{ $t('review.attempt.markersHint') }}</p>
-          </header>
-          <p v-if="!detail.markers.length" class="muted">{{ $t('review.attempt.noMarkers') }}</p>
           <MarkerList
             :markers="detail.markers"
             :selected="selected"
@@ -116,6 +113,12 @@ async function save(body: DecisionBody) {
             @judge="judge"
           />
         </AppCard>
+        <OralRecording
+          v-if="detail.examMode === 'oral'"
+          :audio-url="detail.audio && chunkUrl(attemptId, detail.audio)"
+          :call="detail.call"
+          :end="end"
+        />
         <AppCard class="stack">
           <h2>{{ $t('review.attempt.answers') }}</h2>
           <AnswersList :answers="detail.answers" />
@@ -167,16 +170,6 @@ async function save(body: DecisionBody) {
 }
 .stack h2 {
   font-size: var(--text-lg);
-}
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-2);
-  h2 {
-    font-size: var(--text-lg);
-  }
 }
 .note {
   font-size: var(--text-sm);

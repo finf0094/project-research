@@ -12,6 +12,10 @@ const EXAMINER_TTL_S = 2 * 3600
 
 /** The live room of an oral attempt is named after the attempt: one student, one examiner. */
 const roomOf = (attemptId: string) => `attempt-${attemptId}`
+const ROOM = /^attempt-([0-9a-f-]{36})$/
+
+/** The attempt a room belongs to, or null for a room this app did not name. */
+export const attemptOfRoom = (room: string) => ROOM.exec(room)?.[1] ?? null
 
 async function issue(
   deps: Deps,

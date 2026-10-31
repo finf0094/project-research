@@ -1,7 +1,13 @@
 import { loadConfig } from './config.ts'
 import { createDb } from './db/client.ts'
 import type { Deps } from './deps.ts'
-import { analyzeNext, closeExpired, removeExpiredRecordings, removeExpiredSessions } from './jobs/jobs.ts'
+import {
+  analyzeNext,
+  closeExpired,
+  mergeNextAudio,
+  removeExpiredRecordings,
+  removeExpiredSessions,
+} from './jobs/jobs.ts'
 import { loadModels } from './ml/recordings.ts'
 import { fsStorage } from './shared/storage.ts'
 
@@ -26,6 +32,9 @@ async function tick() {
   await closeExpired(deps)
   while (!stopping && (await analyzeNext(deps))) {
     /* drain the ready attempts */
+  }
+  while (!stopping && (await mergeNextAudio(deps))) {
+    /* merge the analysed oral answers */
   }
   if (Date.now() - lastRetention > RETENTION_EVERY_MS) {
     await removeExpiredRecordings(deps)
