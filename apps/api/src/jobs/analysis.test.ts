@@ -51,7 +51,12 @@ describe('buildMarkers', () => {
     const markers = buildMarkers(
       [
         ev(1, 'proctor.signal', { kind: 'multiple_faces', active: true }, 2000),
-        ev(2, 'evidence.fragment', { reason: 'risk', tStart: 1000, tEnd: 3000, chunks: ['a', 'b'] }, 3000),
+        ev(
+          2,
+          'evidence.fragment',
+          { reason: 'risk', tStart: 1000, tEnd: 3000, chunks: ['a', 'b'], chunkStarts: [1000, 2000] },
+          3000,
+        ),
       ],
       { endAt: 4000, uploaded: new Set(['a']), chainBrokenAt: null },
     )
@@ -65,7 +70,7 @@ describe('buildMarkers', () => {
         ev(
           1,
           'evidence.fragment',
-          { reason: 'control', tStart: 61_000, tEnd: 81_000, chunks: ['a'] },
+          { reason: 'control', tStart: 61_000, tEnd: 81_000, chunks: ['a'], chunkStarts: [61_000] },
           81_000,
         ),
       ],
@@ -101,29 +106,70 @@ describe('reconciliation with server findings', () => {
   it('marks a server finding the device also reported as no discrepancy', () => {
     const markers = buildMarkers(signal('multiple_faces', 1000, 9000), {
       endAt: 20_000,
-      uploaded: none,
+      uploaded: new Set(['c']),
       chainBrokenAt: null,
       serverFindings: [{ kind: 'multiple_faces', startAt: 2000, endAt: 6000 }],
     })
-    expect(markers.find((m) => m.source === 'server')).toMatchObject({ discrepancy: false })
+    expect(markers.find((m) => m.source === 'model')).toMatchObject({ discrepancy: false })
   })
+
+  // The device ran the full tier and a control fragment covered the moment.
+  const watched = [
+    ev(1, 'proctoring.mode', { tier: 'full' }, 0),
+    ev(
+      2,
+      'evidence.fragment',
+      { reason: 'control', tStart: 0, tEnd: 70_000, chunks: ['c'], chunkStarts: [0] },
+      70_000,
+    ),
+  ]
 
   it('flags a discrepancy when only the server saw it, and weighs it double', () => {
     const findings = [{ kind: 'object_detected' as const, startAt: 2000, endAt: 62_000 }]
-    const silent = buildMarkers([], {
+    const silent = buildMarkers(watched, {
       endAt: 70_000,
-      uploaded: none,
+      uploaded: new Set(['c']),
       chainBrokenAt: null,
       serverFindings: findings,
     })
     expect(silent).toEqual([
-      expect.objectContaining({ kind: 'object_detected', source: 'server', discrepancy: true }),
+      expect.objectContaining({ kind: 'object_detected', source: 'model', discrepancy: true }),
     ])
     const reported = buildMarkers(signal('object_detected', 2000, 62_000), {
       endAt: 70_000,
-      uploaded: none,
+      uploaded: new Set(['c']),
       chainBrokenAt: null,
     })
     expect(riskScore(silent)).toBe(2 * riskScore(reported))
+  })
+
+  it('is no discrepancy where the device did not measure that kind or no control fragment covered it', () => {
+    const finding = { kind: 'object_detected' as const, startAt: 2000, endAt: 62_000 }
+    const opts = { endAt: 70_000, uploaded: new Set(['c']), chainBrokenAt: null, serverFindings: [finding] }
+    const lite = buildMarkers([ev(1, 'proctoring.mode', { tier: 'lite' }, 0), watched[1]!], opts)
+    expect(lite[0]).toMatchObject({ source: 'model', discrepancy: false })
+    const riskOnly = buildMarkers(
+      [
+        watched[0]!,
+        ev(
+          2,
+          'evidence.fragment',
+          { reason: 'risk', tStart: 0, tEnd: 70_000, chunks: ['c'], chunkStarts: [0] },
+          70_000,
+        ),
+      ],
+      opts,
+    )
+    expect(riskOnly[0]).toMatchObject({ source: 'model', discrepancy: false })
+  })
+
+  it('ignores a missing face the server saw in the dark', () => {
+    const markers = buildMarkers([...watched, ...signal('too_dark', 0, 30_000)], {
+      endAt: 70_000,
+      uploaded: new Set(['c']),
+      chainBrokenAt: null,
+      serverFindings: [{ kind: 'face_missing', startAt: 5000, endAt: 20_000 }],
+    })
+    expect(markers.some((m) => m.source === 'model')).toBe(false)
   })
 })

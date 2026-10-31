@@ -49,6 +49,7 @@ export function createEvidence(attemptId: string, log: EventLog) {
         tStart: picked[0]!.tStart,
         tEnd: picked.at(-1)!.tEnd,
         chunks: hashed.map((h) => h.hash),
+        chunkStarts: picked.map((c) => c.tStart),
       },
       async () => {
         await putChunks(

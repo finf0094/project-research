@@ -11,8 +11,8 @@ export type MarkerKind = z.infer<typeof MarkerKind>
 export const MarkerStatus = z.enum(['pending', 'confirmed', 'dismissed', 'context'])
 export type MarkerStatus = z.infer<typeof MarkerStatus>
 
-/** Who observed it: the student's device, or the server (its own models, or the chain and upload checks). */
-export const MarkerSource = z.enum(['client', 'server'])
+/** Who observed it: the student's device, the server's checks (chain, uploads) or the server's own models. */
+export const MarkerSource = z.enum(['client', 'server', 'model'])
 export type MarkerSource = z.infer<typeof MarkerSource>
 
 export const Marker = z.object({
@@ -75,6 +75,10 @@ export const TimelineEvent = z.object({
 })
 export type TimelineEvent = z.infer<typeof TimelineEvent>
 
+/** Did the server's own models check the recordings? `unavailable`/`failed` mean nothing was checked. */
+export const ServerAnalysis = z.enum(['ok', 'unavailable', 'failed'])
+export type ServerAnalysis = z.infer<typeof ServerAnalysis>
+
 export const AttemptDetail = z.object({
   summary: AttemptSummary,
   examTitle: z.string(),
@@ -83,6 +87,7 @@ export const AttemptDetail = z.object({
   answers: z.array(ReviewedAnswer),
   timeline: z.array(TimelineEvent),
   markers: z.array(Marker),
+  serverAnalysis: ServerAnalysis.nullable(),
   decision: z
     .object({ verdict: Verdict, comment: z.string(), score: z.number().int().nullable(), decidedAt: Timestamp })
     .nullable(),

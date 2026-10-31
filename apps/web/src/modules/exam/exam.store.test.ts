@@ -33,7 +33,7 @@ async function seed(patch: Partial<LocalAttempt> = {}) {
         opensAt: 0,
         closesAt: 1,
         questions,
-        profile: { recording: 'adaptive' },
+        profile: { mode: 'written', recording: 'adaptive' },
       },
       key: await importHmacKey(new Uint8Array(32).fill(1)),
       head: await emptyHead(ATTEMPT),

@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 export interface ModelFile {
@@ -24,3 +27,14 @@ export const MODELS = {
 
 export const modelPath = (model: ModelFile) =>
   fileURLToPath(new URL(`../../models/${model.file}`, import.meta.url))
+
+export const sha256 = (data: Uint8Array) => createHash('sha256').update(data).digest('hex')
+
+/** The model's bytes, checked against the pinned hash; null when the file is not there. */
+export async function readModel(model: ModelFile): Promise<Uint8Array | null> {
+  const path = modelPath(model)
+  if (!existsSync(path)) return null
+  const data = await readFile(path)
+  if (sha256(data) !== model.sha256) throw new Error(`${model.file}: checksum mismatch, run \`pnpm models\``)
+  return data
+}

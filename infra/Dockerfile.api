@@ -11,7 +11,7 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 RUN pnpm install --frozen-lockfile --prod --filter "@exam/api..." && pnpm --filter @exam/api models
 WORKDIR /repo/apps/api
-ENV NODE_ENV=production
+ENV NODE_ENV=production REQUIRE_MODELS=true
 # The recordings volume is mounted here; it must be writable by the unprivileged user.
 RUN mkdir -p /data/recordings && chown node:node /data/recordings
 USER node

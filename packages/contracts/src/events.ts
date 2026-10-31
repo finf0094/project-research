@@ -67,8 +67,11 @@ export const Event = z.discriminatedUnion('type', [
         tStart: Timestamp,
         tEnd: Timestamp,
         chunks: z.array(Sha256).min(1).max(30),
+        /** When each chunk starts: the ring can have gaps (reload, camera restart), so times are not implied. */
+        chunkStarts: z.array(Timestamp).min(1).max(30),
       })
-      .refine((d) => d.tStart <= d.tEnd, 'tStart must not be after tEnd'),
+      .refine((d) => d.tStart <= d.tEnd, 'tStart must not be after tEnd')
+      .refine((d) => d.chunkStarts.length === d.chunks.length, 'one start time per chunk'),
   ),
   event('command.received', z.strictObject({ commandId: Id })),
   event('proctoring.mode', z.strictObject({ tier: DeviceTier })),

@@ -53,6 +53,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       discrepancy: m.discrepancy,
       chunks: m.chunks,
     })),
+    serverAnalysis: attempt.serverAnalysis,
     decision: decision
       ? {
           verdict: decision.verdict,

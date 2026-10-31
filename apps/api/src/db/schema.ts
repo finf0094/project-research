@@ -22,6 +22,7 @@ import type {
   NetState,
   QuestionType,
   Role,
+  ServerAnalysis,
   Verdict,
 } from '@exam/contracts'
 
@@ -118,6 +119,10 @@ export const attempts = pgTable(
     /** When the server next asks for a control fragment; random, so the student cannot prepare for it. */
     nextCaptureAt: timestamp('next_capture_at', { withTimezone: true }),
     riskScore: integer('risk_score'),
+    /** A worker took the attempt for analysis at this time (a lease: a crashed worker's claim expires). */
+    analysisClaimedAt: timestamp('analysis_claimed_at', { withTimezone: true }),
+    /** Whether the server's own models checked the recordings; null until analysis. */
+    serverAnalysis: text('server_analysis').$type<ServerAnalysis>(),
   },
   (t) => [
     unique().on(t.examId, t.userId),

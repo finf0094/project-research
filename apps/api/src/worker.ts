@@ -2,6 +2,7 @@ import { loadConfig } from './config.ts'
 import { createDb } from './db/client.ts'
 import type { Deps } from './deps.ts'
 import { analyzeNext, closeExpired, removeExpiredRecordings, removeExpiredSessions } from './jobs/jobs.ts'
+import { loadModels } from './ml/recordings.ts'
 import { fsStorage } from './shared/storage.ts'
 
 // A plain polling loop: Postgres row locks (SKIP LOCKED) are the queue, so no extra queue service is needed.
@@ -34,6 +35,9 @@ async function tick() {
 
 process.once('SIGTERM', () => (stopping = true))
 process.once('SIGINT', () => (stopping = true))
+
+// Without models every attempt would silently skip the server's second opinion; better not to start at all.
+if (config.REQUIRE_MODELS && !(await loadModels())) throw new Error('ML models missing: run `pnpm models`')
 
 console.log('worker started')
 while (!stopping) {

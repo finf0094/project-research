@@ -1,4 +1,4 @@
-import type { MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
+import type { DeviceTier, MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
 import type { Interval } from '../ml/observations.ts'
 
 export interface StoredEvent {
@@ -33,6 +33,13 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   noise: 10,
   chain_broken: 40,
   missing_fragment: 20,
+}
+
+/** What the device measures at each tier: silence about anything else is not a discrepancy. */
+const MEASURED: Record<DeviceTier, ReadonlySet<MarkerKind>> = {
+  full: new Set(['face_missing', 'multiple_faces', 'object_detected']),
+  lite: new Set(['face_missing', 'multiple_faces']),
+  minimal: new Set(),
 }
 
 /** A control fragment counts as answering a request if it starts within this window after it. */
@@ -140,22 +147,31 @@ export function buildMarkers(
   }
 
   // Reconciliation (architecture, section 17.4): the server's finding is a second opinion. When the device
-  // reported the same thing it confirms it; when the device stayed silent it is a discrepancy, the strongest
-  // hint that client-side proctoring was tampered with or blind.
-  const clientSaw = (finding: Interval) =>
-    markers.some(
-      (m) =>
-        m.source === 'client' &&
-        m.kind === finding.kind &&
-        m.startAt <= finding.endAt &&
-        m.endAt >= finding.startAt,
-    )
+  // reported the same thing it confirms it. When the device stayed silent although it was measuring that
+  // kind, inside a control fragment (a random sample the student could not predict), it is a discrepancy:
+  // the strongest hint that client-side proctoring was tampered with.
+  const overlaps = (a: { startAt: number; endAt: number }, b: { startAt: number; endAt: number }) =>
+    a.startAt <= b.endAt && a.endAt >= b.startAt
+  const clientMarkers = markers.filter((m) => m.source === 'client')
+  const tiers = events.flatMap((e) =>
+    e.type === 'proctoring.mode' ? [{ at: e.clientAt, tier: (e.data as { tier: DeviceTier }).tier }] : [],
+  )
+  const measured = (kind: MarkerKind, at: number) => {
+    const tier = tiers.findLast((t) => t.at <= at)?.tier
+    return tier !== undefined && MEASURED[tier].has(kind)
+  }
+  const inControl = (finding: Interval) =>
+    fragments.some((f) => f.reason === 'control' && overlaps(finding, { startAt: f.tStart, endAt: f.tEnd }))
   for (const finding of opts.serverFindings ?? []) {
+    const dark = clientMarkers.some((m) => m.kind === 'too_dark' && overlaps(m, finding))
+    // The detector misses faces in the dark too; the device does not count that, and neither does the server.
+    if (finding.kind === 'face_missing' && dark) continue
+    const confirmed = clientMarkers.some((m) => m.kind === finding.kind && overlaps(m, finding))
     markers.push({
       ...finding,
       status: 'pending',
-      source: 'server',
-      discrepancy: !clientSaw(finding),
+      source: 'model',
+      discrepancy: !confirmed && inControl(finding) && measured(finding.kind, finding.startAt),
       chunks: chunksFor(finding.startAt, finding.endAt),
     })
   }

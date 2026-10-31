@@ -134,6 +134,25 @@ describe('examiner commands and grading', () => {
     expect(await ctx.deps.db.select().from(answers)).toHaveLength(1)
   })
 
+  it('leaves an attempt another worker is analyzing alone until its claim expires', async () => {
+    const s = await session()
+    const chain = await clientChain(s)
+    await sync(s.attemptId, [await chain.next('session.started', {}, ctx.clock.now)])
+    await ctx.app.inject({
+      method: 'POST',
+      url: `/api/attempts/${s.attemptId}/submit`,
+      headers: student,
+      payload: { lastSeq: chain.head.seq, lastHash: chain.head.hash },
+    })
+    await ctx.deps.db
+      .update(attempts)
+      .set({ analysisClaimedAt: new Date(ctx.clock.now) })
+      .where(eq(attempts.id, s.attemptId))
+    expect(await analyzeNext(ctx.deps)).toBe(false)
+    ctx.clock.now += 16 * 60_000 // that worker died
+    expect(await analyzeNext(ctx.deps)).toBe(true)
+  })
+
   it('terminates an attempt: status reaches the client and later answers do not count', async () => {
     const s = await session()
     const headers = await examiner()
@@ -186,7 +205,11 @@ describe('retention', () => {
     const hash = createHash('sha256').update(chunk).digest('hex')
     const t = ctx.clock.now
     await sync(s.attemptId, [
-      await chain.next('evidence.fragment', { reason: 'control', tStart: t, tEnd: t + 1, chunks: [hash] }, t),
+      await chain.next(
+        'evidence.fragment',
+        { reason: 'control', tStart: t, tEnd: t + 1, chunks: [hash], chunkStarts: [t] },
+        t,
+      ),
     ])
     await ctx.app.inject({
       method: 'PUT',

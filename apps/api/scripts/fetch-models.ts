@@ -1,9 +1,8 @@
 // Downloads the ONNX models the worker uses for server-side analysis of recorded fragments.
 // They are pinned by SHA-256 so a changed file is never used silently.
-import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { MODELS, modelPath } from '../src/ml/models.ts'
+import { MODELS, modelPath, sha256 } from '../src/ml/models.ts'
 
 for (const model of Object.values(MODELS)) {
   const path = modelPath(model)
@@ -16,6 +15,3 @@ for (const model of Object.values(MODELS)) {
   console.log(`downloaded ${model.file}`)
 }
 
-function sha256(data: Buffer) {
-  return createHash('sha256').update(data).digest('hex')
-}

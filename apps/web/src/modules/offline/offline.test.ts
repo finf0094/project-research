@@ -21,7 +21,7 @@ async function setup() {
       opensAt: 0,
       closesAt: 1,
       questions: [],
-      profile: { recording: 'adaptive' },
+      profile: { mode: 'written', recording: 'adaptive' },
     },
     key,
     head,

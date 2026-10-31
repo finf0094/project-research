@@ -27,9 +27,11 @@ describe('Event schema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects a fragment that ends before it starts', () => {
-    const data = { reason: 'risk', tStart: 10, tEnd: 5, chunks: [hash] }
-    expect(Event.safeParse({ ...sealed, type: 'evidence.fragment', data }).success).toBe(false)
+  it('rejects a fragment that ends before it starts or misses chunk times', () => {
+    const fragment = (data: object) => Event.safeParse({ ...sealed, type: 'evidence.fragment', data }).success
+    expect(fragment({ reason: 'risk', tStart: 5, tEnd: 10, chunks: [hash], chunkStarts: [5] })).toBe(true)
+    expect(fragment({ reason: 'risk', tStart: 10, tEnd: 5, chunks: [hash], chunkStarts: [10] })).toBe(false)
+    expect(fragment({ reason: 'risk', tStart: 5, tEnd: 10, chunks: [hash], chunkStarts: [5, 6] })).toBe(false)
   })
 
   it('rejects text that would poison storage or hashing', () => {

@@ -3,12 +3,27 @@ import type { DecisionBody, Verdict } from '@exam/contracts'
 import { ref } from 'vue'
 import { AppButton } from '@/shared/ui'
 
-const props = defineProps<{ current: { verdict: Verdict; comment: string } | null; saving: boolean }>()
+const props = defineProps<{
+  current: { verdict: Verdict; comment: string; score: number | null } | null
+  saving: boolean
+  /** Oral exams have no automatic score: the examiner gives the points. */
+  withScore?: boolean
+}>()
 const emit = defineEmits<{ save: [body: DecisionBody] }>()
 
 // No verdict is preselected: the examiner has to choose consciously.
 const verdict = ref<Verdict | null>(props.current?.verdict ?? null)
 const comment = ref(props.current?.comment ?? '')
+const score = ref<number | ''>(props.current?.score ?? '')
+
+function submit() {
+  if (!verdict.value) return
+  emit('save', {
+    verdict: verdict.value,
+    comment: comment.value,
+    score: score.value === '' ? null : score.value,
+  })
+}
 
 const OPTIONS: { value: Verdict; text: string }[] = [
   { value: 'clean', text: 'Нарушений не выявлено' },
@@ -18,7 +33,7 @@ const OPTIONS: { value: Verdict; text: string }[] = [
 </script>
 
 <template>
-  <form class="form" @submit.prevent="verdict && emit('save', { verdict, comment })">
+  <form class="form" @submit.prevent="submit">
     <fieldset class="verdicts">
       <legend>Решение</legend>
       <label v-for="o in OPTIONS" :key="o.value" class="verdict" :class="{ checked: verdict === o.value }">
@@ -26,7 +41,11 @@ const OPTIONS: { value: Verdict; text: string }[] = [
         {{ o.text }}
       </label>
     </fieldset>
-    <label class="comment">
+    <label v-if="withScore" class="field">
+      Баллы (0–100)
+      <input v-model.number="score" type="number" min="0" max="100" step="1" required />
+    </label>
+    <label class="field">
       Комментарий
       <textarea
         v-model="comment"
@@ -72,13 +91,14 @@ legend {
     accent-color: var(--accent);
   }
 }
-.comment {
+.field {
   display: grid;
   gap: var(--space-2);
   font-size: var(--text-sm);
   font-weight: 600;
 }
-textarea {
+textarea,
+input[type='number'] {
   padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

@@ -15,6 +15,8 @@ const Env = z.object({
   /** How long fragments may still be uploaded after submission before analysis starts without them. */
   UPLOAD_WINDOW_HOURS: z.coerce.number().positive().default(24),
   RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+  /** The worker refuses to start without the server-side models (on in the production image). */
+  REQUIRE_MODELS: z.stringbool().default(false),
   /** LiveKit for oral exams: URL as the browser reaches it, and API credentials. Oral exams need all three. */
   LIVEKIT_URL: z.string().optional(),
   LIVEKIT_API_KEY: z.string().optional(),

@@ -6,8 +6,8 @@ const FORBIDDEN = new Set([77, 84]) // cell phone, book
 const SCORE = 0.5
 
 /** SSD MobileNet v1: is there a phone or a book in an RGB frame of FRAME_W×FRAME_H? */
-export async function loadObjectDetector(path: string) {
-  const session = await ort.InferenceSession.create(path, { logSeverityLevel: 3 })
+export async function loadObjectDetector(model: Uint8Array) {
+  const session = await ort.InferenceSession.create(model, { logSeverityLevel: 3 })
   return async (rgb: Buffer): Promise<boolean> => {
     const input = new ort.Tensor('uint8', new Uint8Array(rgb), [1, FRAME_H, FRAME_W, 3])
     const out = await session.run({ inputs: input })

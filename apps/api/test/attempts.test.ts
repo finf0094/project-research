@@ -215,7 +215,7 @@ describe('submit, recording and review', () => {
       await chain.next('proctor.signal', { kind: 'multiple_faces', active: true }, t + 10_000),
       await chain.next(
         'evidence.fragment',
-        { reason: 'risk', tStart: t, tEnd: t + 20_000, chunks: [chunkHash] },
+        { reason: 'risk', tStart: t, tEnd: t + 20_000, chunks: [chunkHash], chunkStarts: [t] },
         t + 20_000,
       ),
       await chain.next('proctor.signal', { kind: 'multiple_faces', active: false }, t + 40_000),
@@ -254,6 +254,8 @@ describe('submit, recording and review', () => {
     ).json()
     expect(detail.summary).toMatchObject({ status: 'ready_for_review', answered: 1, markerCount: 1 })
     expect(detail.answers[0]).toMatchObject({ value: 'a', autoScore: 2 })
+    // The models ran; the fake chunk does not decode, which costs nothing but that chunk.
+    expect(detail.serverAnalysis).toBe('ok')
     expect(detail.markers).toEqual([
       expect.objectContaining({ kind: 'multiple_faces', status: 'pending', chunks: [chunkHash] }),
     ])

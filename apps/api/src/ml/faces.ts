@@ -1,19 +1,22 @@
 import * as ort from 'onnxruntime-node'
-import { FRAME_H, FRAME_W } from './media.ts'
+import { FRAME_H, FRAME_W, halve } from './media.ts'
 
+const W = FRAME_W / 2
+const H = FRAME_H / 2
 const SCORE = 0.7
 const OVERLAP = 0.3
 
-/** UltraFace RFB-320: counts faces in an RGB frame of FRAME_W×FRAME_H. */
-export async function loadFaceCounter(path: string) {
-  const session = await ort.InferenceSession.create(path, { logSeverityLevel: 3 })
-  return async (rgb: Buffer): Promise<number> => {
-    const input = new Float32Array(3 * FRAME_W * FRAME_H)
-    const plane = FRAME_W * FRAME_H
+/** UltraFace RFB-320 (input 320×240): counts faces in a decoded RGB frame. */
+export async function loadFaceCounter(model: Uint8Array) {
+  const session = await ort.InferenceSession.create(model, { logSeverityLevel: 3 })
+  return async (frame: Buffer): Promise<number> => {
+    const rgb = halve(frame)
+    const input = new Float32Array(3 * W * H)
+    const plane = W * H
     for (let i = 0; i < plane; i++) {
       for (let c = 0; c < 3; c++) input[c * plane + i] = (rgb[i * 3 + c]! - 127) / 128
     }
-    const out = await session.run({ input: new ort.Tensor('float32', input, [1, 3, FRAME_H, FRAME_W]) })
+    const out = await session.run({ input: new ort.Tensor('float32', input, [1, 3, H, W]) })
     const scores = out.scores!.data as Float32Array
     const boxes = out.boxes!.data as Float32Array
     const candidates: Box[] = []

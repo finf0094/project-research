@@ -75,6 +75,12 @@ async function save(body: DecisionBody) {
         <StatusPill v-if="detail.summary.riskScore !== null" tone="accent"
           >Приоритет {{ detail.summary.riskScore }}</StatusPill
         >
+        <StatusPill
+          v-if="detail.serverAnalysis && detail.serverAnalysis !== 'ok'"
+          tone="warn"
+          title="Метки ниже — только от устройства студента; сервер записи не проверял"
+          >Запись сервером не проверена</StatusPill
+        >
       </div>
     </header>
 
@@ -111,7 +117,13 @@ async function save(body: DecisionBody) {
       </div>
 
       <AppCard as="aside" class="side">
-        <DecisionForm v-if="editable" :current="detail.decision" :saving="saving" @save="save" />
+        <DecisionForm
+          v-if="editable"
+          :current="detail.decision"
+          :saving="saving"
+          :with-score="detail.examMode === 'oral'"
+          @save="save"
+        />
         <p v-else class="muted">Решение можно принять, когда анализ записи завершится.</p>
         <p v-if="saved" class="saved" role="status">Решение сохранено</p>
       </AppCard>

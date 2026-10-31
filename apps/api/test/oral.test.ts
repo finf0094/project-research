@@ -73,7 +73,10 @@ describe('oral room tokens', () => {
     ).json()
     expect(mine.room).toBe(`attempt-${attemptId}`)
     expect(theirs.room).toBe(mine.room)
-    expect(decodeJwt(mine.token)).toMatchObject({ sub: `student:${seeded.student.id}`, video: { room: mine.room } })
+    expect(decodeJwt(mine.token)).toMatchObject({
+      sub: `student:${seeded.student.id}`,
+      video: { room: mine.room },
+    })
     expect(decodeJwt(theirs.token).sub).toBe(`examiner:${seeded.examiner.id}`)
   })
 
@@ -99,7 +102,11 @@ describe('oral grading', () => {
       payload: { verdict: 'clean', comment: 'Уверенный ответ', score: 9 },
     })
     expect(put.statusCode, put.body).toBe(204)
-    const detail = await ctx.app.inject({ method: 'GET', url: `/api/examiner/attempts/${attemptId}`, headers: examiner })
+    const detail = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/examiner/attempts/${attemptId}`,
+      headers: examiner,
+    })
     expect(detail.json()).toMatchObject({ examMode: 'oral', decision: { score: 9 } })
   })
 })
