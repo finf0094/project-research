@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { AttemptDetail } from '@exam/contracts'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { RoomVideo, TicketList, examinerRoomAccess, useLiveRoom } from '@/modules/oral'
-import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
+import { RoomVideo, TicketList, examinerRoomAccess, useLiveRoom, useOwnCamera } from '@/modules/oral'
+import { useAction } from '@/shared/lib/use-action'
 import { AppButton, AppCard, AppDialog } from '@/shared/ui'
 import { getAttempt, sendCommand } from '../api'
 
@@ -12,58 +12,33 @@ const route = useRoute()
 const attemptId = String(route.params.attemptId)
 const detail = ref<AttemptDetail | null>(null)
 const call = useLiveRoom()
+const camera = useOwnCamera()
+const action = useAction({ 409: 'review.notRunning' as const })
 const ending = ref(false)
-const error = ref<ErrorKey | 'review.room.noCamera' | 'review.notRunning' | null>(null)
-let camera: MediaStream | null = null
-let unmounted = false
 
 const running = computed(() => detail.value?.summary.status === 'active')
 
-/** The examiner's own camera and microphone; a dead or missing one is asked for again. */
-async function ensureCamera() {
-  if (camera?.getTracks().some((t) => t.readyState === 'live')) return
-  try {
-    const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    // The page may have closed while the permission prompt was open.
-    if (unmounted) return media.getTracks().forEach((t) => t.stop())
-    camera = media
-    error.value = null
-  } catch {
-    error.value = 'review.room.noCamera'
-  }
-  call.setLocal(camera)
-}
-
 async function join() {
-  await ensureCamera()
-  if (!unmounted) await call.join(() => examinerRoomAccess(attemptId))
+  call.setLocal(await camera.ensure())
+  await call.join(() => examinerRoomAccess(attemptId))
 }
 
-onMounted(async () => {
-  try {
+// A finished attempt has nobody to talk to: no call, no camera.
+onMounted(() =>
+  action.run(async () => {
     detail.value = await getAttempt(attemptId)
-    // A finished attempt has nobody to talk to: no call, no camera.
     if (running.value) await join()
-  } catch (e) {
-    error.value = errorKey(e, { 409: 'review.notRunning' as const })
-  }
-})
-onUnmounted(() => {
-  unmounted = true
-  camera?.getTracks().forEach((t) => t.stop())
-})
+  }),
+)
 
-async function end() {
+function end() {
   ending.value = false
-  try {
+  return action.run(async () => {
     await sendCommand(attemptId, { type: 'terminate' })
     await call.leave()
-    camera?.getTracks().forEach((t) => t.stop())
-    camera = null
+    camera.stop()
     detail.value = await getAttempt(attemptId)
-  } catch (e) {
-    error.value = errorKey(e, { 409: 'review.notRunning' as const })
-  }
+  })
 }
 </script>
 
@@ -75,7 +50,8 @@ async function end() {
       }}</RouterLink>
       <h1>{{ detail?.summary.student.name ?? $t('review.room.title') }}</h1>
     </header>
-    <p v-if="error" class="error" role="alert">{{ $t(error) }}</p>
+    <p v-if="action.error.value" class="error" role="alert">{{ $t(action.error.value) }}</p>
+    <p v-if="camera.missing.value" class="error" role="alert">{{ $t('review.room.noCamera') }}</p>
 
     <div class="layout">
       <AppCard class="stack">

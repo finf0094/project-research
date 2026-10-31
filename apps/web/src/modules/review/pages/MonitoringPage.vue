@@ -2,7 +2,7 @@
 import type { AttemptSummary, ExaminerCommandBody, ExaminerExam } from '@exam/contracts'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
+import { useAction } from '@/shared/lib/use-action'
 import { AppCard, StatTile } from '@/shared/ui'
 import { listAttempts, listExams, sendCommand } from '../api'
 import AttemptsTable from '../components/AttemptsTable.vue'
@@ -16,7 +16,7 @@ const exam = ref<ExaminerExam | null>(null)
 const attempts = ref<AttemptSummary[]>([])
 const acting = ref<AttemptSummary | null>(null)
 const stale = ref(false)
-const actionError = ref<ErrorKey | 'review.notRunning' | null>(null)
+const action = useAction({ 409: 'review.notRunning' as const })
 
 async function refresh() {
   try {
@@ -43,15 +43,11 @@ const stats = computed(() => ({
 }))
 
 async function send(body: ExaminerCommandBody) {
-  if (!acting.value) return
-  actionError.value = null
-  try {
-    await sendCommand(acting.value.id, body)
-    acting.value = null
-    await refresh()
-  } catch (e) {
-    actionError.value = errorKey(e, { 409: 'review.notRunning' as const })
-  }
+  const target = acting.value
+  if (!target) return
+  const sent = await action.run(() => sendCommand(target.id, body))
+  if (sent) acting.value = null
+  await refresh()
 }
 </script>
 
@@ -90,8 +86,8 @@ async function send(body: ExaminerCommandBody) {
     </AppCard>
 
     <CommandDialog :attempt="acting" @send="send" @close="acting = null" />
-    <p v-if="actionError" class="error" role="alert">
-      {{ $t(actionError) }}
+    <p v-if="action.error.value" class="error" role="alert">
+      {{ $t(action.error.value) }}
     </p>
   </main>
 </template>

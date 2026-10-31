@@ -12,6 +12,7 @@ import {
 } from '@/modules/offline'
 import { useProctoringStore } from '@/modules/proctoring'
 import { isAnswered, useAnswers } from './answers'
+import { createCommandInbox } from './commands'
 import { startExamSession, type ExamSession } from './exam-session'
 import { loadAttempt } from './local-attempt'
 import { submitWhenDelivered } from './submit'
@@ -39,7 +40,10 @@ export const useExamStore = defineStore('exam', () => {
   let runtime: ExamSession | null = null
   /** Bumped by open/close so a slow open() that lost the race cleans up instead of starting a second session. */
   let generation = 0
-  const handledCommands = new Set<string>()
+  const inbox = createCommandInbox({
+    warn: (message) => (warning.value = message),
+    capture: (seconds) => !locked.value && proctoring.capture(seconds),
+  })
 
   const questions = computed<Question[]>(() => attempt.value?.exam.questions ?? [])
   const question = computed(() => questions.value[current.value])
@@ -137,7 +141,7 @@ export const useExamStore = defineStore('exam', () => {
     warning.value = null
     openedElsewhere.value = false
     signedOut.value = false
-    handledCommands.clear()
+    inbox.clear()
   }
 
   function tick() {
@@ -154,13 +158,7 @@ export const useExamStore = defineStore('exam', () => {
     chainBroken.value = response.chainBroken
     signedOut.value = false
 
-    for (const command of response.commands) {
-      if (handledCommands.has(command.id)) continue
-      handledCommands.add(command.id)
-      if (command.type === 'warn') warning.value = command.message
-      if (command.type === 'capture' && !locked.value) proctoring.capture(command.seconds)
-      await rt.log.append('command.received', { commandId: command.id })
-    }
+    await inbox.receive(response.commands, rt.log)
 
     if (status.value === 'terminated') await finish('examiner')
     if (!endedBy.value || finished.value) return

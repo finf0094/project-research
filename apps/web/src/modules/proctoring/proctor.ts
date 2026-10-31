@@ -3,12 +3,12 @@ import type { EventLog } from '@/modules/offline'
 import type { Pose } from './calibration'
 import { UNMEASURED, createTierWatch, lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
+import { createHinter } from './hints'
 import { startRecorder } from './recorder'
 import { createSensors } from './sensors'
 import {
   ANALYSIS_FPS,
   DARK_BRIGHTNESS,
-  HINTED,
   NOISE_RMS,
   createSignalTracker,
   riskLevel,
@@ -36,9 +36,6 @@ export interface Proctor {
   stop(): Promise<void>
 }
 
-const HINT_REPEAT_MS = 60_000
-/** The "stay on the tab" hint is only visible after the student comes back, so it lingers a little. */
-const RETURN_HINT_MS = 10_000
 const RECENT_MS = 2 * 60_000
 /** Evidence kept around a risky moment: short at medium risk, longer at high risk (review, section 10.1). */
 const FRAGMENT_MS: Record<'medium' | 'high', number> = { medium: 10_000, high: 30_000 }
@@ -59,8 +56,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   const tracker = createSignalTracker()
   const active = new Set<SignalKind>()
   let activations: number[] = []
-  const lastHint = new Map<SignalKind, number>()
-  let returnHintUntil = 0
+  const hints = createHinter(log, now, options.onHint)
   let risk: RiskLevel = 'low'
   let lastFragment = -Infinity
   let lastControl = now()
@@ -76,20 +72,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   })
   void log.append('proctoring.mode', { tier })
 
-  /** Shows the hint for the first active signal (or the lingering tab hint) and logs it once a minute per kind. */
-  function showHint() {
-    const kind: SignalKind | null =
-      [...active].find((k) => HINTED.has(k)) ?? (now() < returnHintUntil ? 'tab_hidden' : null)
-    options.onHint(kind)
-    if (
-      kind &&
-      document.visibilityState === 'visible' &&
-      now() - (lastHint.get(kind) ?? -Infinity) > HINT_REPEAT_MS
-    ) {
-      lastHint.set(kind, now())
-      void log.append('hint.shown', { kind })
-    }
-  }
+  const showHint = () => hints.show(active)
 
   function setSignal(kind: SignalKind, on: boolean) {
     if (on === active.has(kind)) return
@@ -99,7 +82,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     } else {
       active.delete(kind)
     }
-    if (kind === 'tab_hidden' && !on) returnHintUntil = now() + RETURN_HINT_MS
+    if (kind === 'tab_hidden' && !on) hints.returned()
     void log.append('proctor.signal', { kind, active: on })
     showHint()
     updateRisk()

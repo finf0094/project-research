@@ -2,7 +2,7 @@
 import type { AttemptDetail, DecisionBody } from '@exam/contracts'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
+import { useAction } from '@/shared/lib/use-action'
 import { AppCard } from '@/shared/ui'
 import { chunkUrl, decide, getAttempt, judgeMarker } from '../api'
 import AnswersList from '../components/AnswersList.vue'
@@ -16,25 +16,15 @@ const route = useRoute()
 const attemptId = String(route.params.attemptId)
 const detail = ref<AttemptDetail | null>(null)
 const selected = ref<string | null>(null)
-const saving = ref(false)
 const saved = ref(false)
-const error = ref<ErrorKey | null>(null)
+const action = useAction()
 
 async function load() {
   detail.value = await getAttempt(attemptId)
   selected.value ??= detail.value.markers.find((m) => m.status === 'pending')?.id ?? null
 }
 
-/** Runs an action and shows its failure instead of leaving a stale or blank page. */
-async function attempt(action: () => Promise<unknown>) {
-  error.value = null
-  try {
-    await action()
-  } catch (e) {
-    error.value = errorKey(e)
-  }
-}
-onMounted(() => attempt(load))
+onMounted(() => action.run(load))
 
 const marker = computed(() => detail.value?.markers.find((m) => m.id === selected.value) ?? null)
 const sources = computed(() => (marker.value?.chunks ?? []).map((hash) => chunkUrl(attemptId, hash)))
@@ -42,25 +32,22 @@ const end = computed(() => detail.value?.submittedAt ?? detail.value?.summary.la
 const editable = computed(() => ['ready_for_review', 'decided'].includes(detail.value?.summary.status ?? ''))
 
 const judge = (id: string, status: 'confirmed' | 'dismissed') =>
-  attempt(async () => {
+  action.run(async () => {
     await judgeMarker(id, status)
     await load()
   })
 
 async function save(body: DecisionBody) {
-  saving.value = true
   saved.value = false
-  await attempt(async () => {
+  saved.value = await action.run(async () => {
     await decide(attemptId, body)
-    saved.value = true
     await load()
   })
-  saving.value = false
 }
 </script>
 
 <template>
-  <p v-if="error" class="error" role="alert">{{ $t(error) }}</p>
+  <p v-if="action.error.value" class="error" role="alert">{{ $t(action.error.value) }}</p>
   <main v-if="detail" class="page">
     <AttemptHeader :detail="detail" />
 
@@ -98,7 +85,7 @@ async function save(body: DecisionBody) {
         <DecisionForm
           v-if="editable"
           :current="detail.decision"
-          :saving="saving"
+          :saving="action.busy.value"
           :with-score="detail.examMode === 'oral'"
           @save="save"
         />
