@@ -34,14 +34,15 @@ function write(list: QuestionInput[], nextKeys: string[], select = selected.valu
 const types = computed(() => (props.oral ? (['text'] as const) : (['single', 'multiple', 'text'] as const)))
 const current = computed(() => model.value[selected.value] ?? model.value[0]!)
 
-// Tools that remove or re-create the editor (or get disabled at an end) would drop focus to the page.
+// Tools that re-create the editor (or get disabled at an end) would drop focus to the page: once the new
+// editor has entered (or right away when it stays), focus goes to its text if it was lost.
 const editor = ref<HTMLElement>()
-const focusEditor = () =>
-  nextTick(() => {
-    const active = document.activeElement
-    if (!active || active === document.body || (active as HTMLButtonElement).disabled)
-      editor.value?.querySelector('textarea')?.focus()
-  })
+const refocus = () => {
+  const active = document.activeElement
+  if (!active || active === document.body || (active as HTMLButtonElement).disabled)
+    editor.value?.querySelector('textarea')?.focus()
+}
+const focusEditor = () => nextTick(refocus)
 
 const replace = (q: QuestionInput) =>
   write(
@@ -94,7 +95,7 @@ function move(by: -1 | 1) {
     />
     <section ref="editor" class="editor">
       <p v-if="oral" class="muted hint">{{ $t('authoring.questions.oralHint') }}</p>
-      <Transition name="swap" mode="out-in">
+      <Transition name="swap" mode="out-in" @after-enter="refocus">
         <QuestionEditor
           :key="keyList[selected]"
           :model-value="current"

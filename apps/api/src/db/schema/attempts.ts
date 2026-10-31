@@ -54,6 +54,8 @@ export const attempts = pgTable(
     audioMergedAt: timestamp('audio_merged_at', { withTimezone: true }),
     /** A worker is merging the audio since then (a lease, like the analysis claim). */
     audioClaimedAt: timestamp('audio_claimed_at', { withTimezone: true }),
+    /** Failed merge runs so far; a few transient failures are retried, then the merge is given up. */
+    audioTries: integer('audio_tries').notNull().default(0),
   },
   (t) => [
     unique().on(t.examId, t.userId),

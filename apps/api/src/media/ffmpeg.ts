@@ -10,6 +10,8 @@ export function ffmpeg(
   input: Buffer,
   limits: { maxBytes: number; timeoutMs: number },
   inputArgs: string[] = [],
+  /** Where the output goes: stdout by default; a file path when the format needs a seekable output. */
+  output = 'pipe:1',
 ) {
   return new Promise<Buffer>((resolve, reject) => {
     const child = spawn(
@@ -18,7 +20,7 @@ export function ffmpeg(
         ...['-loglevel', 'error', '-nostdin', '-threads', '1'],
         ...['-protocol_whitelist', 'pipe', ...inputArgs, '-i', 'pipe:0'],
         ...args,
-        'pipe:1',
+        output,
       ],
       { stdio: ['pipe', 'pipe', 'pipe'] },
     )

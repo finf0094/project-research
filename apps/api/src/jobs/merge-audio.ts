@@ -3,40 +3,53 @@ import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Db } from '../db/client.ts'
 import { attempts, blobs, events, exams } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
-import { decodeAudio, encodeOpus } from '../media/audio.ts'
+import { BYTES_PER_SECOND, MAX_AUDIO_BYTES, decodeAudio, encodeOpus, silence } from '../media/audio.ts'
 import { blobKey } from '../shared/storage.ts'
 
 /** A claim older than this belongs to a worker that died. */
 const CLAIM_LEASE_MS = 15 * 60_000
 
+/** Transient failures (storage, a stuck ffmpeg) are retried this many times, then the merge is given up. */
+export const MAX_AUDIO_TRIES = 3
+/** Gaps longer than this between chunks (a reload, the camera restarting) are kept as silence. */
+const GAP_MS = 500
+
 /**
  * merge-audio: once an oral attempt is analysed (its uploads are in or their window is over), joins the
- * sound of all its recorded chunks, in recording order, into one file the examiner can listen to in one go,
- * including what was said while the call was down. Chunks that are missing or unreadable are skipped.
- * Returns false when there is nothing to do.
+ * sound of all its recorded chunks into one file the examiner can listen to in one go, including what was
+ * said while the call was down. Gaps between chunks stay as silence, so a position in the file matches the
+ * clock. Unreadable chunks are skipped; a failed run is retried a few times. False when there is nothing to do.
  */
 export async function mergeNextAudio(deps: Deps): Promise<boolean> {
-  const attemptId = await claimNext(deps)
-  if (!attemptId) return false
-  let audioHash: string | null = null
+  const attempt = await claimNext(deps)
+  if (!attempt) return false
+  const done = { audioMergedAt: new Date(deps.now()), audioClaimedAt: null }
   try {
-    audioHash = await merge(deps, attemptId)
+    const audioHash = await merge(deps, attempt.id)
+    await deps.db
+      .update(attempts)
+      .set({ ...done, audioHash })
+      .where(eq(attempts.id, attempt.id))
   } catch (error) {
-    console.error(`audio of attempt ${attemptId} could not be merged`, error)
+    console.error(`audio of attempt ${attempt.id} could not be merged`, error)
+    const tries = attempt.audioTries + 1
+    await deps.db
+      .update(attempts)
+      .set(
+        tries >= MAX_AUDIO_TRIES
+          ? { ...done, audioTries: tries }
+          : { audioTries: tries, audioClaimedAt: null },
+      )
+      .where(eq(attempts.id, attempt.id))
   }
-  // Done either way: a failed merge is not retried forever; the chunks themselves stay playable.
-  await deps.db
-    .update(attempts)
-    .set({ audioHash, audioMergedAt: new Date(deps.now()), audioClaimedAt: null })
-    .where(eq(attempts.id, attemptId))
   return true
 }
 
-async function claimNext({ db, now }: Deps): Promise<string | null> {
+async function claimNext({ db, now }: Deps) {
   const leaseCutoff = new Date(now() - CLAIM_LEASE_MS)
   return db.transaction(async (tx) => {
     const [row] = await tx
-      .select({ id: attempts.id })
+      .select({ id: attempts.id, audioTries: attempts.audioTries })
       .from(attempts)
       .innerJoin(exams, eq(exams.id, attempts.examId))
       .where(
@@ -54,20 +67,26 @@ async function claimNext({ db, now }: Deps): Promise<string | null> {
       .update(attempts)
       .set({ audioClaimedAt: new Date(now()) })
       .where(eq(attempts.id, row.id))
-    return row.id
+    return row
   })
 }
 
 async function merge({ db, storage }: Deps, attemptId: string): Promise<string | null> {
-  const pcm: Buffer[] = []
-  for (const hash of await chunksInOrder(db, attemptId)) {
+  const parts: Buffer[] = []
+  let size = 0
+  let endsAt: number | null = null // when the sound so far ends, on the recording's clock
+  for (const { hash, start } of await chunksInOrder(db, attemptId)) {
+    if (size >= MAX_AUDIO_BYTES) break // the rest would be cut anyway: do not hold it in memory
     const chunk = await storage.get(blobKey(attemptId, hash))
-    if (!chunk) continue
-    pcm.push(await decodeAudio(chunk).catch(() => Buffer.alloc(0)))
+    const sound = chunk ? await decodeAudio(chunk).catch(() => null) : null
+    if (!sound?.length) continue
+    if (endsAt !== null && start - endsAt > GAP_MS) parts.push(silence(Math.min(start - endsAt, 3_600_000)))
+    parts.push(sound)
+    size = parts.reduce((sum, p) => sum + p.length, 0)
+    endsAt = start + (sound.length / BYTES_PER_SECOND) * 1000
   }
-  const sound = Buffer.concat(pcm)
-  if (!sound.length) return null
-  const audio = await encodeOpus(sound)
+  if (!size) return null
+  const audio = await encodeOpus(Buffer.concat(parts))
   const hash = createHash('sha256').update(audio).digest('hex')
   await storage.put(blobKey(attemptId, hash), audio)
   await db
@@ -77,8 +96,8 @@ async function merge({ db, storage }: Deps, attemptId: string): Promise<string |
   return hash
 }
 
-/** Every uploaded chunk of the attempt's fragments once, ordered by when its recording started. */
-export async function chunksInOrder(db: Db, attemptId: string): Promise<string[]> {
+/** Every chunk of the attempt's fragments once, with when its recording started, in that order. */
+export async function chunksInOrder(db: Db, attemptId: string): Promise<{ hash: string; start: number }[]> {
   const rows = await db
     .select({ data: events.data })
     .from(events)
@@ -88,5 +107,5 @@ export async function chunksInOrder(db: Db, attemptId: string): Promise<string[]
     const { chunks, chunkStarts } = data as { chunks: string[]; chunkStarts: number[] }
     chunks.forEach((hash, i) => startOf.has(hash) || startOf.set(hash, chunkStarts[i]!))
   }
-  return [...startOf].sort((a, b) => a[1] - b[1]).map(([hash]) => hash)
+  return [...startOf].map(([hash, start]) => ({ hash, start })).sort((a, b) => a.start - b.start)
 }

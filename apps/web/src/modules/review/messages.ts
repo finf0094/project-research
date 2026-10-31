@@ -98,7 +98,13 @@ export const reviewMessages = defineMessages({
       oral: {
         title: 'Запись ответа',
         note: 'Целиком, включая время без связи',
-        audioPending: 'Аудио ответа собирается после анализа записи.',
+        audio: {
+          pending: 'Аудио ответа собирается после анализа записи.',
+          ready: '',
+          empty: 'Звука в записи нет.',
+          failed: 'Аудио собрать не удалось: фрагменты записи остаются доступны по меткам.',
+          removed: 'Запись удалена по сроку хранения.',
+        },
         callBar: 'Связь студента во время звонка, обрывов: {n}',
         drop: 'Связь прервалась {from}–{to} ({length}) — ответ в это время записан',
         seconds: '{n} с',
@@ -246,7 +252,13 @@ export const reviewMessages = defineMessages({
       oral: {
         title: 'Жауап жазбасы',
         note: 'Толығымен, байланыссыз уақытты қоса',
-        audioPending: 'Жауаптың аудиосы жазба талданғаннан кейін жиналады.',
+        audio: {
+          pending: 'Жауаптың аудиосы жазба талданғаннан кейін жиналады.',
+          ready: '',
+          empty: 'Жазбада дыбыс жоқ.',
+          failed: 'Аудионы жинау мүмкін болмады: жазба фрагменттері белгілер арқылы қолжетімді.',
+          removed: 'Жазба сақтау мерзімі бойынша жойылды.',
+        },
         callBar: 'Қоңырау кезіндегі студент байланысы, үзілістер: {n}',
         drop: 'Байланыс үзілді {from}–{to} ({length}) — бұл уақыттағы жауап жазылған',
         seconds: '{n} с',
@@ -389,7 +401,13 @@ export const reviewMessages = defineMessages({
       oral: {
         title: 'Recorded answer',
         note: 'In full, including time offline',
-        audioPending: 'The answer’s audio is put together once the recording is analysed.',
+        audio: {
+          pending: 'The answer’s audio is put together once the recording is analysed.',
+          ready: '',
+          empty: 'The recording has no sound.',
+          failed: 'The audio could not be put together: the recorded fragments stay available by marker.',
+          removed: 'The recording was deleted after the retention period.',
+        },
         callBar: 'The student’s connection during the call, drops: {n}',
         drop: 'Connection lost {from}–{to} ({length}) — the answer was recorded meanwhile',
         seconds: '{n} s',

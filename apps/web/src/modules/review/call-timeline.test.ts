@@ -20,8 +20,12 @@ describe('studentSpans', () => {
     ])
   })
 
-  it('ignores a repeated join and ends a call that ended with a leave', () => {
-    const events = [e('student', 'joined', 0), e('student', 'joined', 10), e('student', 'left', 50)]
-    expect(studentSpans(events, 400)).toEqual([{ kind: 'on', from: 0, to: 50 }])
+  it('ignores a repeated join; a leave long before the end is a final drop, one just before it is not', () => {
+    const events = [e('student', 'joined', 0), e('student', 'joined', 10), e('student', 'left', 50_000)]
+    expect(studentSpans(events, 60_000)).toEqual([{ kind: 'on', from: 0, to: 50_000 }])
+    expect(studentSpans(events, 200_000)).toEqual([
+      { kind: 'on', from: 0, to: 50_000 },
+      { kind: 'off', from: 50_000, to: 200_000 },
+    ])
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CallEvent } from '@exam/contracts'
+import type { AttemptDetail, CallEvent } from '@exam/contracts'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatClock } from '@/shared/lib/format'
@@ -9,7 +9,12 @@ import { studentSpans } from '../call-timeline'
  * An oral answer as recorded: the whole answer's audio in one player (merged by the server, including what
  * was said while the call was down), and the student's time on the call with every drop.
  */
-const props = defineProps<{ audioUrl: string | null; call: CallEvent[]; end: number }>()
+const props = defineProps<{
+  audio: NonNullable<AttemptDetail['audio']>
+  audioUrl: string | null
+  call: CallEvent[]
+  end: number
+}>()
 const spans = computed(() => studentSpans(props.call, props.end))
 const drops = computed(() => spans.value.filter((s) => s.kind === 'off'))
 const total = computed(() => {
@@ -31,7 +36,7 @@ const length = (ms: number) =>
       <span class="muted note">{{ $t('review.oral.note') }}</span>
     </header>
     <audio v-if="audioUrl" :src="audioUrl" controls preload="metadata" />
-    <p v-else class="muted pending">{{ $t('review.oral.audioPending') }}</p>
+    <p v-else class="muted pending" :class="audio.state">{{ $t(`review.oral.audio.${audio.state}`) }}</p>
 
     <template v-if="spans.length">
       <div class="bar" role="img" :aria-label="$t('review.oral.callBar', { n: drops.length })">
@@ -81,6 +86,9 @@ header {
 .note,
 .pending {
   font-size: var(--text-sm);
+}
+.failed {
+  color: var(--warn);
 }
 audio {
   inline-size: 100%;

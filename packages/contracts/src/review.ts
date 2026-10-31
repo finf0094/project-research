@@ -134,8 +134,14 @@ export const AttemptDetail = z.object({
   serverAnalysis: ServerAnalysis.nullable(),
   /** Oral exams: who joined and left the call, in order. */
   call: z.array(CallEvent),
-  /** Oral exams: the whole answer's audio merged by the worker, once ready. */
-  audio: Sha256.nullable(),
+  /**
+   * Oral exams: the whole answer's audio merged by the worker. `pending` until the recording is analysed
+   * and merged; `empty` when nothing was recorded; `failed` when it could not be merged; `removed` after
+   * the retention period.
+   */
+  audio: z
+    .object({ state: z.enum(['pending', 'ready', 'empty', 'failed', 'removed']), hash: Sha256.nullable() })
+    .nullable(),
   decision: z
     .object({
       verdict: Verdict,

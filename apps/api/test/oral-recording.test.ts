@@ -103,7 +103,7 @@ describe('merge-audio', () => {
       // Announced in reverse: the merge follows the recording's start times, not the order of events.
       await chain.next(
         'evidence.fragment',
-        { reason: 'full', tStart: t + 1000, tEnd: t + 2000, chunks: [hashes[1]], chunkStarts: [t + 1000] },
+        { reason: 'full', tStart: t + 3000, tEnd: t + 4000, chunks: [hashes[1]], chunkStarts: [t + 3000] },
         t + 2000,
       ),
       await chain.next(
@@ -141,15 +141,16 @@ describe('merge-audio', () => {
     expect(await mergeNextAudio(ctx.deps)).toBe(false) // done once
 
     const { audio } = await detail(session.attemptId)
-    expect(audio).toMatch(/^[0-9a-f]{64}$/)
-    const file = await ctx.app.inject({
-      method: 'GET',
-      url: `/api/examiner/attempts/${session.attemptId}/chunks/${audio}`,
-      headers: examiner,
-    })
-    // Piped WebM carries no duration in its header: measure the decoded sound instead (16 kHz, 16-bit).
+    expect(audio).toMatchObject({ state: 'ready', hash: expect.stringMatching(/^[0-9a-f]{64}$/) })
+    const url = `/api/examiner/attempts/${session.attemptId}/chunks/${audio!.hash}`
+    const file = await ctx.app.inject({ method: 'GET', url, headers: examiner })
+    // The player seeks with ranges.
+    const part = await ctx.app.inject({ method: 'GET', url, headers: { ...examiner, range: 'bytes=0-99' } })
+    expect(part.statusCode).toBe(206)
+    expect(part.rawPayload.equals(file.rawPayload.subarray(0, 100))).toBe(true)
+    // 1 s of tone, the 2 s gap kept as silence, 1 s of tone (measured on the decoded sound, 16 kHz 16-bit).
     const seconds = (await decodeAudio(file.rawPayload)).length / 32_000
-    expect(seconds).toBeGreaterThan(1.8)
-    expect(seconds).toBeLessThan(2.3)
+    expect(seconds).toBeGreaterThan(3.8)
+    expect(seconds).toBeLessThan(4.3)
   })
 })

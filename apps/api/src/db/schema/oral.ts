@@ -14,7 +14,10 @@ export const callEvents = pgTable(
       .references(() => attempts.id),
     who: text('who').$type<CallRole>().notNull(),
     kind: text('kind').$type<CallEventKind>().notNull(),
+    /** LiveKit's time, in whole seconds. */
     at: timestamp('at', { withTimezone: true }).notNull(),
+    /** When it arrived (ms): orders a leave and a rejoin within the same second. */
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.attemptId, t.at)],
 )

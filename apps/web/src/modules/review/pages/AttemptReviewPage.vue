@@ -115,7 +115,8 @@ async function save(body: DecisionBody) {
         </AppCard>
         <OralRecording
           v-if="detail.examMode === 'oral'"
-          :audio-url="detail.audio && chunkUrl(attemptId, detail.audio)"
+          :audio="detail.audio ?? { state: 'pending', hash: null }"
+          :audio-url="detail.audio?.hash ? chunkUrl(attemptId, detail.audio.hash) : null"
           :call="detail.call"
           :end="end"
         />
