@@ -29,7 +29,7 @@ async function setup() {
     deadline: Date.now() + 3_600_000,
     status: 'active',
     clockOffset: 0,
-    finishing: false,
+    endedBy: null,
   }
   await db.attempts.put(attempt)
   return { key, head, log: openEventLog(ATTEMPT, key, head, () => Date.now()) }
@@ -93,6 +93,7 @@ describe('sync loop', () => {
     await db.chunks.put({
       attemptId: ATTEMPT,
       hash: 'a'.repeat(64),
+      tStart: 0,
       blob: new Blob(['x'], { type: 'video/webm' }),
     })
 

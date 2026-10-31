@@ -13,8 +13,10 @@
     --accent-ink: light-dark(#3f43db, #a5a8ff);
     --accent-tint: light-dark(#e8e8ff, #24244a);
     --on-accent: #ffffff;
-    --ink: #16153a;
+    /* Ink cards stay dark in both themes but must still stand out from the dark background. */
+    --ink: light-dark(#16153a, #26254f);
     --on-ink: #ffffff;
+    --on-ink-2: rgb(255 255 255 / 0.72);
     --lime: #cff56a;
     --on-lime: #15142b;
     --ok: light-dark(#1b7a52, #5bd69b);

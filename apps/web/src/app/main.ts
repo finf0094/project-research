@@ -8,6 +8,9 @@ import App from './App.vue'
 import { router } from './router'
 
 const app = createApp(App).use(createPinia())
-// Confirms the cached user with the server; offline, the cached user keeps the exam reachable.
-await useAuthStore().refresh()
+const auth = useAuthStore()
+// With a cached user the app opens at once (also offline) and the session is confirmed in the background;
+// without one there is nothing to show before the server answers.
+if (auth.user) void auth.refresh()
+else await auth.refresh()
 app.use(router).mount('#app')

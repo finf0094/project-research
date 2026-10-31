@@ -1,5 +1,6 @@
 import type { EventData, EventType } from '@exam/contracts'
 import { seal, type ChainHead } from '@exam/integrity'
+import Dexie from 'dexie'
 import { db } from './db'
 
 export interface EventLog {
@@ -30,11 +31,18 @@ export function openEventLog(
       const run = queue.then(async () => {
         const sealed = await seal({ seq: current.seq + 1, type, data, at: now() }, current.hash, key)
         const next = { seq: sealed.seq, hash: sealed.hash }
-        await db.transaction('rw', db.events, db.attempts, db.answers, db.chunks, async () => {
-          await db.events.add({ ...sealed, attemptId })
-          await db.attempts.update(attemptId, { head: next })
-          await onWrite?.()
-        })
+        try {
+          await db.transaction('rw', db.events, db.attempts, db.answers, db.chunks, async () => {
+            await db.events.add({ ...sealed, attemptId })
+            await db.attempts.update(attemptId, { head: next })
+            await onWrite?.()
+          })
+        } catch (error) {
+          // Another writer moved the chain (it should not happen with the tab lock): continue from the stored head.
+          if (error instanceof Dexie.ConstraintError)
+            current = (await db.attempts.get(attemptId))?.head ?? current
+          throw error
+        }
         current = next
       })
       queue = run.catch(() => undefined)

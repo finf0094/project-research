@@ -16,6 +16,7 @@ const exam = ref<ExaminerExam | null>(null)
 const attempts = ref<AttemptSummary[]>([])
 const acting = ref<AttemptSummary | null>(null)
 const stale = ref(false)
+const actionError = ref('')
 
 async function refresh() {
   try {
@@ -42,9 +43,14 @@ const stats = computed(() => ({
 
 async function send(body: ExaminerCommandBody) {
   if (!acting.value) return
-  await sendCommand(acting.value.id, body)
-  acting.value = null
-  await refresh()
+  actionError.value = ''
+  try {
+    await sendCommand(acting.value.id, body)
+    acting.value = null
+    await refresh()
+  } catch (e) {
+    actionError.value = e instanceof Error ? e.message : 'Не удалось выполнить действие'
+  }
 }
 </script>
 
@@ -76,6 +82,7 @@ async function send(body: ExaminerCommandBody) {
     </AppCard>
 
     <CommandDialog :attempt="acting" @send="send" @close="acting = null" />
+    <p v-if="actionError" class="error" role="alert">Действие не выполнено: {{ actionError }}</p>
   </main>
 </template>
 
@@ -91,6 +98,9 @@ async function send(body: ExaminerCommandBody) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-4);
+}
+.error {
+  color: var(--danger);
 }
 .note {
   margin-block: var(--space-2) var(--space-4);

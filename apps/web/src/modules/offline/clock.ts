@@ -7,20 +7,20 @@ export interface ServerClock {
   now(): number
   /** Re-anchors on a server timestamp; half the round trip is added as the best estimate of transit time. */
   sync(serverTime: number, rttMs?: number): void
+  /** serverTime - Date.now(), stored to restore the clock after a reload. */
   offset(): number
 }
 
 export function createServerClock(initialOffset: number): ServerClock {
   let baseServer = Date.now() + initialOffset
   let basePerf = performance.now()
+  const now = () => Math.round(baseServer + (performance.now() - basePerf))
   return {
-    now: () => Math.round(baseServer + (performance.now() - basePerf)),
+    now,
     sync(serverTime, rttMs = 0) {
       baseServer = serverTime + rttMs / 2
       basePerf = performance.now()
     },
-    offset() {
-      return this.now() - Date.now()
-    },
+    offset: () => now() - Date.now(),
   }
 }

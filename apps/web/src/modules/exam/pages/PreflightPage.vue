@@ -2,6 +2,7 @@
 import { ArrowLeft, CircleCheck, CircleAlert } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { DeviceCheck } from '@/modules/proctoring'
 import { ApiError } from '@/shared/lib/http'
 import { AppButton, AppCard } from '@/shared/ui'
 import { beginAttempt } from '../local-attempt'
@@ -11,11 +12,12 @@ const route = useRoute()
 const router = useRouter()
 const checks = ref<Check[] | null>(null)
 const consent = ref(false)
+const deviceReady = ref(false)
 const starting = ref(false)
 const error = ref('')
 
 onMounted(async () => (checks.value = await runBrowserChecks()))
-const ready = computed(() => !!checks.value?.every((c) => c.ok) && consent.value)
+const ready = computed(() => !!checks.value?.every((c) => c.ok) && deviceReady.value && consent.value)
 
 async function start() {
   error.value = ''
@@ -44,6 +46,7 @@ async function start() {
     <div class="grid">
       <AppCard>
         <h2>Проверка</h2>
+        <DeviceCheck class="device" @ready="deviceReady = $event" />
         <p v-if="!checks" class="muted">Проверяем…</p>
         <ul v-else class="checks">
           <li v-for="check in checks" :key="check.id" class="check">
@@ -104,6 +107,9 @@ async function start() {
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: var(--space-4);
   align-items: start;
+}
+.device {
+  margin-top: var(--space-4);
 }
 .checks {
   display: grid;

@@ -2,6 +2,9 @@ import type { AnswerValue, AttemptStatus, StudentExam } from '@exam/contracts'
 import type { ChainHead, SealedEvent } from '@exam/integrity'
 import Dexie, { type EntityTable, type Table } from 'dexie'
 
+/** How the attempt ended, for the message on the final screen. */
+export type EndReason = 'student' | 'time' | 'examiner'
+
 /** Everything needed to continue an attempt with no network, even after a reload. */
 export interface LocalAttempt {
   id: string
@@ -14,8 +17,8 @@ export interface LocalAttempt {
   status: AttemptStatus
   /** serverTime - Date.now() at the last sync, used to restore the clock after a reload. */
   clockOffset: number
-  /** The student pressed "submit" (or time ran out); finishing continues once the network allows. */
-  finishing: boolean
+  /** Set once answers are locked; submission completes as soon as the network allows. */
+  endedBy: EndReason | null
 }
 
 export interface LocalEvent extends SealedEvent {
@@ -32,9 +35,12 @@ export interface LocalAnswer {
 export interface LocalChunk {
   attemptId: string
   hash: string
+  /** Recording start, so chunks upload in the order they were recorded. */
+  tStart: number
   blob: Blob
 }
 
+/** Internal to the offline module: other modules use the functions in store.ts. */
 export const db = new Dexie('exam') as Dexie & {
   attempts: EntityTable<LocalAttempt, 'id'>
   events: Table<LocalEvent, [string, number]>
@@ -46,5 +52,5 @@ db.version(1).stores({
   attempts: 'id',
   events: '[attemptId+seq]',
   answers: '[attemptId+questionId]',
-  chunks: '[attemptId+hash], attemptId',
+  chunks: '[attemptId+hash], [attemptId+tStart]',
 })

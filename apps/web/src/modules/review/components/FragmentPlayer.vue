@@ -43,7 +43,7 @@ video,
   display: grid;
   place-items: center;
   padding: var(--space-6);
-  color: rgb(255 255 255 / 0.7);
+  color: var(--on-ink-2);
   text-align: center;
 }
 .parts {

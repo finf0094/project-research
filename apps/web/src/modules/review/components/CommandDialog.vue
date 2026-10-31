@@ -8,11 +8,13 @@ const emit = defineEmits<{ send: [body: ExaminerCommandBody]; close: [] }>()
 
 const message = ref('')
 const minutes = ref(10)
+const confirmTerminate = ref(false)
 watch(
   () => props.attempt,
   () => {
     message.value = ''
     minutes.value = 10
+    confirmTerminate.value = false
   },
 )
 </script>
@@ -39,9 +41,14 @@ watch(
         <input id="extend-min" v-model.number="minutes" type="number" min="1" max="120" />
         <AppButton type="submit" variant="secondary">Продлить</AppButton>
       </form>
-      <AppButton variant="danger" @click="emit('send', { type: 'terminate' })"
-        >Завершить экзамен студента</AppButton
-      >
+      <AppButton v-if="!confirmTerminate" variant="danger" @click="confirmTerminate = true">
+        Завершить экзамен студента
+      </AppButton>
+      <div v-else class="confirm" role="alert">
+        <p>Студент больше не сможет отвечать. Уже данные ответы сохранятся.</p>
+        <AppButton variant="danger" @click="emit('send', { type: 'terminate' })">Да, завершить</AppButton>
+        <AppButton variant="ghost" @click="confirmTerminate = false">Отмена</AppButton>
+      </div>
     </div>
   </AppDialog>
 </template>
@@ -54,6 +61,12 @@ watch(
 }
 .sections {
   gap: var(--space-6);
+}
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }
 .row {
   grid-template-columns: 1fr 96px auto;

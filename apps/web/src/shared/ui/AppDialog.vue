@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, useId, watch } from 'vue'
 
 const props = defineProps<{ open: boolean; title: string }>()
 const emit = defineEmits<{ close: [] }>()
 const dialog = ref<HTMLDialogElement>()
+const titleId = useId()
 
 // The native <dialog> gives focus trapping, Esc handling and an accessible modal for free.
 watch(
@@ -12,13 +13,13 @@ watch(
     if (open && !dialog.value?.open) dialog.value?.showModal()
     if (!open && dialog.value?.open) dialog.value.close()
   },
-  { flush: 'post' },
+  { flush: 'post', immediate: true },
 )
 </script>
 
 <template>
-  <dialog ref="dialog" class="dialog" :aria-label="title" @close="emit('close')">
-    <h2 class="title">{{ title }}</h2>
+  <dialog ref="dialog" class="dialog" :aria-labelledby="titleId" @close="emit('close')">
+    <h2 :id="titleId" class="title">{{ title }}</h2>
     <slot />
     <footer v-if="$slots.actions" class="actions"><slot name="actions" /></footer>
   </dialog>

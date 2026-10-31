@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { CameraPreview, HintBanner, useProctoringStore } from '@/modules/proctoring'
 import { AppButton, AppCard, AppDialog } from '@/shared/ui'
-import FinishDialog from '../components/FinishDialog.vue'
 import ExamHeader from '../components/ExamHeader.vue'
+import ExamNotices from '../components/ExamNotices.vue'
+import FinishDialog from '../components/FinishDialog.vue'
 import QuestionNav from '../components/QuestionNav.vue'
 import QuestionView from '../components/QuestionView.vue'
 import { useExamStore } from '../exam.store'
@@ -12,26 +14,38 @@ import { useExamStore } from '../exam.store'
 const route = useRoute()
 const router = useRouter()
 const exam = useExamStore()
-const attemptId = String(route.params.attemptId)
+const proctoring = useProctoringStore()
+const attemptId = computed(() => String(route.params.attemptId))
 const confirming = ref(false)
 const loadError = ref(false)
 
-onMounted(async () => {
+// The page composes the two modules: the exam session and on-device proctoring writing into its chain.
+async function open(id: string) {
+  loadError.value = false
   try {
-    await exam.open(attemptId)
+    await exam.open(id)
   } catch {
     loadError.value = true
+    return
   }
-})
-// Leaving for the "done" page keeps the session running: it still has to deliver answers and recordings.
-onUnmounted(() => {
-  if (!exam.finishing && !exam.finished) exam.close()
-})
+  const session = exam.session
+  if (!session || exam.locked) return
+  exam.attachProctor({ capture: proctoring.capture, stop: proctoring.stop })
+  await proctoring.start({ ...session, recording: exam.attempt!.exam.profile.recording })
+}
+watch(attemptId, open, { immediate: true })
 
+// Leaving for the "done" page keeps the session running: it still has to deliver answers and recordings.
 watch(
-  () => exam.finishing || exam.finished,
-  (done) => done && router.replace(`/attempts/${attemptId}/done`),
+  () => exam.locked,
+  (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
 )
+onUnmounted(() => {
+  if (exam.locked) return
+  exam.attachProctor(null)
+  void proctoring.stop()
+  exam.close()
+})
 
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)
 
@@ -45,8 +59,8 @@ function confirmFinish() {
   <main v-if="loadError" class="center">
     <AppCard>
       <h1>Не удалось открыть экзамен</h1>
-      <p class="muted">Для первого открытия нужен интернет. Проверьте подключение и попробуйте снова.</p>
-      <AppButton @click="router.go(0)">Повторить</AppButton>
+      <p class="muted">Для первого открытия на этом устройстве нужен интернет. Проверьте подключение.</p>
+      <AppButton @click="open(attemptId)">Повторить</AppButton>
     </AppCard>
   </main>
 
@@ -63,15 +77,16 @@ function confirmFinish() {
       :index="exam.current"
       :total="exam.questions.length"
       :remaining-ms="exam.remainingMs"
-      :finishing="exam.finishing"
+      :finishing="exam.locked"
       @finish="confirming = true"
     />
-
-    <p v-if="exam.signedOut" class="banner" role="alert">
-      Сессия входа закончилась. Ответы сохраняются на устройстве —
-      <RouterLink :to="`/login?next=/attempts/${attemptId}`">войдите снова</RouterLink>, чтобы они
-      отправились.
-    </p>
+    <ExamNotices
+      :attempt-id="attemptId"
+      :signed-out="exam.signedOut"
+      :save-failed="exam.saveFailed"
+      :chain-broken="exam.chainBroken"
+    />
+    <HintBanner />
 
     <div class="body">
       <AppCard as="aside" class="side">
@@ -81,9 +96,10 @@ function confirmFinish() {
           :current="exam.current"
           @select="exam.goTo"
         />
+        <CameraPreview />
       </AppCard>
 
-      <AppCard class="main">
+      <AppCard class="main" @focusout="exam.saveNow">
         <QuestionView
           :key="exam.question.id"
           :question="exam.question"
@@ -127,7 +143,7 @@ function confirmFinish() {
   gap: var(--space-4);
   min-height: 100dvh;
   padding: var(--space-4);
-  grid-template-rows: auto auto 1fr;
+  align-content: start;
 }
 .body {
   display: grid;
@@ -155,12 +171,6 @@ function confirmFinish() {
   justify-content: space-between;
   gap: var(--space-3);
 }
-.banner {
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius);
-  background: var(--warn-tint);
-  color: var(--warn);
-}
 .center {
   display: grid;
   place-items: center;
@@ -172,11 +182,13 @@ function confirmFinish() {
   .body {
     grid-template-columns: 1fr;
   }
+  /* The question comes first on small screens; navigation follows. */
+  .main {
+    order: -1;
+    padding: var(--space-5);
+  }
   .side {
     position: static;
-  }
-  .main {
-    padding: var(--space-5);
   }
 }
 </style>

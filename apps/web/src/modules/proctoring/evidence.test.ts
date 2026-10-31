@@ -1,11 +1,11 @@
 import { emptyHead, importHmacKey, sha256Hex } from '@exam/integrity'
-import Dexie from 'dexie'
-import { beforeEach, describe, expect, it } from 'vitest'
-import { db, openEventLog } from '@/modules/offline'
+import { describe, expect, it } from 'vitest'
+import { countChunks, listEvents, openEventLog } from '@/modules/offline'
 import { createEvidence } from './evidence'
 import type { RecordedChunk, Recorder } from './recorder'
 
-const ATTEMPT = '00000000-0000-4000-8000-000000000002'
+// Each test uses its own attempt id, so the shared IndexedDB needs no clearing.
+let ATTEMPT = ''
 const chunk = (tStart: number, text: string): RecordedChunk => ({
   tStart,
   tEnd: tStart + 10_000,
@@ -13,6 +13,7 @@ const chunk = (tStart: number, text: string): RecordedChunk => ({
 })
 
 async function setup() {
+  ATTEMPT = crypto.randomUUID()
   const key = await importHmacKey(new Uint8Array(32).fill(5))
   const log = openEventLog(ATTEMPT, key, await emptyHead(ATTEMPT), () => 0)
   const ring: RecordedChunk[] = []
@@ -20,14 +21,7 @@ async function setup() {
   return { log, ring, evidence: createEvidence(ATTEMPT, log, () => recorder) }
 }
 
-const fragments = async () =>
-  (await db.events.where('[attemptId+seq]').between([ATTEMPT, 0], [ATTEMPT, Dexie.maxKey]).toArray()).filter(
-    (e) => e.type === 'evidence.fragment',
-  )
-
-beforeEach(async () => {
-  await Promise.all(db.tables.map((t) => t.clear()))
-})
+const fragments = async () => (await listEvents(ATTEMPT)).filter((e) => e.type === 'evidence.fragment')
 
 describe('evidence', () => {
   it('waits for the future part of a fragment, then announces and queues the chunks together', async () => {
@@ -48,7 +42,7 @@ describe('evidence', () => {
       await sha256Hex(new TextEncoder().encode('b')),
       await sha256Hex(new TextEncoder().encode('c')),
     ])
-    expect(await db.chunks.where('attemptId').equals(ATTEMPT).count()).toBe(3)
+    expect(await countChunks(ATTEMPT)).toBe(3)
   })
 
   it('pins what exists when the exam ends before the fragment is complete', async () => {

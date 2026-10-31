@@ -8,7 +8,7 @@ export interface ConnectionState {
 
 export type SyncOutcome = { ok: true; rttMs: number } | { ok: false }
 
-export const SLOW_RTT_MS = 800
+const SLOW_RTT_MS = 800
 const OFFLINE_AFTER_FAILURES = 3
 const ONLINE_AFTER_SUCCESSES = 2
 

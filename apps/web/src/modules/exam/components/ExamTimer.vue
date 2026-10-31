@@ -5,12 +5,15 @@ import { formatDuration } from '@/shared/lib/format'
 const props = defineProps<{ remainingMs: number }>()
 const LOW_MS = 5 * 60_000
 const low = computed(() => props.remainingMs <= LOW_MS)
+// The visible timer is not announced every second; screen readers hear only the moment time runs low.
+const announcement = computed(() => (low.value ? 'Осталось меньше 5 минут' : ''))
 </script>
 
 <template>
   <span class="timer" :class="{ low }" role="timer" aria-label="Осталось времени">
     {{ formatDuration(remainingMs) }}
   </span>
+  <span class="visually-hidden" aria-live="assertive">{{ announcement }}</span>
 </template>
 
 <style scoped>

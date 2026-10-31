@@ -30,7 +30,8 @@ const ticks = computed(() => [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, t: props.s
         role="button"
         :aria-label="`${MARKER_LABEL[m.kind]}, ${formatTime(m.startAt)}`"
         @click="emit('select', m.id)"
-        @keydown.enter="emit('select', m.id)"
+        @keydown.enter.prevent="emit('select', m.id)"
+        @keydown.space.prevent="emit('select', m.id)"
       />
     </svg>
     <figcaption class="ticks">

@@ -18,35 +18,49 @@ const detail = ref<AttemptDetail | null>(null)
 const selected = ref<string | null>(null)
 const saving = ref(false)
 const saved = ref(false)
+const error = ref('')
 
 async function load() {
   detail.value = await getAttempt(attemptId)
   selected.value ??= detail.value.markers.find((m) => m.status === 'pending')?.id ?? null
 }
-onMounted(load)
+
+/** Runs an action and shows its failure instead of leaving a stale or blank page. */
+async function attempt(action: () => Promise<unknown>) {
+  error.value = ''
+  try {
+    await action()
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Что-то пошло не так'
+  }
+}
+onMounted(() => attempt(load))
 
 const marker = computed(() => detail.value?.markers.find((m) => m.id === selected.value) ?? null)
 const sources = computed(() => (marker.value?.chunks ?? []).map((hash) => chunkUrl(attemptId, hash)))
 const end = computed(() => detail.value?.submittedAt ?? detail.value?.summary.lastSeenAt ?? 0)
 const editable = computed(() => ['ready_for_review', 'decided'].includes(detail.value?.summary.status ?? ''))
 
-async function judge(id: string, status: 'confirmed' | 'dismissed') {
-  await judgeMarker(id, status)
-  await load()
-}
+const judge = (id: string, status: 'confirmed' | 'dismissed') =>
+  attempt(async () => {
+    await judgeMarker(id, status)
+    await load()
+  })
+
 async function save(body: DecisionBody) {
   saving.value = true
-  try {
+  saved.value = false
+  await attempt(async () => {
     await decide(attemptId, body)
     saved.value = true
     await load()
-  } finally {
-    saving.value = false
-  }
+  })
+  saving.value = false
 }
 </script>
 
 <template>
+  <p v-if="error" class="error" role="alert">Не удалось выполнить действие: {{ error }}</p>
   <main v-if="detail" class="page">
     <header class="head">
       <RouterLink :to="`/examiner`" class="crumb">{{ detail.examTitle }}</RouterLink>
@@ -136,6 +150,10 @@ async function save(body: DecisionBody) {
 }
 .note {
   font-size: var(--text-sm);
+}
+.error {
+  margin-bottom: var(--space-4);
+  color: var(--danger);
 }
 .saved {
   margin-top: var(--space-3);

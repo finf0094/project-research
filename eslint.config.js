@@ -22,13 +22,38 @@ export default [
       'vue/multiline-html-element-content-newline': 'off',
     },
   },
-  {
-    // Module boundaries: other modules are reached only through their index.ts.
-    files: ['apps/web/src/**/*.{ts,vue}'],
+  // Module boundaries: other modules are reached only through their index.ts, never by a relative path
+  // that climbs out of the module; shared code knows nothing about modules or the app.
+  ...[
+    { files: ['apps/web/src/modules/*/*.{ts,vue}'], climb: '../*' },
+    { files: ['apps/web/src/modules/*/*/**/*.{ts,vue}'], climb: '../../*' },
+    { files: ['apps/web/src/app/**/*.{ts,vue}'], climb: null },
+  ].map(({ files, climb }) => ({
+    files,
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['@/modules/*/*'], message: 'Import a module through its index.ts' }] },
+        {
+          patterns: [
+            { group: ['@/modules/*/*'], message: 'Import a module through its index.ts' },
+            ...(climb
+              ? [{ group: [climb], message: 'Do not reach into another module by a relative path' }]
+              : []),
+          ],
+        },
+      ],
+    },
+  })),
+  {
+    files: ['apps/web/src/shared/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['@/modules/**', '@/app/**'], message: 'shared must not depend on modules or the app' },
+          ],
+        },
       ],
     },
   },

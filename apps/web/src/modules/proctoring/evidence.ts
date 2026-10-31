@@ -1,6 +1,6 @@
 import type { FragmentReason } from '@exam/contracts'
 import { sha256Hex } from '@exam/integrity'
-import { db, type EventLog } from '@/modules/offline'
+import { putChunks, type EventLog } from '@/modules/offline'
 import type { RecordedChunk, Recorder } from './recorder'
 
 interface Request {
@@ -30,7 +30,10 @@ export function createEvidence(attemptId: string, log: EventLog, recorder: () =>
     await log.append(
       'evidence.fragment',
       { reason, tStart: picked[0]!.tStart, tEnd: picked.at(-1)!.tEnd, chunks: hashed.map((h) => h.hash) },
-      () => db.chunks.bulkPut(hashed.map(({ chunk, hash }) => ({ attemptId, hash, blob: chunk.blob }))),
+      () =>
+        putChunks(
+          hashed.map(({ chunk, hash }) => ({ attemptId, hash, tStart: chunk.tStart, blob: chunk.blob })),
+        ),
     )
   }
 

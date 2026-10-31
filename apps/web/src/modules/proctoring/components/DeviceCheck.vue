@@ -113,7 +113,7 @@ video {
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  color: rgb(255 255 255 / 0.8);
+  color: var(--on-ink-2);
   text-align: center;
 }
 .checks {

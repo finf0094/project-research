@@ -86,7 +86,7 @@ async function submit() {
   position: absolute;
   inset: 15% 10% auto;
   aspect-ratio: 1;
-  border: 1px dashed rgb(255 255 255 / 0.15);
+  border: 1px dashed color-mix(in oklab, var(--on-ink) 15%, transparent);
   border-radius: 50%;
 }
 .wordmark {
@@ -94,7 +94,7 @@ async function submit() {
   font-size: clamp(4rem, 9vw, 8rem);
   font-weight: 700;
   line-height: 1;
-  color: #fff;
+  color: var(--on-ink);
   span {
     color: var(--lime);
   }

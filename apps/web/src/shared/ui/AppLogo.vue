@@ -7,7 +7,7 @@ withDefaults(defineProps<{ wordmark?: boolean }>(), { wordmark: true })
     <span class="mark" aria-hidden="true">
       <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
         <rect x="2" y="8" width="15" height="14" rx="4.5" stroke="var(--lime)" stroke-width="2.8" />
-        <rect x="13" y="8" width="15" height="14" rx="4.5" stroke="#fff" stroke-width="2.8" />
+        <rect x="13" y="8" width="15" height="14" rx="4.5" stroke="var(--on-ink)" stroke-width="2.8" />
       </svg>
     </span>
     <span v-if="wordmark" class="word">exam</span>

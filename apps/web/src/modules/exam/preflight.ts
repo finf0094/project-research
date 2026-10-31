@@ -2,7 +2,7 @@ export interface Check {
   id: string
   title: string
   ok: boolean
-  /** Shown when the check fails: what the student can do about it. */
+  /** What the student can do about it; empty when there is nothing to do. */
   hint: string
 }
 
@@ -17,18 +17,21 @@ export async function runBrowserChecks(): Promise<Check[]> {
   const estimate = await navigator.storage?.estimate?.().catch(() => undefined)
   const freeMb =
     estimate?.quota && estimate.usage !== undefined ? (estimate.quota - estimate.usage) / 1_048_576 : null
+  const enoughSpace = freeMb === null || freeMb > 200
   return [
     {
       id: 'browser',
       title: 'Браузер',
       ok: supported,
-      hint: 'Откройте экзамен в свежей версии Chrome, Edge, Firefox или Safari.',
+      hint: supported ? '' : 'Откройте экзамен в свежей версии Chrome, Edge, Firefox или Safari.',
     },
     {
       id: 'storage',
       title: 'Место для ответов на устройстве',
-      ok: freeMb === null || freeMb > 200,
-      hint: 'Освободите место на диске: ответы и запись хранятся на устройстве, пока не отправятся.',
+      ok: enoughSpace,
+      hint: enoughSpace
+        ? ''
+        : 'Освободите место на диске: ответы и запись хранятся на устройстве, пока не отправятся.',
     },
     {
       id: 'persist',

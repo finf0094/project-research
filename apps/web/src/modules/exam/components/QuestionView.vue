@@ -27,9 +27,8 @@ const number = computed(() => String(props.index + 1).padStart(2, '0'))
 
     <TextAnswer
       v-if="question.type === 'text'"
-      :key="question.id"
       :label="question.text"
-      :model-value="typeof value === 'string' ? value : undefined"
+      :model-value="typeof value === 'string' ? value : ''"
       @update:model-value="emit('answer', $event)"
     />
     <ChoiceList

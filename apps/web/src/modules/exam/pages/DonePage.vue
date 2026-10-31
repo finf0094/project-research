@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CircleCheck } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSyncStore } from '@/modules/offline'
 import { AppButton, AppCard } from '@/shared/ui'
@@ -11,10 +11,19 @@ const exam = useExamStore()
 const sync = useSyncStore()
 
 // Keeps the sync loop running so the remaining answers and recordings reach the server.
-onMounted(() => exam.open(String(route.params.attemptId)))
+watch(
+  () => String(route.params.attemptId),
+  (id) => exam.open(id).catch(() => undefined),
+  { immediate: true },
+)
 onUnmounted(() => exam.close())
 
-const answersOnDevice = computed(() => !exam.finished)
+const title = computed(() => {
+  if (!exam.finished) return 'Ответы сохранены'
+  if (exam.endedBy === 'examiner') return 'Преподаватель завершил экзамен'
+  if (exam.endedBy === 'time') return 'Время вышло'
+  return 'Экзамен сдан'
+})
 const uploading = computed(() => sync.status.pendingChunks > 0)
 </script>
 
@@ -22,16 +31,21 @@ const uploading = computed(() => sync.status.pendingChunks > 0)
   <main class="page">
     <AppCard tone="ink" class="hero">
       <CircleCheck :size="56" class="icon" aria-hidden="true" />
-      <h1>{{ answersOnDevice ? 'Ответы сохранены' : 'Экзамен сдан' }}</h1>
-      <p v-if="answersOnDevice" class="lead">
+      <h1>{{ title }}</h1>
+      <p v-if="!exam.finished" class="lead">
         Ответы сохранены на устройстве и отправятся, как только появится интернет. Не закрывайте эту страницу.
       </p>
       <p v-else class="lead">
-        Ответы получены, экзамен засчитан. Результат появится после проверки преподавателем.
+        Засчитаны все ответы, данные до завершения. Результат появится после проверки преподавателем.
       </p>
     </AppCard>
 
-    <AppCard v-if="!answersOnDevice" role="status" aria-live="polite">
+    <AppCard v-if="exam.signedOut" role="alert" class="warn">
+      Сессия входа закончилась.
+      <RouterLink :to="`/login?next=${route.fullPath}`">Войдите снова</RouterLink>, чтобы отправить ответы.
+    </AppCard>
+
+    <AppCard v-else-if="exam.finished" role="status" aria-live="polite">
       <p v-if="uploading">
         Отправляем запись: осталось фрагментов — {{ sync.status.pendingChunks }}. Можно не ждать: загрузка
         продолжится при следующем входе.
@@ -60,7 +74,11 @@ const uploading = computed(() => sync.status.pendingChunks > 0)
   color: var(--lime);
 }
 .lead {
-  color: rgb(255 255 255 / 0.75);
+  color: var(--on-ink-2);
+}
+.warn {
+  background: var(--warn-tint);
+  color: var(--warn);
 }
 .back {
   justify-self: start;
