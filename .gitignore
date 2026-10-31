@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+apps/api/storage/
+coverage/
+test-results/
+playwright-report/
