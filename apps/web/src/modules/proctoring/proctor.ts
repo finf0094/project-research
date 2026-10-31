@@ -63,6 +63,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   let lastObjects = -Infinity
   const tooSlow = createTierWatch()
   let timer: ReturnType<typeof setTimeout> | undefined
+  let stopped = false
 
   const evidence = createEvidence(attemptId, log)
   let savingChunk: Promise<void> = Promise.resolve()
@@ -111,28 +112,30 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     if (transition) setSignal(transition.kind, transition.active)
   }
 
-  function analyze() {
-    const started = performance.now()
-    const dark = sensors.brightness() < DARK_BRIGHTNESS
-    observe('too_dark', dark)
+  async function analyze() {
     const withObjects = tier === 'full' && now() - lastObjects > OBJECTS_EVERY_MS
     if (withObjects) lastObjects = now()
-    const frame = tier === 'minimal' ? null : sensors.analyze(performance.now(), withObjects)
-    if (frame?.faces != null) {
+    const frame = await sensors.analyze(withObjects)
+    if (stopped) return
+    if (options.listen) observe('noise', sensors.loudness() > NOISE_RMS)
+    if (!frame) return
+    const dark = frame.brightness < DARK_BRIGHTNESS
+    observe('too_dark', dark)
+    if (frame.faces != null) {
       // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.
       observe('face_missing', frame.faces === 0 && !dark)
       observe('multiple_faces', frame.faces >= 2)
     }
-    if (frame?.lookingAway != null) observe('looking_away', frame.lookingAway)
-    if (frame?.object != null) observe('object_detected', frame.object)
-    if (options.listen) observe('noise', sensors.loudness() > NOISE_RMS)
-    adaptTier(performance.now() - started)
+    if (frame.lookingAway != null) observe('looking_away', frame.lookingAway)
+    if (frame.object != null) observe('object_detected', frame.object)
+    adaptTier(frame.ms)
   }
 
   /** Keeps the exam smooth on weak computers: lowers the tier when analysis is consistently slow. */
   function adaptTier(ms: number) {
     if (tier === 'minimal' || !tooSlow(ms)) return
     tier = lowerTier(tier)
+    sensors.lower(tier)
     void log.append('proctoring.mode', { tier })
     for (const kind of UNMEASURED[tier]) {
       tracker.reset(kind)
@@ -140,8 +143,10 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     }
   }
 
-  function tick() {
-    analyze()
+  /** One step per frame: the next one is scheduled only after this frame's analysis came back. */
+  async function tick() {
+    await analyze().catch((error: unknown) => console.error('frame analysis failed', error))
+    if (stopped) return
     updateRisk()
     showHint()
     if (now() - lastControl > SELF_CONTROL_AFTER_MS) capture(CONTROL_SECONDS)
@@ -162,11 +167,12 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   }
   document.addEventListener('visibilitychange', onVisibility)
   document.addEventListener('paste', onPaste)
-  tick()
+  void tick()
 
   return {
     capture,
     async stop() {
+      stopped = true
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisibility)
       document.removeEventListener('paste', onPaste)

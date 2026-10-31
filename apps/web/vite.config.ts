@@ -29,6 +29,8 @@ export default defineConfig({
   css: { transformer: 'lightningcss' },
   build: { cssMinify: 'lightningcss', target: 'es2023' },
   server: { proxy: { '/api': 'http://localhost:3000' } },
+  // The detector worker is a module worker (same code in dev and build).
+  worker: { format: 'es' },
   test: {
     environment: 'happy-dom',
     setupFiles: ['fake-indexeddb/auto'],

@@ -91,8 +91,9 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   not as separate commands (commands are `warn` and `capture`).
 - Append-only event log: enforced by database triggers (UPDATE/DELETE/TRUNCATE), not by role grants.
 - Final answers are projected during sync and rebuilt from the log during analysis (no separate job).
-- Face, gaze and object detection run on the main thread at 1–4 frames per second instead of a Web Worker;
-  the device tier (full / lite / minimal) is measured at preflight and lowered automatically when analysis
+- Face, gaze and object detection run in a module Web Worker (`detector.worker.ts`) at 1–4 frames per second;
+  frames are sent as transferable `ImageBitmap`s and only the microphone level is measured on the page. The
+  device tier (full / lite / minimal) is measured at preflight and lowered automatically when analysis
   stays slow.
 - Server-side analysis (section 17.3) uses ONNX models (UltraFace RFB-320 for faces, SSD MobileNet v1 for
   phones and books) on one frame per second of every uploaded chunk, run by the worker outside any row lock.

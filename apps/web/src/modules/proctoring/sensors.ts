@@ -1,37 +1,24 @@
 import type { DeviceTier } from '@exam/contracts'
 import type { Pose } from './calibration'
-import { headPose, isLookingAway } from './pose'
-import { FaceLandmarker, ObjectDetector } from '@mediapipe/tasks-vision'
-import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_internal.js?url'
-import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_internal.wasm?url'
+import type { FrameReport } from './detectors'
+import type { WorkerRequest } from './detector.worker'
 
-export interface FrameAnalysis {
-  /** Faces in the frame; null when the tier runs no face model. */
-  faces: number | null
-  /** Head turned or eyes off the screen; null when not measured. */
-  lookingAway: boolean | null
-  /** Raw head pose, used to calibrate the camera position at preflight. */
-  pose: Pose | null
-  /** A phone or a book in view; null when not measured this frame. */
-  object: boolean | null
-}
+export type { FrameReport } from './detectors'
 
 export interface Sensors {
-  analyze(timestamp: number, withObjects: boolean): FrameAnalysis
-  /** Mean brightness 0..255 of the current frame. */
-  brightness(): number
+  /** Analyses the current frame in the detector worker; null while the camera has no picture yet. */
+  analyze(withObjects: boolean): Promise<FrameReport | null>
+  /** Tells the worker to drop the models a lower tier does not use. */
+  lower(tier: DeviceTier): void
   /** Microphone level 0..1 (RMS). */
   loudness(): number
   dispose(): void
 }
 
-const SAMPLE_W = 32
-const SAMPLE_H = 18
-const fileset = { wasmLoaderPath, wasmBinaryPath }
-
 /**
- * On-device measurements. Video never leaves the device for analysis: the models and the WASM runtime are
- * served by the app and cached offline. The `minimal` tier loads no model at all (weak computers).
+ * On-device measurements. Video never leaves the device for analysis: frames go to a Web Worker that runs
+ * the models (served by the app and cached offline), so the exam page stays smooth. Sound is measured here,
+ * since Web Audio is not available in workers.
  */
 export async function createSensors(stream: MediaStream, tier: DeviceTier, baseline: Pose): Promise<Sensors> {
   const video = document.createElement('video')
@@ -40,13 +27,26 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
   video.srcObject = stream
   await video.play()
 
-  const [landmarker, objects] = await Promise.all([
-    tier === 'minimal' ? null : loadLandmarker(),
-    tier === 'full' ? loadObjectDetector() : null,
-  ])
-
-  const canvas = new OffscreenCanvas(SAMPLE_W, SAMPLE_H)
-  const context = canvas.getContext('2d', { willReadFrequently: true })!
+  const worker = new Worker(new URL('./detector.worker.ts', import.meta.url), { type: 'module' })
+  const post = (request: WorkerRequest, transfer: Transferable[] = []) =>
+    worker.postMessage(request, transfer)
+  const pending = new Map<number, (report: FrameReport | null) => void>()
+  let nextId = 0
+  const ready = new Promise<void>((resolve) => {
+    worker.onmessage = ({ data }) => {
+      if (data.type === 'ready') return resolve()
+      pending.get(data.id)?.(data.report)
+      pending.delete(data.id)
+    }
+  })
+  // A worker that cannot start analyses nothing; the exam goes on (signals read "not measured").
+  worker.onerror = (event) => {
+    console.error('detector worker failed', event.message)
+    pending.forEach((settle) => settle(null))
+    pending.clear()
+  }
+  post({ type: 'init', tier })
+  await ready
 
   const audio = new AudioContext()
   // Without a user gesture (e.g. after a reload) the context starts suspended and hears nothing.
@@ -61,28 +61,15 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
   const samples = new Float32Array(analyser.fftSize)
 
   return {
-    analyze(timestamp, withObjects) {
-      if (video.readyState < 2) return { faces: null, lookingAway: null, object: null, pose: null }
-      const face = landmarker?.detectForVideo(video, timestamp)
-      const object =
-        withObjects && objects ? objects.detectForVideo(video, timestamp).detections.length > 0 : null
-      const single = face?.faceLandmarks.length === 1 ? face : null
-      return {
-        faces: face ? face.faceLandmarks.length : null,
-        lookingAway: single ? isLookingAway(single, baseline) : null,
-        object,
-        pose: single ? headPose(single) : null,
-      }
+    async analyze(withObjects) {
+      if (video.readyState < 2) return null
+      const frame = await createImageBitmap(video)
+      const id = nextId++
+      const report = new Promise<FrameReport | null>((resolve) => pending.set(id, resolve))
+      post({ type: 'frame', id, frame, timestamp: performance.now(), withObjects, baseline }, [frame])
+      return report
     },
-    brightness() {
-      if (video.readyState < 2) return 255
-      context.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H)
-      const { data } = context.getImageData(0, 0, SAMPLE_W, SAMPLE_H)
-      let sum = 0
-      for (let i = 0; i < data.length; i += 4)
-        sum += 0.299 * data[i]! + 0.587 * data[i + 1]! + 0.114 * data[i + 2]!
-      return sum / (data.length / 4)
-    },
+    lower: (next) => post({ type: 'lower', tier: next }),
     loudness() {
       analyser.getFloatTimeDomainData(samples)
       let sum = 0
@@ -92,36 +79,12 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     dispose() {
       window.removeEventListener('pointerdown', resume)
       window.removeEventListener('keydown', resume)
-      landmarker?.close()
-      objects?.close()
+      pending.forEach((settle) => settle(null))
+      worker.terminate()
       void audio.close()
       video.srcObject = null
     },
   }
-}
-
-function loadLandmarker() {
-  return FaceLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: '/models/face_landmarker.task', delegate: 'CPU' },
-    runningMode: 'VIDEO',
-    numFaces: 2,
-    outputFacialTransformationMatrixes: true,
-  }).catch((error) => {
-    console.error('face model unavailable', error)
-    return null
-  })
-}
-
-function loadObjectDetector() {
-  return ObjectDetector.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: '/models/efficientdet_lite0.tflite', delegate: 'CPU' },
-    runningMode: 'VIDEO',
-    scoreThreshold: 0.5,
-    categoryAllowlist: ['cell phone', 'book'],
-  }).catch((error) => {
-    console.error('object model unavailable', error)
-    return null
-  })
 }
 
 export function requestCamera(): Promise<MediaStream> {

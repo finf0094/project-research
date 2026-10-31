@@ -49,18 +49,21 @@ export function useDeviceProbe() {
     sensors = await createSensors(media, 'full', { yaw: 0, pitch: 0 })
     if (disposed) return release()
     state.value = 'running'
-    timer = setInterval(measure, 500)
+    timer = setInterval(() => void measure(), 500)
   }
 
-  function measure() {
-    const started = performance.now()
-    const frame = sensors?.analyze(performance.now(), true)
-    timings.push(performance.now() - started)
+  let measuring = false
+  async function measure() {
+    if (measuring || !sensors) return // a slow computer: skip a beat instead of piling frames up
+    measuring = true
+    const frame = await sensors.analyze(true).finally(() => (measuring = false))
+    if (!frame || disposed) return
+    timings.push(frame.ms)
     if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))
-    if (frame?.pose) poses.push(frame.pose)
+    if (frame.pose) poses.push(frame.pose)
     saveBaseline(poses.slice(-10))
-    faces.value = frame?.faces ?? null
-    brightness.value = sensors?.brightness() ?? 255
+    faces.value = frame.faces
+    brightness.value = frame.brightness
   }
 
   function release() {
