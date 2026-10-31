@@ -18,6 +18,8 @@ const detail = ref<AttemptDetail | null>(null)
 const selected = ref<string | null>(null)
 const saved = ref(false)
 const action = useAction()
+/** Saving has its own state: judging markers must not spin the save button. */
+const saving = useAction()
 
 async function load() {
   detail.value = await getAttempt(attemptId)
@@ -39,15 +41,18 @@ const judge = (id: string, status: 'confirmed' | 'dismissed') =>
 
 async function save(body: DecisionBody) {
   saved.value = false
-  saved.value = await action.run(async () => {
+  await saving.run(async () => {
     await decide(attemptId, body)
+    saved.value = true // saved even if the reload below fails
     await load()
   })
 }
 </script>
 
 <template>
-  <p v-if="action.error.value" class="error" role="alert">{{ $t(action.error.value) }}</p>
+  <p v-if="action.error.value ?? saving.error.value" class="error" role="alert">
+    {{ $t((action.error.value ?? saving.error.value)!) }}
+  </p>
   <main v-if="detail" class="page">
     <AttemptHeader :detail="detail" />
 
@@ -85,7 +90,7 @@ async function save(body: DecisionBody) {
         <DecisionForm
           v-if="editable"
           :current="detail.decision"
-          :saving="action.busy.value"
+          :saving="saving.busy.value"
           :with-score="detail.examMode === 'oral'"
           @save="save"
         />

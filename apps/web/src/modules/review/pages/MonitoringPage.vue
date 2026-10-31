@@ -44,7 +44,7 @@ const stats = computed(() => ({
 
 async function send(body: ExaminerCommandBody) {
   const target = acting.value
-  if (!target) return
+  if (!target || action.busy.value) return
   const sent = await action.run(() => sendCommand(target.id, body))
   if (sent) acting.value = null
   await refresh()
@@ -85,10 +85,13 @@ async function send(body: ExaminerCommandBody) {
       />
     </AppCard>
 
-    <CommandDialog :attempt="acting" @send="send" @close="acting = null" />
-    <p v-if="action.error.value" class="error" role="alert">
-      {{ $t(action.error.value) }}
-    </p>
+    <CommandDialog
+      :attempt="acting"
+      :sending="action.busy.value"
+      :error="action.error.value"
+      @send="send"
+      @close="acting = null"
+    />
   </main>
 </template>
 
@@ -104,9 +107,6 @@ async function send(body: ExaminerCommandBody) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-4);
-}
-.error {
-  color: var(--danger);
 }
 .note {
   margin-block: var(--space-2) var(--space-4);

@@ -2,6 +2,7 @@ import type { RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import type { EventLog } from '@/modules/offline'
+import { stopTracks } from '@/shared/lib/media'
 import { savedBaseline } from './calibration'
 import { savedTier } from './device-tier'
 import { startProctor, type Proctor } from './proctor'
@@ -140,10 +141,6 @@ export const useProctoringStore = defineStore('proctoring', () => {
 
   return { stream, camera, hint, risk, recording, start, retry, capture, stop }
 })
-
-function stopTracks(media: MediaStream) {
-  media.getTracks().forEach((t) => t.stop())
-}
 
 /** Resolves with the value, or with null if aborted first; a value arriving after the abort is cleaned up. */
 function abortable<T>(

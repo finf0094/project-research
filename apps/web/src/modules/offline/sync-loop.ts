@@ -1,8 +1,9 @@
 import { SyncResponse, type AttemptStatus, type NetState } from '@exam/contracts'
 import Dexie from 'dexie'
-import { ApiError, isNetworkError, request, upload } from '@/shared/lib/http'
+import { ApiError, isNetworkError, request } from '@/shared/lib/http'
 import type { ServerClock } from './clock'
 import { initialConnection, nextConnection, retryDelay, type SyncOutcome } from './connection'
+import { uploadChunks } from './chunk-upload'
 import { db } from './db'
 import type { EventLog } from './event-log'
 import { countChunks } from './local-data'
@@ -34,7 +35,6 @@ const BATCH_SIZE = 100
 /** Keeps a batch well below the server body limit even with long essays. */
 const BATCH_BYTES = 512 * 1024
 const IDLE_MS = 4000
-const CHUNKS_PER_TICK = 3
 const OPEN: readonly AttemptStatus[] = ['active', 'terminated']
 
 /**
@@ -121,28 +121,11 @@ export function startSync(options: SyncOptions): SyncHandle {
     await options.onResponse(response)
 
     const allAcked = !accepting || ackedSeq >= log.head().seq
-    if (allAcked && (connection.status === 'online' || !accepting)) await uploadChunks()
+    if (allAcked && (connection.status === 'online' || !accepting))
+      await uploadChunks(attemptId, aborter.signal, running)
     if (allAcked) return IDLE_MS
     // Not everything acknowledged: continue at once if the server moved forward, otherwise back off.
     return ackedSeq > attempt.ackedSeq ? 0 : retryDelay(2)
-  }
-
-  // A chunk the server refuses for good (window closed, never announced) is dropped so it cannot block the rest.
-  async function uploadChunks() {
-    const chunks = await db.chunks
-      .where('[attemptId+tStart]')
-      .between([attemptId, Dexie.minKey], [attemptId, Dexie.maxKey])
-      .limit(CHUNKS_PER_TICK)
-      .toArray()
-    for (const chunk of chunks) {
-      try {
-        await upload(`/attempts/${attemptId}/chunks/${chunk.hash}`, chunk.blob, aborter.signal)
-      } catch (error) {
-        if (isNetworkError(error) || !running()) return
-        console.error('chunk refused, dropping it', chunk.hash, error)
-      }
-      await db.chunks.delete([attemptId, chunk.hash])
-    }
   }
 
   async function loop() {

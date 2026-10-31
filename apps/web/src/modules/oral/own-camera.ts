@@ -1,4 +1,5 @@
 import { onScopeDispose, ref } from 'vue'
+import { stopTracks } from '@/shared/lib/media'
 
 /**
  * The examiner's own camera and microphone for the call. A dead or missing one is asked for again, and
@@ -14,7 +15,7 @@ export function useOwnCamera() {
     try {
       const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       if (disposed) {
-        media.getTracks().forEach((t) => t.stop())
+        stopTracks(media)
         return null
       }
       stream = media
@@ -26,7 +27,7 @@ export function useOwnCamera() {
   }
 
   function stop() {
-    stream?.getTracks().forEach((t) => t.stop())
+    stopTracks(stream)
     stream = null
   }
 

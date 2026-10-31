@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createTierWatch } from './device-tier'
+import { createTierWatch, lowerTier, tierFromTiming } from './device-tier'
 
 describe('createTierWatch', () => {
   it('ignores the slow warm-up frames and a single slow frame', () => {
@@ -12,5 +12,15 @@ describe('createTierWatch', () => {
     const tooSlow = createTierWatch()
     const results = Array.from({ length: 10 }, () => tooSlow(400))
     expect(results.indexOf(true)).toBe(9) // 5 warm-up frames, then 5 slow ones in a row
+  })
+})
+
+describe('device tiers', () => {
+  it('maps measured analysis time to a tier and lowers one step at a time', () => {
+    expect(tierFromTiming(20)).toBe('full')
+    expect(tierFromTiming(120)).toBe('lite')
+    expect(tierFromTiming(500)).toBe('minimal')
+    expect(lowerTier('full')).toBe('lite')
+    expect(lowerTier('lite')).toBe('minimal')
   })
 })

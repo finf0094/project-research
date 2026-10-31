@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lowerTier, tierFromTiming } from './device-tier'
-import { headPose, isLookingAway } from './sensors'
+import { headPose, isLookingAway } from './pose'
 
 /** A face result with a head rotated by `yawDeg` around the vertical axis and eyes centred. */
 function face(yawDeg: number, irisShift = 0) {
@@ -36,15 +35,5 @@ describe('head pose and gaze', () => {
   it('flags eyes turned to the side even with the head straight', () => {
     expect(isLookingAway(face(0, 0.045), neutral)).toBe(true)
     expect(isLookingAway(face(0, 0.01), neutral)).toBe(false)
-  })
-})
-
-describe('device tiers', () => {
-  it('maps measured analysis time to a tier and lowers one step at a time', () => {
-    expect(tierFromTiming(20)).toBe('full')
-    expect(tierFromTiming(120)).toBe('lite')
-    expect(tierFromTiming(500)).toBe('minimal')
-    expect(lowerTier('full')).toBe('lite')
-    expect(lowerTier('lite')).toBe('minimal')
   })
 })

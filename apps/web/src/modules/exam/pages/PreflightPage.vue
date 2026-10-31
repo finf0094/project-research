@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ArrowLeft, CircleCheck, CircleAlert } from 'lucide-vue-next'
+import { ArrowLeft } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { DeviceCheck } from '@/modules/proctoring'
-import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
-import { AppButton, AppCard, LocaleSwitch } from '@/shared/ui'
+import { useAction } from '@/shared/lib/use-action'
+import { AppButton, AppCard, CheckList, LocaleSwitch } from '@/shared/ui'
 import { beginAttempt } from '../local-attempt'
 import { runBrowserChecks, type Check } from '../preflight'
 import { attemptPath } from '../paths'
@@ -14,25 +15,26 @@ const router = useRouter()
 const checks = ref<Check[] | null>(null)
 const consent = ref(false)
 const deviceReady = ref(false)
-const starting = ref(false)
-const error = ref<ErrorKey | 'exam.preflight.notOpen' | null>(null)
+const starting = useAction({ 409: 'exam.preflight.notOpen' as const })
 
 onMounted(async () => (checks.value = await runBrowserChecks()))
+const { t } = useI18n()
+const items = computed(() =>
+  (checks.value ?? []).map((c) => ({
+    id: c.id,
+    ok: c.ok,
+    title: t(`exam.preflight.${c.id}.title`),
+    hint: c.advise ? t(`exam.preflight.${c.id}.hint`) : undefined,
+  })),
+)
 const FACTS = ['answers', 'video', 'server', 'decision'] as const
 const ready = computed(() => !!checks.value?.every((c) => c.ok) && deviceReady.value && consent.value)
 
-async function start() {
-  error.value = null
-  starting.value = true
-  try {
+const start = () =>
+  starting.run(async () => {
     const attempt = await beginAttempt(String(route.params.examId))
     await router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
-  } catch (e) {
-    error.value = errorKey(e, { 409: 'exam.preflight.notOpen' as const })
-  } finally {
-    starting.value = false
-  }
-}
+  })
 </script>
 
 <template>
@@ -50,16 +52,7 @@ async function start() {
         <h2>{{ $t('exam.preflight.checks') }}</h2>
         <DeviceCheck class="device" @ready="deviceReady = $event" />
         <p v-if="!checks" class="muted">{{ $t('exam.preflight.checking') }}</p>
-        <ul v-else class="checks">
-          <li v-for="check in checks" :key="check.id" class="check">
-            <CircleCheck v-if="check.ok" class="ok" :size="22" aria-hidden="true" />
-            <CircleAlert v-else class="bad" :size="22" aria-hidden="true" />
-            <div>
-              <p class="title">{{ $t(`exam.preflight.${check.id}.title`) }}</p>
-              <p v-if="check.advise" class="muted hint">{{ $t(`exam.preflight.${check.id}.hint`) }}</p>
-            </div>
-          </li>
-        </ul>
+        <CheckList v-else :items="items" />
         <p class="muted hint">{{ $t('exam.preflight.timerHint') }}</p>
       </AppCard>
 
@@ -74,10 +67,10 @@ async function start() {
           <input v-model="consent" type="checkbox" />
           {{ $t('exam.preflight.consent') }}
         </label>
-        <AppButton block :disabled="!ready" :loading="starting" @click="start">{{
+        <AppButton block :disabled="!ready" :loading="starting.busy.value" @click="start">{{
           $t('exam.preflight.start')
         }}</AppButton>
-        <p v-if="error" class="error" role="alert">{{ $t(error) }}</p>
+        <p v-if="starting.error.value" class="error" role="alert">{{ $t(starting.error.value) }}</p>
       </AppCard>
     </div>
   </main>
@@ -108,28 +101,8 @@ async function start() {
 .device {
   margin-top: var(--space-4);
 }
-.checks {
-  display: grid;
-  gap: var(--space-4);
-  margin-block: var(--space-5);
-  padding: 0;
-  list-style: none;
-}
-.check {
-  display: flex;
-  gap: var(--space-3);
-}
-.title {
-  font-weight: 600;
-}
 .hint {
   font-size: var(--text-sm);
-}
-.ok {
-  color: var(--ok);
-}
-.bad {
-  color: var(--warn);
 }
 .privacy {
   display: grid;
