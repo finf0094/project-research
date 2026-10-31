@@ -10,13 +10,17 @@ const id = useId()
 <template>
   <div class="field">
     <label :for="id">{{ label }}</label>
-    <input
-      :id="id"
-      v-model="model"
-      v-bind="$attrs"
-      :aria-invalid="!!error || undefined"
-      :aria-describedby="error || hint ? `${id}-note` : undefined"
-    />
+    <div class="control">
+      <input
+        :id="id"
+        v-model="model"
+        v-bind="$attrs"
+        :aria-invalid="!!error || undefined"
+        :aria-describedby="error || hint ? `${id}-note` : undefined"
+      />
+      <!-- An action inside the field, at its end (e.g. showing a password). -->
+      <span v-if="$slots.trailing" class="trailing"><slot name="trailing" /></span>
+    </div>
     <p v-if="error || hint" :id="`${id}-note`" class="note" :class="{ error: !!error }">
       {{ error ?? hint }}
     </p>
@@ -31,6 +35,19 @@ const id = useId()
 label {
   font-size: var(--text-sm);
   font-weight: 600;
+}
+.control {
+  position: relative;
+  display: grid;
+}
+.trailing {
+  position: absolute;
+  inset: 0 4px 0 auto;
+  display: flex;
+  align-items: center;
+}
+.control:has(.trailing) input {
+  padding-inline-end: 52px;
 }
 input {
   min-height: 48px;
