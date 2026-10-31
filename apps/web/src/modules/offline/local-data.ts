@@ -55,8 +55,13 @@ export async function putRingChunk(chunk: RingChunk, keepMs: number) {
 
 export const listRing = (attemptId: string) => ringOf(attemptId).toArray()
 
-/** Recording is no longer needed once the attempt is finished: what was pinned is in `chunks`. */
-export const clearRing = (attemptId: string) => ringOf(attemptId).delete()
+/** Recording is no longer needed once the attempt is finished: what was pinned is already in `chunks`. */
+export async function clearRecording(attemptId: string) {
+  await db.transaction('rw', db.ring, db.pins, async () => {
+    await ringOf(attemptId).delete()
+    await db.pins.where('attemptId').equals(attemptId).delete()
+  })
+}
 
 export const addPin = (pin: PendingPin) => db.pins.add(pin)
 export const listPins = (attemptId: string) => db.pins.where('attemptId').equals(attemptId).toArray()

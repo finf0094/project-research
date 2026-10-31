@@ -2,6 +2,7 @@ import type { AnswerValue, AttemptStatus, Question, SyncResponse } from '@exam/c
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, toRaw } from 'vue'
 import {
+  clearRecording,
   createServerClock,
   listAnswers,
   openEventLog,
@@ -168,6 +169,8 @@ export const useExamStore = defineStore('exam', () => {
     endedBy.value = reason
     await drafts.flush()
     await proctoring.stop().catch((error) => console.error('proctoring did not stop cleanly', error))
+    // Whatever was not pinned is no longer needed, even if proctoring never ran on this device.
+    await clearRecording(rt.attemptId).catch(() => undefined)
     await rt.log.append('session.submitted', {}, () => updateAttempt(rt.attemptId, { endedBy: reason }))
     rt.sync.wake()
   }

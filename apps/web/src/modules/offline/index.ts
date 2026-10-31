@@ -3,7 +3,7 @@ export type { EndReason, LocalAttempt, LocalChunk, PendingPin, RingChunk } from 
 export { openEventLog, type EventLog } from './event-log'
 export {
   addPin,
-  clearRing,
+  clearRecording,
   countChunks,
   deletePin,
   getAttempt,

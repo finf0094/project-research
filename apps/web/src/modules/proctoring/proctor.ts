@@ -1,5 +1,6 @@
 import type { DeviceTier, RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import type { EventLog } from '@/modules/offline'
+import type { Pose } from './calibration'
 import { lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
 import { startRecorder } from './recorder'
@@ -19,6 +20,8 @@ export interface ProctorOptions {
   log: EventLog
   recording: RecordingMode
   tier: DeviceTier
+  /** Neutral head pose from preflight calibration. */
+  baseline: Pose
   /** Server-time clock of the attempt; signal and fragment times use it. */
   now: () => number
   onHint(kind: SignalKind | null): void
@@ -45,6 +48,16 @@ const CONTROL_SECONDS = 20
 const OBJECTS_EVERY_MS = 2000
 /** Average analysis time above which the tier is lowered one step. */
 const SLOW_ANALYSIS_MS = 250
+/** The first frames warm the models up and are slow by nature; they never count. */
+const WARMUP_FRAMES = 5
+/** The average must stay slow this many frames in a row before the tier drops. */
+const SLOW_FRAMES = 5
+/** Signals each tier no longer measures; they are switched off when the tier drops, never left stuck on. */
+const UNMEASURED: Record<DeviceTier, ObservedKind[]> = {
+  full: [],
+  lite: ['object_detected'],
+  minimal: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'],
+}
 
 /**
  * Local adaptive proctoring: measures, turns measurements into signals, shows hints, and decides how much
@@ -53,7 +66,7 @@ const SLOW_ANALYSIS_MS = 250
 export async function startProctor(stream: MediaStream, options: ProctorOptions): Promise<Proctor> {
   const { attemptId, log, recording, now } = options
   let tier = options.tier
-  const sensors = await createSensors(stream, tier)
+  const sensors = await createSensors(stream, tier, options.baseline)
   const tracker = createSignalTracker()
   const active = new Set<SignalKind>()
   let activations: number[] = []
@@ -64,6 +77,8 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   let lastControl = now()
   let lastObjects = -Infinity
   let analysisMs = 0
+  let frames = 0
+  let slowFrames = 0
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const evidence = createEvidence(attemptId, log)
@@ -113,7 +128,9 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     options.onRisk(next)
     // Evidence is kept when risk rises. With full recording every chunk is already kept, so it is skipped.
     const rising = next === 'high' || (next === 'medium' && previous === 'low')
-    if (next !== 'low' && rising && recording !== 'full' && now() - lastFragment > FRAGMENT_COOLDOWN_MS) {
+    // High risk always gets its long fragment, even right after a medium one.
+    const cooledDown = next === 'high' || now() - lastFragment > FRAGMENT_COOLDOWN_MS
+    if (next !== 'low' && rising && recording !== 'full' && cooledDown) {
       lastFragment = now()
       void evidence.request('risk', now() - FRAGMENT_MS[next], now() + FRAGMENT_MS[next])
     }
@@ -144,11 +161,16 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
 
   /** Keeps the exam smooth on weak computers: lowers the tier when analysis is consistently slow. */
   function adaptTier(ms: number) {
+    if (++frames <= WARMUP_FRAMES || tier === 'minimal') return
     analysisMs = analysisMs ? analysisMs * 0.8 + ms * 0.2 : ms
-    if (analysisMs > SLOW_ANALYSIS_MS && tier !== 'minimal') {
-      tier = lowerTier(tier)
-      analysisMs = 0
-      void log.append('proctoring.mode', { tier })
+    slowFrames = analysisMs > SLOW_ANALYSIS_MS ? slowFrames + 1 : 0
+    if (slowFrames < SLOW_FRAMES) return
+    tier = lowerTier(tier)
+    slowFrames = 0
+    void log.append('proctoring.mode', { tier })
+    for (const kind of UNMEASURED[tier]) {
+      tracker.reset(kind)
+      setSignal(kind, false)
     }
   }
 

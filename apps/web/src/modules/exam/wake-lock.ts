@@ -4,13 +4,21 @@
  */
 export function keepScreenOn(): () => void {
   let sentinel: WakeLockSentinel | null = null
+  let requesting = false
   let active = true
   const acquire = async () => {
-    if (!active || document.visibilityState !== 'visible' || !navigator.wakeLock) return
+    if (!active || requesting || (sentinel && !sentinel.released)) return
+    if (document.visibilityState !== 'visible' || !navigator.wakeLock) return
+    requesting = true
     try {
-      sentinel = await navigator.wakeLock.request('screen')
+      const lock = await navigator.wakeLock.request('screen')
+      // Released while the request was pending: give the lock straight back.
+      if (active) sentinel = lock
+      else void lock.release()
     } catch {
       /* e.g. battery saver: the exam works without it */
+    } finally {
+      requesting = false
     }
   }
   document.addEventListener('visibilitychange', acquire)

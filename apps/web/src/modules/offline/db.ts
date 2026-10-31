@@ -72,6 +72,9 @@ db.version(1).stores({
   events: '[attemptId+seq]',
   answers: '[attemptId+questionId]',
   chunks: '[attemptId+hash], [attemptId+tStart]',
+})
+// Version 2: the recording ring and pending fragment requests moved from memory to IndexedDB.
+db.version(2).stores({
   ring: '[attemptId+tStart]',
   pins: '++id, attemptId',
 })

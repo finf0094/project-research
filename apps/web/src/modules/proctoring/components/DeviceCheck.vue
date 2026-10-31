@@ -2,6 +2,7 @@
 import { CircleAlert, CircleCheck } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { AppButton } from '@/shared/ui'
+import { saveBaseline, type Pose } from '../calibration'
 import { saveTier, tierFromTiming } from '../device-tier'
 import { createSensors, requestCamera, type Sensors } from '../sensors'
 import { DARK_BRIGHTNESS } from '../signals'
@@ -17,6 +18,7 @@ let sensors: Sensors | null = null
 let timer: ReturnType<typeof setInterval> | undefined
 let unmounted = false
 const timings: number[] = []
+const poses: Pose[] = []
 
 const checks = computed(() => [
   {
@@ -51,7 +53,7 @@ async function start() {
   if (unmounted) return release()
   if (video.value) video.value.srcObject = stream
   // The check runs the heaviest tier and measures it: that decides how much this computer analyses in the exam.
-  sensors = await createSensors(stream, 'full')
+  sensors = await createSensors(stream, 'full', { yaw: 0, pitch: 0 })
   if (unmounted) return release()
   state.value = 'running'
   timer = setInterval(() => {
@@ -59,6 +61,9 @@ async function start() {
     const frame = sensors?.analyze(performance.now(), true)
     timings.push(performance.now() - started)
     if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))
+    // While the student looks at this screen, their pose is the neutral one for this camera position.
+    if (frame?.pose) poses.push(frame.pose)
+    saveBaseline(poses.slice(-10))
     faces.value = frame?.faces ?? null
     brightness.value = sensors?.brightness() ?? 255
     emit(

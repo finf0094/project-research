@@ -1,4 +1,5 @@
 import type { DeviceTier } from '@exam/contracts'
+import type { Pose } from './calibration'
 import { FaceLandmarker, ObjectDetector } from '@mediapipe/tasks-vision'
 import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_internal.js?url'
 import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_internal.wasm?url'
@@ -8,6 +9,8 @@ export interface FrameAnalysis {
   faces: number | null
   /** Head turned or eyes off the screen; null when not measured. */
   lookingAway: boolean | null
+  /** Raw head pose, used to calibrate the camera position at preflight. */
+  pose: Pose | null
   /** A phone or a book in view; null when not measured this frame. */
   object: boolean | null
 }
@@ -29,7 +32,7 @@ const fileset = { wasmLoaderPath, wasmBinaryPath }
  * On-device measurements. Video never leaves the device for analysis: the models and the WASM runtime are
  * served by the app and cached offline. The `minimal` tier loads no model at all (weak computers).
  */
-export async function createSensors(stream: MediaStream, tier: DeviceTier): Promise<Sensors> {
+export async function createSensors(stream: MediaStream, tier: DeviceTier, baseline: Pose): Promise<Sensors> {
   const video = document.createElement('video')
   video.muted = true
   video.playsInline = true
@@ -58,14 +61,16 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier): Prom
 
   return {
     analyze(timestamp, withObjects) {
-      if (video.readyState < 2) return { faces: null, lookingAway: null, object: null }
+      if (video.readyState < 2) return { faces: null, lookingAway: null, object: null, pose: null }
       const face = landmarker?.detectForVideo(video, timestamp)
       const object =
         withObjects && objects ? objects.detectForVideo(video, timestamp).detections.length > 0 : null
+      const single = face?.faceLandmarks.length === 1 ? face : null
       return {
         faces: face ? face.faceLandmarks.length : null,
-        lookingAway: face?.faceLandmarks.length === 1 ? isLookingAway(face) : null,
+        lookingAway: single ? isLookingAway(single, baseline) : null,
         object,
+        pose: single ? headPose(single) : null,
       }
     },
     brightness() {
@@ -119,18 +124,35 @@ function loadObjectDetector() {
 }
 
 const MAX_YAW_DEG = 30
-const MAX_PITCH_DEG = 25
+// Generous on purpose: looking down at allowed scratch paper must not count.
+const MAX_PITCH_DEG = 35
 /** Iris position between the eye corners (0..1); outside this band the eyes look sideways. */
 const GAZE_BAND: [number, number] = [0.3, 0.7]
 
-/** Head pose from the face transformation matrix, gaze from iris landmarks relative to the eye corners. */
-export function isLookingAway(face: ReturnType<FaceLandmarker['detectForVideo']>): boolean {
+type FaceResult = ReturnType<FaceLandmarker['detectForVideo']>
+
+/** Head yaw and pitch in degrees from the face transformation matrix (column-major 4×4). */
+export function headPose(face: FaceResult): Pose | null {
   const m = face.facialTransformationMatrixes[0]?.data
-  if (m) {
-    // Column-major 4×4: the rotation's third column is (m[8], m[9], m[10]).
-    const yaw = (Math.atan2(m[8]!, m[10]!) * 180) / Math.PI
-    const pitch = (Math.atan2(-m[9]!, Math.hypot(m[8]!, m[10]!)) * 180) / Math.PI
-    if (Math.abs(yaw) > MAX_YAW_DEG || Math.abs(pitch) > MAX_PITCH_DEG) return true
+  if (!m) return null
+  // The rotation's third column is (m[8], m[9], m[10]).
+  return {
+    yaw: (Math.atan2(m[8]!, m[10]!) * 180) / Math.PI,
+    pitch: (Math.atan2(-m[9]!, Math.hypot(m[8]!, m[10]!)) * 180) / Math.PI,
+  }
+}
+
+/**
+ * Head turned away (relative to the calibrated neutral pose, so a camera mounted to the side is not
+ * a violation) or both eyes looking sideways (iris between the eye corners).
+ */
+export function isLookingAway(face: FaceResult, baseline: Pose): boolean {
+  const pose = headPose(face)
+  if (
+    pose &&
+    (Math.abs(pose.yaw - baseline.yaw) > MAX_YAW_DEG || Math.abs(pose.pitch - baseline.pitch) > MAX_PITCH_DEG)
+  ) {
+    return true
   }
   const p = face.faceLandmarks[0]
   if (!p || p.length < 478) return false

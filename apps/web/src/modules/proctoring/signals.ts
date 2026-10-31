@@ -17,7 +17,7 @@ const RULES: Record<ObservedKind, Rule> = {
   too_dark: { onAfterMs: 5000, offAfterMs: 3000 },
   noise: { onAfterMs: 3000, offAfterMs: 3000 },
   // Reading the question and thinking means glancing around; only a sustained look away counts.
-  looking_away: { onAfterMs: 5000, offAfterMs: 2000 },
+  looking_away: { onAfterMs: 8000, offAfterMs: 2000 },
   object_detected: { onAfterMs: 2000, offAfterMs: 4000 },
 }
 
@@ -31,6 +31,10 @@ export function createSignalTracker() {
   const state = new Map<ObservedKind, { active: boolean; changingSince: number | null }>()
 
   return {
+    /** Forgets a signal that is no longer measured. */
+    reset(kind: ObservedKind) {
+      state.delete(kind)
+    },
     observe(kind: ObservedKind, present: boolean, now: number): Transition | null {
       const s = state.get(kind) ?? { active: false, changingSince: null }
       state.set(kind, s)

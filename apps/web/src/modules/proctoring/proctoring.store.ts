@@ -2,6 +2,7 @@ import type { RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import type { EventLog } from '@/modules/offline'
+import { savedBaseline } from './calibration'
 import { savedTier } from './device-tier'
 import { startProctor, type Proctor } from './proctor'
 import { requestCamera } from './sensors'
@@ -65,6 +66,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
         startProctor(media, {
           ...opts,
           tier: savedTier(),
+          baseline: savedBaseline(),
           onHint: (kind) => (hint.value = kind),
           onRisk: (level) => (risk.value = level),
         }),
