@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import type { AttemptSummary, ExaminerCommandBody, ExaminerExam } from '@exam/contracts'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
 import { AppCard, StatTile } from '@/shared/ui'
 import { listAttempts, listExams, sendCommand } from '../api'
 import AttemptsTable from '../components/AttemptsTable.vue'
 import CommandDialog from '../components/CommandDialog.vue'
+import { useLiveUpdates } from '../live-updates'
 
-const POLL_MS = 5000
 const route = useRoute()
 const router = useRouter()
 const examId = String(route.params.examId)
@@ -32,9 +32,8 @@ onMounted(async () => {
   exam.value = (await listExams().catch(() => [])).find((e) => e.id === examId) ?? null
   await refresh()
 })
-// Polling keeps the server simple (no SSE); five seconds is fresh enough for a proctor.
-const poll = setInterval(refresh, POLL_MS)
-onUnmounted(() => clearInterval(poll))
+// Changes arrive through the server's event stream (SSE); the composable falls back to slow polling.
+const live = useLiveUpdates(examId, refresh)
 
 const count = (pred: (a: AttemptSummary) => boolean) => attempts.value.filter(pred).length
 const stats = computed(() => ({
@@ -78,7 +77,7 @@ async function send(body: ExaminerCommandBody) {
       <h2>{{ $t('review.monitoring.students') }}</h2>
       <p class="muted note">
         {{ $t('review.monitoring.riskNote') }}
-        <span v-if="stale"> · {{ $t('review.monitoring.stale') }}</span>
+        <span v-if="stale || !live.connected.value"> · {{ $t('review.monitoring.stale') }}</span>
       </p>
       <AttemptsTable
         :attempts="attempts"

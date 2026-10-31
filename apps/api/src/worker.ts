@@ -7,13 +7,14 @@ import { fsStorage } from './shared/storage.ts'
 
 // A plain polling loop: Postgres row locks (SKIP LOCKED) are the queue, so no extra queue service is needed.
 const config = loadConfig()
-const { db, close } = createDb(config.DATABASE_URL)
+const { db, listen, close } = createDb(config.DATABASE_URL)
 const deps: Deps = {
   db,
   config,
   storage: fsStorage(config.STORAGE_DIR),
   masterKey: Buffer.from(config.MASTER_KEY, 'base64'),
   now: Date.now,
+  listen,
 }
 
 const POLL_MS = 15_000

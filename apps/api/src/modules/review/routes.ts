@@ -13,12 +13,15 @@ import type { ModuleOptions } from '../../deps.ts'
 import { currentUser, requireRole } from '../auth/guard.ts'
 import { attemptDetail, decide, readChunk, sendCommand, updateMarker } from './attempt-review.ts'
 import { listAttempts, listExams } from './monitoring.ts'
+import { registerStream } from './stream.ts'
 
 const IdParams = z.object({ id: z.uuid() })
 
 export const reviewRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { deps }) => {
   app.addHook('onRequest', requireRole('examiner'))
   const me = (request: Parameters<typeof currentUser>[0]) => currentUser(request).id
+
+  registerStream(app, deps)
 
   app.get('/examiner/exams', { schema: { response: { 200: z.array(ExaminerExam) } } }, async (request) =>
     listExams(deps.db, me(request)),

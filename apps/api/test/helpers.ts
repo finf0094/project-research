@@ -29,7 +29,7 @@ export async function createTestContext(): Promise<TestContext> {
     MASTER_KEY: Buffer.alloc(32, 1).toString('base64'),
     COOKIE_SECURE: 'false',
   })
-  const { db, close } = createDb(config.DATABASE_URL)
+  const { db, listen, close } = createDb(config.DATABASE_URL)
   const clock = { now: Date.UTC(2026, 10, 2, 9, 0) }
   const deps: Deps = {
     db,
@@ -37,6 +37,7 @@ export async function createTestContext(): Promise<TestContext> {
     storage: fsStorage(await mkdtemp(join(tmpdir(), 'exam-storage-'))),
     masterKey: Buffer.from(config.MASTER_KEY, 'base64'),
     now: () => clock.now,
+    listen,
   }
   // The event log refuses TRUNCATE (append-only trigger); tests switch the guard off only while resetting.
   await db.execute(sql`alter table events disable trigger events_no_truncate`)

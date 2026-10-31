@@ -1,11 +1,13 @@
 {$SITE_ADDRESS::80} {
-	encode zstd gzip
-
 	handle /api/* {
-		reverse_proxy api:3000
+		# Not compressed and flushed at once: live monitoring is an event stream (SSE).
+		reverse_proxy api:3000 {
+			flush_interval -1
+		}
 	}
 
 	handle {
+		encode zstd gzip
 		root * /srv
 		# The service worker must always be revalidated, or clients keep an old app shell.
 		@sw path /sw.js /registerSW.js

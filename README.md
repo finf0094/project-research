@@ -82,7 +82,9 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
 - Worker queue: a polling loop over PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED`) instead of pg-boss.
 - Recordings: filesystem `BlobStorage` behind an interface (S3/MinIO plugs in there); the examiner gets chunks
   through the API, not presigned links.
-- Live monitoring: the examiner page polls every 5 s instead of SSE.
+- Live monitoring: Server-Sent Events per exam (`GET /examiner/exams/:id/stream`), fed by PostgreSQL
+  `LISTEN/NOTIFY` from a trigger on `attempts`, so changes made by the worker process arrive too and several
+  API instances need no extra pub/sub. The page reloads the list on each event and polls every 30 s as a safety net.
 - API paths: `/attempts/:id/sync`, `/attempts/:id/chunks/:hash`, `/examiner/*` instead of `/sync`, `/blobs/{sha}`,
   `/review/*`. Deadline extensions and termination reach the client as `deadline`/`status` in the sync response,
   not as separate commands (commands are `warn` and `capture`).

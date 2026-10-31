@@ -4,13 +4,14 @@ import { createDb } from './db/client.ts'
 import { fsStorage } from './shared/storage.ts'
 
 const config = loadConfig()
-const { db, close } = createDb(config.DATABASE_URL)
+const { db, listen, close } = createDb(config.DATABASE_URL)
 const app = await buildApp({
   db,
   config,
   storage: fsStorage(config.STORAGE_DIR),
   masterKey: Buffer.from(config.MASTER_KEY, 'base64'),
   now: Date.now,
+  listen,
 })
 
 const shutdown = async () => {
