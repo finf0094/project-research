@@ -64,6 +64,7 @@ describe('attempts', () => {
     expect(again.hmacKey).toBe(first.hmacKey)
     expect(first.deadline).toBe(ctx.clock.now + 60 * 60_000)
     expect(first.exam.questions[0]).not.toHaveProperty('correct')
+    expect(first.answers).toEqual({})
   })
 
   it('refuses students who are not enrolled', async () => {
@@ -284,5 +285,16 @@ describe('submit, recording and review', () => {
     const session = await start()
     ctx.clock.now = session.deadline + 16 * 60_000
     expect(await closeExpired(ctx.deps)).toBe(1)
+  })
+})
+
+describe('resume on another device', () => {
+  it('returns the answers the server already holds', async () => {
+    const session = await start()
+    const chain = await clientChain(session)
+    await sync(session.attemptId, [await chain.next('answer', { questionId: seeded.single.id, value: 'b' }, ctx.clock.now)])
+    const again = await start()
+    expect(again.answers).toEqual({ [seeded.single.id]: 'b' })
+    expect(again.ackedSeq).toBe(1)
   })
 })

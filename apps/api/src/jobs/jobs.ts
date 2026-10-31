@@ -118,7 +118,7 @@ export async function removeExpiredRecordings({ db, storage, config, now }: Deps
     .where(
       and(
         eq(attempts.status, 'decided'),
-        sql`(select max(${decisions.decidedAt}) from ${decisions} where ${decisions.attemptId} = ${attempts.id}) < ${cutoff}`,
+        sql`(select max(${decisions.decidedAt}) from ${decisions} where ${decisions.attemptId} = ${attempts.id}) < ${cutoff.toISOString()}::timestamptz`,
       ),
     )
   for (const row of rows) {

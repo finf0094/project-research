@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { Id, Sha256, Timestamp, safeText } from './common.ts'
-import { Event } from './events.ts'
+import { AnswerValue, Event } from './events.ts'
 import { StudentExam } from './exams.ts'
 
 /** `submitted` attempts wait for upload of their fragments and then for analysis. */
@@ -21,6 +21,8 @@ export const AttemptSession = z.object({
   hmacKey: z.base64(),
   ackedSeq: z.number().int().nonnegative(),
   lastHash: Sha256,
+  /** Answers the server already holds, by question id: lets a student continue on another device. */
+  answers: z.record(z.string(), AnswerValue),
 })
 export type AttemptSession = z.infer<typeof AttemptSession>
 

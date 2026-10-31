@@ -92,14 +92,12 @@ describe('access control', () => {
     await ctx.deps.db.update(attempts).set({ status: 'ready_for_review' }).where(eq(attempts.id, s.attemptId))
     const { users } = await import('../src/db/schema.ts')
     const { hashPassword } = await import('../src/modules/auth/service.ts')
-    await ctx.deps.db
-      .insert(users)
-      .values({
-        email: 'other@test.edu',
-        name: 'Other',
-        role: 'examiner',
-        passwordHash: await hashPassword('secret-pass'),
-      })
+    await ctx.deps.db.insert(users).values({
+      email: 'other@test.edu',
+      name: 'Other',
+      role: 'examiner',
+      passwordHash: await hashPassword('secret-pass'),
+    })
     const other = await signIn(ctx.app, 'other@test.edu')
     const res = await ctx.app.inject({
       method: 'GET',
@@ -174,5 +172,48 @@ describe('examiner commands and grading', () => {
       await sync(s.attemptId, [await chain.next('session.started', {}, ctx.clock.now)])
     ).json()
     expect(res).toMatchObject({ ackedSeq: 0, status: 'submitted', commands: [] })
+  })
+})
+
+describe('retention', () => {
+  it('deletes recordings of decided attempts after the retention period and keeps the log', async () => {
+    const { createHash } = await import('node:crypto')
+    const { blobs, events } = await import('../src/db/schema.ts')
+    const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
+    const s = await session()
+    const chain = await clientChain(s)
+    const chunk = Buffer.from('chunk')
+    const hash = createHash('sha256').update(chunk).digest('hex')
+    const t = ctx.clock.now
+    await sync(s.attemptId, [
+      await chain.next('evidence.fragment', { reason: 'control', tStart: t, tEnd: t + 1, chunks: [hash] }, t),
+    ])
+    await ctx.app.inject({
+      method: 'PUT',
+      url: `/api/attempts/${s.attemptId}/chunks/${hash}`,
+      headers: { ...student, 'content-type': 'video/webm' },
+      payload: chunk,
+    })
+    await ctx.app.inject({
+      method: 'POST',
+      url: `/api/attempts/${s.attemptId}/submit`,
+      headers: student,
+      payload: { lastSeq: chain.head.seq, lastHash: chain.head.hash },
+    })
+    await analyzeNext(ctx.deps)
+    const headers = await examiner()
+    await ctx.app.inject({
+      method: 'PUT',
+      url: `/api/examiner/attempts/${s.attemptId}/decision`,
+      headers,
+      payload: { verdict: 'clean', comment: '' },
+    })
+
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
+    ctx.clock.now += 31 * 86_400_000
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(1)
+    expect(await ctx.deps.db.select().from(blobs)).toHaveLength(0)
+    expect(await ctx.deps.storage.get(`${s.attemptId}/${hash}`)).toBeNull()
+    expect(await ctx.deps.db.select().from(events)).toHaveLength(1)
   })
 })

@@ -3,7 +3,7 @@ import type { AttemptSession, AttemptStatus, SubmitBody } from '@exam/contracts'
 import { genesisHash } from '@exam/integrity'
 import { and, eq } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
-import { attempts, exams } from '../../db/schema.ts'
+import { answers, attempts, exams } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
@@ -114,6 +114,7 @@ export function attemptKey(deps: Pick<Deps, 'masterKey'>, attempt: Pick<AttemptR
 async function toSession(deps: Deps, tx: Tx, attempt: AttemptRow): Promise<AttemptSession> {
   const exam = await studentExam(tx, attempt.examId)
   if (!exam) throw notFound('Exam not found')
+  const saved = await tx.select().from(answers).where(eq(answers.attemptId, attempt.id))
   return {
     attemptId: attempt.id,
     exam,
@@ -123,5 +124,6 @@ async function toSession(deps: Deps, tx: Tx, attempt: AttemptRow): Promise<Attem
     hmacKey: attemptKey(deps, attempt).toString('base64'),
     ackedSeq: attempt.lastSeq,
     lastHash: attempt.lastHash,
+    answers: Object.fromEntries(saved.map((a) => [a.questionId, a.value])),
   }
 }

@@ -1,0 +1,67 @@
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+
+    /* Colours: one token, two themes. */
+    --bg: light-dark(#f3f4fa, #0e0e1c);
+    --surface: light-dark(#ffffff, #17172a);
+    --surface-2: light-dark(#ecedf6, #202036);
+    --border: light-dark(#e2e3ef, #2a2a44);
+    --text: light-dark(#15142b, #ececf7);
+    --text-2: light-dark(#5a5d77, #a6a8c2);
+    --accent: light-dark(#4b4fe8, #5b5ff0);
+    --accent-ink: light-dark(#3f43db, #a5a8ff);
+    --accent-tint: light-dark(#e8e8ff, #24244a);
+    --on-accent: #ffffff;
+    --ink: #16153a;
+    --on-ink: #ffffff;
+    --lime: #cff56a;
+    --on-lime: #15142b;
+    --ok: light-dark(#1b7a52, #5bd69b);
+    --ok-tint: light-dark(#ddf4e7, #132a20);
+    --warn: light-dark(#9c4f00, #f5a65b);
+    --warn-tint: light-dark(#ffebd6, #2d1f10);
+    --danger: light-dark(#b42318, #ff8a7a);
+    --danger-tint: light-dark(#fde4e1, #33171a);
+    --off: light-dark(#53586f, #a6a8c2);
+    --off-tint: light-dark(#ecedf3, #202036);
+    --ring: light-dark(rgb(75 79 232 / 0.28), rgb(165 168 255 / 0.35));
+    --scrim: rgb(14 14 28 / 0.5);
+
+    /* Type */
+    --font-sans: 'Golos Text Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Unbounded Variable', var(--font-sans);
+    --text-xs: 0.8125rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.5rem;
+    --text-2xl: 2rem;
+    --text-3xl: 2.75rem;
+
+    /* Space, shape, depth, motion */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-12: 48px;
+    --radius-sm: 12px;
+    --radius: 16px;
+    --radius-lg: 24px;
+    --radius-pill: 999px;
+    --shadow-1: 0 1px 2px rgb(21 20 43 / 0.05), 0 2px 6px rgb(21 20 43 / 0.05);
+    --shadow-2: 0 14px 34px -12px rgb(21 20 43 / 0.22), 0 4px 10px rgb(21 20 43 / 0.05);
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  :root[data-theme='light'] {
+    color-scheme: light;
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+  }
+}

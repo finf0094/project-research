@@ -31,7 +31,6 @@ describe('canonicalize rejects values JSON would change silently', () => {
   })
 
   it('rejects sparse arrays', () => {
-    // eslint-disable-next-line no-sparse-arrays
     expect(() => canonicalize([, 1])).toThrow(TypeError)
   })
 
