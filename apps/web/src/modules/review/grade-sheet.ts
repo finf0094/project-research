@@ -1,5 +1,5 @@
 import type { AttemptSummary } from '@exam/contracts'
-import { passed } from './exam-state'
+import { finalScore, passed } from './exam-state'
 
 /** Score bands of the distribution chart (percent). */
 export const BANDS = [
@@ -13,7 +13,7 @@ export const BANDS = [
 
 /** How many scored attempts fall into each band. */
 export function distribution(attempts: AttemptSummary[]): number[] {
-  const scores = attempts.flatMap((a) => (a.result?.score != null ? [a.result.score] : []))
+  const scores = attempts.map(finalScore).filter((s) => s !== null)
   return BANDS.map(([from, to]) => scores.filter((s) => s >= from && s <= to).length)
 }
 
@@ -48,7 +48,7 @@ export function gradeSheetCsv(
       a.student.name,
       a.points?.auto ?? null,
       a.points?.max ?? null,
-      a.result?.score ?? null,
+      finalScore(a),
       labels.outcome[outcome(a)],
     ]),
   )

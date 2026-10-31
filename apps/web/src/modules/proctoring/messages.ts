@@ -40,6 +40,8 @@ export const proctoringMessages = defineMessages({
         face: 'Вас видно',
         light: 'Освещение',
         blocked: 'Камера не видна — нужно разрешение браузера',
+        failed:
+          'Не удалось запустить проверку камеры. Обновите страницу или откройте экзамен в другом браузере.',
         again: 'Проверить снова',
         hint: {
           camera: 'Разрешите доступ к камере и микрофону в браузере.',
@@ -90,6 +92,7 @@ export const proctoringMessages = defineMessages({
         face: 'Сіз көрінесіз',
         light: 'Жарық',
         blocked: 'Камера көрінбейді — браузердің рұқсаты қажет',
+        failed: 'Камераны тексеру іске қосылмады. Бетті жаңартыңыз немесе емтиханды басқа браузерде ашыңыз.',
         again: 'Қайта тексеру',
         hint: {
           camera: 'Браузерде камера мен микрофонға рұқсат беріңіз.',
@@ -140,6 +143,7 @@ export const proctoringMessages = defineMessages({
         face: 'You are visible',
         light: 'Lighting',
         blocked: 'No camera — the browser needs your permission',
+        failed: 'The camera check could not start. Reload the page or open the exam in another browser.',
         again: 'Check again',
         hint: {
           camera: 'Allow camera and microphone access in your browser.',

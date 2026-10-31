@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { Avatar, PillTabs, StatusPill } from '@/shared/ui'
 import { outcome, type Outcome } from '../grade-sheet'
+import { finalScore } from '../exam-state'
 
 /** Every student's automatic points, final score, recording verdict and result; filterable and searchable. */
 const props = defineProps<{ attempts: AttemptSummary[] }>()
@@ -69,7 +70,7 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
               >
             </td>
             <td>
-              <span v-if="a.result?.score != null" class="score">{{ a.result.score }}</span>
+              <span v-if="finalScore(a) !== null" class="score">{{ finalScore(a) }}</span>
               <span v-else class="muted">{{ $t('hub.results.afterReview') }}</span>
             </td>
             <td>

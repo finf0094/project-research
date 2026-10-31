@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { Maximize, Minimize } from 'lucide-vue-next'
 import { SyncStatusBadge } from '@/modules/offline'
+import { useFullscreen } from '@/shared/lib/use-fullscreen'
 import { AppButton, AppLogo } from '@/shared/ui'
 import ExamTimer from './ExamTimer.vue'
 
+/** The exam's bar: what and where, whether everything is saved, focus mode, time left and submitting. */
 defineProps<{ title: string; step: string; remainingMs: number; finishing: boolean }>()
 defineEmits<{ finish: [] }>()
+const focus = useFullscreen()
 </script>
 
 <template>
@@ -18,6 +22,16 @@ defineEmits<{ finish: [] }>()
     </div>
     <SyncStatusBadge />
     <div class="actions">
+      <button
+        v-if="focus.supported"
+        type="button"
+        class="focus"
+        :aria-pressed="focus.active.value"
+        @click="focus.toggle"
+      >
+        <component :is="focus.active.value ? Minimize : Maximize" :size="16" aria-hidden="true" />
+        <span class="focus-label">{{ $t('exam.header.focus') }}</span>
+      </button>
       <ExamTimer :remaining-ms="remainingMs" />
       <AppButton :loading="finishing" @click="$emit('finish')">{{ $t('exam.header.submit') }}</AppButton>
     </div>
@@ -52,6 +66,29 @@ defineEmits<{ finish: [] }>()
 }
 .step {
   font-size: var(--text-sm);
+}
+.focus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: background-color var(--dur) var(--ease);
+  &[aria-pressed='true'] {
+    background: var(--accent-tint);
+    color: var(--accent-ink);
+  }
+}
+@media (width < 700px) {
+  .focus-label {
+    position: absolute;
+    clip-path: inset(50%);
+  }
 }
 .actions {
   display: flex;

@@ -11,8 +11,14 @@ export function examState(exam: ExaminerExam, now: number): ExamState {
 
 export const STATE_TONE = { scheduled: 'accent', running: 'lime', review: 'warn', finished: 'ok' } as const
 
-export function passed(attempt: AttemptSummary): boolean | null {
+/** The score that counts: none while undecided or sent back for more review. */
+export function finalScore(attempt: AttemptSummary): number | null {
   const result = attempt.result
-  if (!result || result.score === null) return null
-  return result.verdict !== 'violation' && result.score >= PASS_SCORE
+  return result && result.verdict !== 'needs_review' ? result.score : null
+}
+
+export function passed(attempt: AttemptSummary): boolean | null {
+  const score = finalScore(attempt)
+  if (score === null) return null
+  return attempt.result!.verdict !== 'violation' && score >= PASS_SCORE
 }

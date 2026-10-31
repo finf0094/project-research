@@ -75,6 +75,7 @@ export async function listExams(deps: Deps, ownerId: string, onlyId?: string): P
       },
       participants: participantCounts.get(exam.id)?.n ?? 0,
       publishedAt: exam.publishedAt?.getTime() ?? null,
+      publishableAt: publishableAt(exam.closesAt, config.OFFLINE_WINDOW_MIN),
       attempts: { total: a?.total ?? 0, active: a?.active ?? 0, toReview: a?.toReview ?? 0 },
     }
   })
@@ -91,7 +92,7 @@ export async function examSummary(deps: Deps, ownerId: string, examId: string): 
  */
 export async function publishResults({ db, now, config }: Deps, ownerId: string, examId: string) {
   const exam = await ownExam(db, ownerId, examId)
-  if (now() < exam.closesAt.getTime() + config.OFFLINE_WINDOW_MIN * 60_000)
+  if (now() < publishableAt(exam.closesAt, config.OFFLINE_WINDOW_MIN))
     throw conflict('Results can be published once the exam is over')
   // Publishing again keeps the first date: students were told then.
   await db
@@ -99,3 +100,7 @@ export async function publishResults({ db, now, config }: Deps, ownerId: string,
     .set({ publishedAt: sql`coalesce(${exams.publishedAt}, ${new Date(now()).toISOString()}::timestamptz)` })
     .where(eq(exams.id, examId))
 }
+
+/** Nobody can still send answers that count: the exam closed and its offline window passed. */
+const publishableAt = (closesAt: Date, offlineWindowMin: number) =>
+  closesAt.getTime() + offlineWindowMin * 60_000

@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { TYPE_ICON } from '../question-types'
 import type { QuestionOutcome } from '@exam/contracts'
-import { CircleDot, ListChecks, TextCursorInput } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { PillTabs } from '@/shared/ui'
 
@@ -12,7 +12,6 @@ const shown = computed(() =>
   props.questions.map((q, i) => ({ q, n: i + 1 })).filter(({ q }) => filter.value === 'all' || mistake(q)),
 )
 const count = (status: QuestionOutcome['status']) => props.questions.filter((q) => q.status === status).length
-const ICON = { single: CircleDot, multiple: ListChecks, text: TextCursorInput }
 const TONE = { correct: 'ok', wrong: 'danger', unanswered: 'warn', examiner: 'accent' } as const
 </script>
 
@@ -42,7 +41,7 @@ const TONE = { correct: 'ok', wrong: 'danger', unanswered: 'warn', examiner: 'ac
       <li v-for="{ q, n } in shown" :key="n" class="item">
         <span class="n">{{ String(n).padStart(2, '0') }}</span>
         <span class="icon" :class="TONE[q.status]"
-          ><component :is="ICON[q.type]" :size="16" aria-hidden="true"
+          ><component :is="TYPE_ICON[q.type]" :size="16" aria-hidden="true"
         /></span>
         <div class="body">
           <p class="text">{{ q.text }}</p>

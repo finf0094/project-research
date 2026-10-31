@@ -52,6 +52,7 @@ describe('examiner views', () => {
       questions: { single: 1, multiple: 0, text: 1, points: 7 },
       participants: 1,
       publishedAt: null,
+      publishableAt: seeded.exam.closesAt.getTime() + ctx.deps.config.OFFLINE_WINDOW_MIN * 60_000,
     })
   })
 

@@ -31,7 +31,8 @@ const BROWSER_LOOK = {
 
 /**
  * Every row of the preflight check: the camera probe's (pending until the camera runs), the browser's,
- * and the network (starting needs the server once). `ready`: all of them pass.
+ * and the network (advice only: starting needs the server once and says so if it fails). `ready`: all
+ * required ones pass.
  */
 export function usePreflightChecks(probe: Probe) {
   const { t } = useI18n()
@@ -40,12 +41,22 @@ export function usePreflightChecks(probe: Probe) {
   onMounted(async () => (browser.value = await runBrowserChecks()))
 
   const checks = computed<PreflightCheck[]>(() => {
-    const running = probe.state.value === 'running'
+    const state = probe.state.value
+    const stopped = state === 'blocked' || state === 'failed'
     const device = probe.checks.value.map((c) => ({
       id: c.id,
       ...DEVICE_LOOK[c.id],
       title: t(`proctoring.check.${c.id}`),
-      status: c.ok ? 'ok' : running || probe.state.value === 'blocked' ? 'bad' : 'pending',
+      // Without a running camera only the camera row can say what is wrong; the rest wait for it.
+      status: c.ok
+        ? 'ok'
+        : c.id === 'camera'
+          ? stopped
+            ? 'bad'
+            : 'pending'
+          : state === 'running'
+            ? 'bad'
+            : 'pending',
       note: c.ok ? t(`proctoring.check.ok.${c.id}`) : t(`proctoring.check.hint.${c.hint}`),
     })) satisfies PreflightCheck[]
     const net: PreflightCheck = {
@@ -65,6 +76,9 @@ export function usePreflightChecks(probe: Probe) {
     })) satisfies PreflightCheck[]
     return [...device, net, ...local]
   })
-  const ready = computed(() => !!browser.value && checks.value.every((c) => c.status === 'ok'))
+  // The network row is advice: the browser's online flag can be wrong, and starting reports a real failure.
+  const ready = computed(
+    () => !!browser.value && checks.value.every((c) => c.status === 'ok' || c.id === 'online'),
+  )
   return { checks, ready }
 }

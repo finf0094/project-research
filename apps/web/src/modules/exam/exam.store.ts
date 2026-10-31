@@ -49,7 +49,7 @@ export const useExamStore = defineStore('exam', () => {
   const question = computed(() => questions.value[current.value])
   const finished = computed(() => FINISHED.includes(status.value))
   const locked = computed(() => endedBy.value !== null || finished.value)
-  const { answers, saveFailed, answeredCount, answer, flush, reset } = useAnswers(
+  const { answers, savedAt, saveFailed, answeredCount, answer, clear, flush, reset } = useAnswers(
     () => runtime,
     questions,
     locked,
@@ -170,6 +170,7 @@ export const useExamStore = defineStore('exam', () => {
   return {
     attempt,
     answers,
+    savedAt,
     current,
     deadline,
     remainingMs,
@@ -187,6 +188,7 @@ export const useExamStore = defineStore('exam', () => {
     answeredCount,
     open,
     answer,
+    clear,
     /** Saves typed text right away (on blur), without waiting for the pause. */
     saveNow: flush,
     finish,

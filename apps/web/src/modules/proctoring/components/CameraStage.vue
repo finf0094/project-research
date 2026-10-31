@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Check, RotateCcw, Sun } from 'lucide-vue-next'
-import { computed, ref, watchEffect } from 'vue'
+import { Check, RotateCcw } from 'lucide-vue-next'
+import { computed, ref, watch, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { AppButton } from '@/shared/ui'
 import type { ProbeState } from '../device-probe'
-import { DARK_BRIGHTNESS } from '../signals'
+import LightMeter from './LightMeter.vue'
 
 /**
  * The camera picture of the check: an oval to sit in, a chip saying whether the student is seen well,
@@ -13,8 +14,9 @@ const props = defineProps<{
   state: ProbeState
   stream: MediaStream | null
   faces: number | null
-  brightness: number
+  brightness: number | null
 }>()
+const { t } = useI18n()
 defineEmits<{ retry: [] }>()
 
 const video = ref<HTMLVideoElement>()
@@ -26,14 +28,20 @@ watchEffect(() => {
 const seen = computed(() =>
   props.faces === 1 ? 'good' : props.faces && props.faces > 1 ? 'many' : props.faces === 0 ? 'none' : null,
 )
-const SEGMENTS = 6
-/** Lit segments: the dark threshold lights two of them, a well-lit room all six. */
-const lit = computed(() =>
-  Math.min(SEGMENTS, Math.round((props.brightness / (DARK_BRIGHTNESS * 3)) * SEGMENTS)),
-)
-const light = computed(() =>
-  props.brightness < DARK_BRIGHTNESS ? 'dark' : lit.value < SEGMENTS ? 'ok' : 'good',
-)
+const OVERLAY = {
+  idle: 'proctoring.camera.starting',
+  starting: 'proctoring.camera.starting',
+  blocked: 'proctoring.check.blocked',
+  failed: 'proctoring.check.failed',
+} as const
+
+// Read aloud only once the picture settles for a second: the face count may flicker frame to frame.
+const announced = ref('')
+let settle: ReturnType<typeof setTimeout> | undefined
+watch(seen, (now) => {
+  clearTimeout(settle)
+  settle = setTimeout(() => (announced.value = now ? t(`proctoring.stage.${now}`) : ''), 1000)
+})
 </script>
 
 <template>
@@ -50,34 +58,21 @@ const light = computed(() =>
     </svg>
 
     <Transition name="pop" mode="out-in">
-      <p v-if="state === 'running' && seen" :key="seen" class="chip" :class="seen" role="status">
+      <p v-if="state === 'running' && seen" :key="seen" class="chip" :class="seen" aria-hidden="true">
         <Check v-if="seen === 'good'" :size="14" aria-hidden="true" />
         {{ $t(`proctoring.stage.${seen}`) }}
       </p>
     </Transition>
+    <p class="visually-hidden" role="status">{{ state === 'running' ? announced : '' }}</p>
 
     <div v-if="state !== 'running'" class="overlay">
-      <p>{{ $t(state === 'blocked' ? 'proctoring.check.blocked' : 'proctoring.camera.starting') }}</p>
-      <AppButton v-if="state === 'blocked'" variant="lime" @click="$emit('retry')">
+      <p role="status">{{ $t(OVERLAY[state]) }}</p>
+      <AppButton v-if="state === 'blocked' || state === 'failed'" variant="lime" @click="$emit('retry')">
         <RotateCcw :size="16" aria-hidden="true" /> {{ $t('proctoring.check.again') }}
       </AppButton>
     </div>
 
-    <div v-else class="meter" :class="light">
-      <Sun :size="16" aria-hidden="true" />
-      <span>{{ $t('proctoring.check.light') }}</span>
-      <span
-        class="segments"
-        role="meter"
-        :aria-valuenow="lit"
-        aria-valuemin="0"
-        :aria-valuemax="SEGMENTS"
-        :aria-label="$t('proctoring.check.light')"
-      >
-        <span v-for="i in SEGMENTS" :key="i" :class="{ on: i <= lit }" />
-      </span>
-      <b>{{ $t(`proctoring.stage.light.${light}`) }}</b>
-    </div>
+    <LightMeter v-else class="meter" :brightness="brightness" />
   </div>
 </template>
 
@@ -163,31 +158,5 @@ video {
 .meter {
   position: absolute;
   inset: auto var(--space-4) var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius);
-  background: rgb(14 14 28 / 0.72);
-  backdrop-filter: blur(8px);
-  font-size: var(--text-xs);
-}
-.segments {
-  display: flex;
-  flex: 1;
-  gap: 4px;
-  span {
-    flex: 1;
-    block-size: 5px;
-    border-radius: var(--radius-pill);
-    background: rgb(255 255 255 / 0.18);
-    transition: background-color var(--dur) var(--ease);
-  }
-}
-.meter .on {
-  background: var(--lime);
-}
-.meter.dark .on {
-  background: var(--peach);
 }
 </style>

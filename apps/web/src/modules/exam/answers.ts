@@ -18,6 +18,8 @@ export function useAnswers(
   locked: Ref<boolean>,
 ) {
   const answers = ref<Record<string, AnswerValue>>({})
+  /** When each answer was last stored on the device during this visit (earlier ones show without a time). */
+  const savedAt = ref<Record<string, number>>({})
   const saveFailed = ref(false)
   const drafts = createTextDrafts(persist)
   const answeredCount = computed(() => questions.value.filter((q) => isAnswered(answers.value[q.id])).length)
@@ -41,6 +43,7 @@ export function useAnswers(
     try {
       await rt.log.append('answer', { questionId, value }, () => putAnswer(rt.attemptId, questionId, value))
       saveFailed.value = false
+      savedAt.value = { ...savedAt.value, [questionId]: Date.now() }
       rt.sync.wake()
     } catch (error) {
       // The device refused to store it (e.g. disk full): say so, never pretend it is saved.
@@ -49,11 +52,18 @@ export function useAnswers(
     }
   }
 
+  /** Takes the answer back: an empty value of the question's kind, saved like any other change. */
+  function clear(questionId: string) {
+    const multiple = questions.value.find((q) => q.id === questionId)?.type === 'multiple'
+    answer(questionId, multiple ? [] : '')
+  }
+
   function reset(saved: Record<string, AnswerValue> = {}) {
     drafts.discard()
     answers.value = saved
+    savedAt.value = {}
     saveFailed.value = false
   }
 
-  return { answers, saveFailed, answeredCount, answer, flush: drafts.flush, reset }
+  return { answers, savedAt, saveFailed, answeredCount, answer, clear, flush: drafts.flush, reset }
 }

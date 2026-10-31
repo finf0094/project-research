@@ -20,7 +20,7 @@ export const examMessages = defineMessages({
         elsewhere: 'Экзамен открыт в другой вкладке',
         elsewhereHint: 'Продолжайте там. Закройте эту вкладку, чтобы ответы не перепутались.',
       },
-      header: { submit: 'Сдать', step: 'Вопрос {n} из {total}', oral: 'Устный экзамен' },
+      header: { submit: 'Сдать', focus: 'Фокус', step: 'Вопрос {n} из {total}', oral: 'Устный экзамен' },
       page: {
         previous: 'Предыдущий вопрос',
         next: 'Следующий вопрос',
@@ -48,10 +48,25 @@ export const examMessages = defineMessages({
       },
       nav: {
         label: 'Вопросы',
+        all: 'Все вопросы с ответом',
+        flagged: 'отмечен',
+        legend: { answered: 'Есть ответ', empty: 'Без ответа', flagged: 'Отмечен' },
         answered: 'Отвечено',
         nextUnanswered: 'К следующему без ответа →',
         question: 'Вопрос {n}',
         questionAnswered: 'Вопрос {n}, есть ответ',
+      },
+      tools: {
+        size: 'Размер текста',
+        sizes: { s: 'Мелкий текст', m: 'Обычный текст', l: 'Крупный текст' },
+        flag: 'Отметить',
+        flagged: 'Отмечен',
+      },
+      answer: {
+        saved: 'Ответ сохранён',
+        savedAt: 'Ответ сохранён · {at}',
+        failed: 'Не удалось сохранить ответ на устройстве',
+        clear: 'Очистить ответ',
       },
       question: {
         type: { single: 'Один вариант', multiple: 'Несколько вариантов', text: 'Развёрнутый ответ' },
@@ -147,7 +162,7 @@ export const examMessages = defineMessages({
         elsewhere: 'Емтихан басқа қойындыда ашық',
         elsewhereHint: 'Сонда жалғастырыңыз. Жауаптар араласпауы үшін бұл қойындыны жабыңыз.',
       },
-      header: { submit: 'Тапсыру', step: 'Сұрақ {n} / {total}', oral: 'Ауызша емтихан' },
+      header: { submit: 'Тапсыру', focus: 'Фокус', step: 'Сұрақ {n} / {total}', oral: 'Ауызша емтихан' },
       page: {
         previous: 'Алдыңғы сұрақ',
         next: 'Келесі сұрақ',
@@ -173,10 +188,25 @@ export const examMessages = defineMessages({
       },
       nav: {
         label: 'Сұрақтар',
+        all: 'Барлық сұрақтарға жауап бар',
+        flagged: 'белгіленген',
+        legend: { answered: 'Жауап бар', empty: 'Жауапсыз', flagged: 'Белгіленген' },
         answered: 'Жауап берілді',
         nextUnanswered: 'Келесі жауапсыз сұраққа →',
         question: '{n}-сұрақ',
         questionAnswered: '{n}-сұрақ, жауап бар',
+      },
+      tools: {
+        size: 'Мәтін өлшемі',
+        sizes: { s: 'Кіші мәтін', m: 'Қалыпты мәтін', l: 'Үлкен мәтін' },
+        flag: 'Белгілеу',
+        flagged: 'Белгіленген',
+      },
+      answer: {
+        saved: 'Жауап сақталды',
+        savedAt: 'Жауап сақталды · {at}',
+        failed: 'Жауапты құрылғыда сақтау мүмкін болмады',
+        clear: 'Жауапты тазалау',
       },
       question: {
         type: { single: 'Бір нұсқа', multiple: 'Бірнеше нұсқа', text: 'Толық жауап' },
@@ -271,7 +301,7 @@ export const examMessages = defineMessages({
         elsewhere: 'The exam is open in another tab',
         elsewhereHint: 'Continue there. Close this tab so the answers do not get mixed up.',
       },
-      header: { submit: 'Submit', step: 'Question {n} of {total}', oral: 'Oral exam' },
+      header: { submit: 'Submit', focus: 'Focus', step: 'Question {n} of {total}', oral: 'Oral exam' },
       page: {
         previous: 'Previous question',
         next: 'Next question',
@@ -298,10 +328,25 @@ export const examMessages = defineMessages({
       },
       nav: {
         label: 'Questions',
+        all: 'Every question is answered',
+        flagged: 'marked',
+        legend: { answered: 'Answered', empty: 'No answer', flagged: 'Marked' },
         answered: 'Answered',
         nextUnanswered: 'Next unanswered →',
         question: 'Question {n}',
         questionAnswered: 'Question {n}, answered',
+      },
+      tools: {
+        size: 'Text size',
+        sizes: { s: 'Small text', m: 'Normal text', l: 'Large text' },
+        flag: 'Mark',
+        flagged: 'Marked',
+      },
+      answer: {
+        saved: 'Answer saved',
+        savedAt: 'Answer saved · {at}',
+        failed: 'Could not save the answer on this device',
+        clear: 'Clear answer',
       },
       question: {
         type: { single: 'One option', multiple: 'Several options', text: 'Written answer' },

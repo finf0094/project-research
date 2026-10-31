@@ -50,7 +50,8 @@ function toggle(id: string) {
 <style scoped>
 .choices {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* At most two columns: four options read as a 2×2 grid, never 3 + 1. */
+  grid-template-columns: repeat(auto-fit, minmax(max(240px, 40%), 1fr));
   gap: var(--space-3);
   padding: 0;
   border: 0;

@@ -29,6 +29,17 @@ describe('grade sheet', () => {
     expect(third).toBe('"Вера";"6";"10";"";"Ждёт"')
   })
 
+  it('counts an attempt sent back for more review as pending, not as a result', () => {
+    const csv = gradeSheetCsv([attempt('Глеб', { verdict: 'needs_review', score: 90 })], {
+      columns: ['a', 'b', 'c', 'd', 'e'],
+      outcome: { pass: 'p', fail: 'f', pending: 'w' },
+    })
+    expect(csv.split('\r\n')[1]).toBe('"Глеб";"6";"10";"";"w"')
+    expect(distribution([attempt('Глеб', { verdict: 'needs_review', score: 90 })])).toEqual([
+      0, 0, 0, 0, 0, 0,
+    ])
+  })
+
   it('defuses names a spreadsheet would run as formulas, and uses the separator asked for', () => {
     const csv = gradeSheetCsv(
       [attempt('=HYPERLINK("x")', null)],

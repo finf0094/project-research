@@ -1,15 +1,23 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
+import { ArrowLeft } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { CameraPreview } from '@/modules/proctoring'
 import { AppButton, AppCard } from '@/shared/ui'
 import ExamLayout from '../components/ExamLayout.vue'
 import QuestionNav from '../components/QuestionNav.vue'
 import QuestionView from '../components/QuestionView.vue'
+import AnswerStatus from '../components/AnswerStatus.vue'
+import QuestionTools from '../components/QuestionTools.vue'
+import { isAnswered } from '../answers'
+import { useFlags, useTextSize } from '../reading'
 import { useAttemptPage } from '../use-attempt-page'
 
+/** A written exam: the questions on the left, the current one on the right, saved as the student goes. */
 const { exam, attemptId, loadError, confirming, open, finish } = useAttemptPage('written')
 const unanswered = computed(() => exam.questions.length - exam.answeredCount)
+const { size, scale } = useTextSize()
+const flags = useFlags(attemptId.value)
+const last = computed(() => exam.current === exam.questions.length - 1)
 </script>
 
 <template>
@@ -28,6 +36,7 @@ const unanswered = computed(() => exam.questions.length - exam.answeredCount)
           :questions="exam.questions"
           :answers="exam.answers"
           :current="exam.current"
+          :flagged="flags.flagged.value"
           @select="exam.goTo"
         />
         <CameraPreview />
@@ -39,7 +48,23 @@ const unanswered = computed(() => exam.questions.length - exam.answeredCount)
           :question="exam.question"
           :index="exam.current"
           :value="exam.answers[exam.question.id]"
+          :scale="scale"
           @answer="exam.answer(exam.question.id, $event)"
+        >
+          <template #tools>
+            <QuestionTools
+              v-model:size="size"
+              :flagged="flags.has(exam.question.id)"
+              @flag="flags.toggle(exam.question!.id)"
+            />
+          </template>
+        </QuestionView>
+        <AnswerStatus
+          :answered="isAnswered(exam.answers[exam.question.id])"
+          :saved-at="exam.savedAt[exam.question.id]"
+          :failed="exam.saveFailed"
+          :locked="exam.locked"
+          @clear="exam.clear(exam.question!.id)"
         />
         <footer class="pager">
           <AppButton
@@ -50,8 +75,8 @@ const unanswered = computed(() => exam.questions.length - exam.answeredCount)
           >
             <ArrowLeft :size="20" />
           </AppButton>
-          <AppButton v-if="exam.current < exam.questions.length - 1" @click="exam.goTo(exam.current + 1)">
-            {{ $t('exam.page.next') }} <ArrowRight :size="20" />
+          <AppButton v-if="!last" icon="arrow" @click="exam.goTo(exam.current + 1)">
+            {{ $t('exam.page.next') }}
           </AppButton>
           <AppButton v-else variant="ink" @click="confirming = true">{{ $t('exam.page.finish') }}</AppButton>
         </footer>
@@ -75,7 +100,9 @@ const unanswered = computed(() => exam.questions.length - exam.answeredCount)
 }
 .main {
   display: grid;
-  gap: var(--space-8);
+  grid-template-rows: auto auto 1fr;
+  gap: var(--space-5);
+  min-block-size: min(720px, 80dvh);
   padding: var(--space-8);
   /* Comfortable reading width for the question; the card itself fills the column. */
   & > * {
@@ -84,6 +111,7 @@ const unanswered = computed(() => exam.questions.length - exam.answeredCount)
 }
 .pager {
   display: flex;
+  align-self: end;
   justify-content: space-between;
   gap: var(--space-3);
 }
