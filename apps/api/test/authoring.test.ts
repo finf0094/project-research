@@ -60,8 +60,14 @@ describe('exam authoring', () => {
     expect((await call('POST', '/examiner/exams', twoCorrect)).statusCode).toBe(400)
     const unknownOption = definition({ questions: [{ ...definition().questions[0]!, correct: ['z'] }] })
     expect((await call('POST', '/examiner/exams', unknownOption)).statusCode).toBe(400)
-    const bigTicket = definition({ profile: { mode: 'oral', recording: 'full', ticketSize: 5 } })
-    expect((await call('POST', '/examiner/exams', bigTicket)).statusCode).toBe(400)
+    const openOnly = [definition().questions[1]!, definition().questions[1]!]
+    const oral = (ticketSize?: number, questions = openOnly) =>
+      definition({ profile: { mode: 'oral', recording: 'full', ticketSize }, questions })
+    expect((await call('POST', '/examiner/exams', oral(5))).statusCode).toBe(400) // ticket larger than the pool
+    expect((await call('POST', '/examiner/exams', oral(undefined))).statusCode).toBe(400) // no ticket size
+    expect((await call('POST', '/examiner/exams', oral(1, definition().questions))).statusCode).toBe(400) // a choice question
+    expect((await call('POST', '/examiner/exams', oral(2))).statusCode).toBe(200)
+    expect((await call('POST', '/examiner/exams', definition({ title: '   ' }))).statusCode).toBe(400)
   })
 
   it('freezes questions once a student has started, but participants can still change', async () => {

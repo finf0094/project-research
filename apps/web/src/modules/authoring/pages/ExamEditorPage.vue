@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ExamDefinition } from '@exam/contracts'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
 import { AppButton, AppCard } from '@/shared/ui'
@@ -9,6 +10,7 @@ import ExamSettingsForm from '../components/ExamSettingsForm.vue'
 import ParticipantsEditor from '../components/ParticipantsEditor.vue'
 import QuestionList from '../components/QuestionList.vue'
 import { emptyExam } from '../draft'
+import { describeIssues } from '../issues'
 
 /** Creates a new exam (/examiner/exams/new) or edits one (/examiner/exams/:examId/edit). */
 const route = useRoute()
@@ -21,12 +23,19 @@ const locked = ref(false)
 const saved = ref(false)
 const invalid = ref<string[]>([])
 const load = useAction()
-const save = useAction()
+const save = useAction({ 409: 'authoring.lockedNow' as const })
+const { t } = useI18n()
 
 watch(
   examId,
   (id) => {
-    if (!id) return void (draft.value = emptyExam(Date.now()))
+    // Nothing of the previous exam may stay on screen (or be saved onto this one) while it loads.
+    draft.value = id ? null : emptyExam(Date.now())
+    participants.value = []
+    locked.value = false
+    saved.value = false
+    invalid.value = []
+    if (!id) return
     void load.run(async () => {
       const exam = await getExam(id)
       draft.value = exam.definition
@@ -46,13 +55,16 @@ async function submit() {
   saved.value = false
   // The server checks the same contract; checking first names the fields instead of a bare "bad request".
   const parsed = ExamDefinition.safeParse(draft.value)
-  invalid.value = parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.') || i.message)
+  invalid.value = parsed.success ? [] : describeIssues(parsed.error.issues, t)
   if (!parsed.success) return
-  await save.run(async () => {
-    if (examId.value) await updateExam(examId.value, parsed.data)
+  const id = examId.value
+  const ok = await save.run(async () => {
+    if (id) await updateExam(id, parsed.data)
     else return router.replace(`/examiner/exams/${(await createExam(parsed.data)).id}/edit`)
     saved.value = true
   })
+  // Students started meanwhile: show the exam as it now is (frozen) instead of a form that cannot save.
+  if (!ok && id && save.error.value === 'authoring.lockedNow') locked.value = true
 }
 </script>
 
@@ -82,7 +94,7 @@ async function submit() {
             {{ $t('authoring.invalid', { details: invalid.join(', ') }) }}
           </p>
           <p v-if="save.error.value" class="error" role="alert">{{ $t(save.error.value) }}</p>
-          <ParticipantsEditor v-if="examId" :exam-id="examId" :initial="participants" />
+          <ParticipantsEditor v-if="examId" :key="examId" :exam-id="examId" :initial="participants" />
           <p v-else class="muted">{{ $t('authoring.participants.afterCreate') }}</p>
         </AppCard>
       </form>

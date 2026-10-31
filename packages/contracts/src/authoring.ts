@@ -3,35 +3,46 @@ import { Id, safeText, Timestamp } from './common.ts'
 import { ExamProfile, Option, QuestionType } from './exams.ts'
 import { Role } from './auth.ts'
 
+/** Text that must say something: whitespace alone does not count. */
+const filled = (max: number) => safeText(max).refine((s) => s.trim().length > 0, 'must not be empty')
+
 /** A question as its author writes it, with the correct options. */
 export const QuestionInput = z
   .strictObject({
     type: QuestionType,
-    text: safeText(5000).min(1),
-    options: z.array(Option.extend({ id: z.string().min(1).max(20), text: safeText(1000).min(1) })).max(12),
+    text: filled(5000),
+    options: z.array(Option.extend({ id: z.string().min(1).max(20), text: filled(1000) })).max(12),
     correct: z.array(z.string()),
     points: z.number().int().min(1).max(100),
   })
   .superRefine((q, ctx) => {
     const ids = new Set(q.options.map((o) => o.id))
-    if (ids.size !== q.options.length) ctx.addIssue({ code: 'custom', message: 'option ids must be unique' })
+    if (ids.size !== q.options.length)
+      ctx.addIssue({ code: 'custom', message: 'option ids must be unique', path: ['options'] })
     if (q.type === 'text') {
       if (q.options.length || q.correct.length)
-        ctx.addIssue({ code: 'custom', message: 'a text question has no options' })
+        ctx.addIssue({ code: 'custom', message: 'a text question has no options', path: ['options'] })
       return
     }
-    if (q.options.length < 2) ctx.addIssue({ code: 'custom', message: 'at least two options' })
+    if (q.options.length < 2)
+      ctx.addIssue({ code: 'custom', message: 'at least two options', path: ['options'] })
+    if (new Set(q.correct).size !== q.correct.length)
+      ctx.addIssue({ code: 'custom', message: 'correct answers must not repeat', path: ['correct'] })
     if (!q.correct.length || q.correct.some((id) => !ids.has(id)))
-      ctx.addIssue({ code: 'custom', message: 'correct answers must be options' })
+      ctx.addIssue({ code: 'custom', message: 'correct answers must be options', path: ['correct'] })
     if (q.type === 'single' && q.correct.length !== 1)
-      ctx.addIssue({ code: 'custom', message: 'a single-choice question has one correct option' })
+      ctx.addIssue({
+        code: 'custom',
+        message: 'a single-choice question has one correct option',
+        path: ['correct'],
+      })
   })
 export type QuestionInput = z.infer<typeof QuestionInput>
 
 /** Everything an exam is made of, as edited on the authoring page and sent whole on save. */
 export const ExamDefinition = z
   .strictObject({
-    title: safeText(200).min(1),
+    title: filled(200),
     durationMin: z.number().int().min(1).max(600),
     opensAt: Timestamp,
     closesAt: Timestamp,
@@ -42,9 +53,16 @@ export const ExamDefinition = z
     message: 'the exam must close after it opens',
     path: ['closesAt'],
   })
-  .refine((d) => d.profile.mode === 'written' || (d.profile.ticketSize ?? 0) <= d.questions.length, {
-    message: 'a ticket cannot have more questions than the pool',
-    path: ['profile', 'ticketSize'],
+  .refine(
+    (d) =>
+      d.profile.mode === 'written' ||
+      (d.profile.ticketSize !== undefined && d.profile.ticketSize <= d.questions.length),
+    { message: 'an oral exam needs a ticket size no larger than the pool', path: ['profile', 'ticketSize'] },
+  )
+  // An oral answer is spoken and graded by the examiner: the ticket shows question texts only.
+  .refine((d) => d.profile.mode === 'written' || d.questions.every((q) => q.type === 'text'), {
+    message: 'oral exam questions are open questions',
+    path: ['questions'],
   })
 export type ExamDefinition = z.infer<typeof ExamDefinition>
 
@@ -73,7 +91,7 @@ export type UserListItem = z.infer<typeof UserListItem>
 
 export const NewUser = z.strictObject({
   email: z.email().max(200),
-  name: safeText(200).min(1),
+  name: filled(200),
   role: Role,
   password: z.string().min(8).max(200),
 })

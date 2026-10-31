@@ -2,7 +2,8 @@ import { computed, type Ref, type WritableComputedRef } from 'vue'
 
 /**
  * `v-model` for one field of an object model, without mutating it: writing the field replaces the whole
- * object, so the parent always receives a new value (`const title = field('title')`).
+ * object, so the parent always receives a new value (`const title = field('title')`). One write per event:
+ * two writes in the same tick would both start from the old value, and the first would be lost.
  */
 export function useFields<T extends object>(model: Ref<T>) {
   return <K extends keyof T>(key: K): WritableComputedRef<T[K]> =>

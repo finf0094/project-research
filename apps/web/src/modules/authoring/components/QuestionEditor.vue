@@ -6,7 +6,8 @@ import { changeType, nextOptionId } from '../draft'
 
 /** One question: its type, text, points and, for choice questions, the options with the correct ones. */
 const model = defineModel<QuestionInput>({ required: true })
-defineProps<{ index: number; disabled: boolean }>()
+/** `oral`: open questions only, so the type is fixed. */
+defineProps<{ index: number; disabled: boolean; oral: boolean }>()
 const field = useFields(model)
 const text = field('text')
 const points = field('points')
@@ -41,7 +42,7 @@ function removeOption(id: string) {
   <fieldset class="question" :disabled="disabled">
     <legend>{{ $t('authoring.questions.number', { n: index + 1 }) }}</legend>
     <div class="row">
-      <label>
+      <label v-if="!oral">
         {{ $t('authoring.questions.type') }}
         <select
           :value="model.type"
@@ -73,7 +74,7 @@ function removeOption(id: string) {
           :type="model.type === 'single' ? 'radio' : 'checkbox'"
           :name="`correct-${index}`"
           :checked="model.correct.includes(option.id)"
-          :aria-label="$t('authoring.questions.correct')"
+          :aria-label="$t('authoring.questions.correctFor', { n: i + 1 })"
           @change="toggleCorrect(option.id, ($event.target as HTMLInputElement).checked)"
         />
         <input

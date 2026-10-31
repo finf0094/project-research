@@ -2,6 +2,7 @@
 import type { ExamDefinition, ExamMode, RecordingMode } from '@exam/contracts'
 import { computed } from 'vue'
 import { fromLocalInput, toLocalInput, useFields } from '@/shared/lib/fields'
+import { changeType } from '../draft'
 
 /** Title, timing and format of an exam (everything except the questions). */
 const model = defineModel<ExamDefinition>({ required: true })
@@ -20,11 +21,17 @@ const opensAt = date('opensAt')
 const closesAt = date('closesAt')
 
 function setMode(mode: ExamMode) {
-  // An oral exam is recorded in full and draws a ticket; a written one shows every question.
-  profile.value =
-    mode === 'oral'
-      ? { mode, recording: 'full', ticketSize: Math.min(2, model.value.questions.length) || 1 }
-      : { mode, recording: 'adaptive' }
+  const { questions } = model.value
+  if (mode === 'written') {
+    model.value = { ...model.value, profile: { mode, recording: profile.value.recording } }
+    return
+  }
+  // An oral exam is recorded in full, draws a ticket, and its questions are open (answered aloud).
+  model.value = {
+    ...model.value,
+    profile: { mode, recording: 'full', ticketSize: Math.min(2, questions.length) || 1 },
+    questions: questions.map((q) => (q.type === 'text' ? q : changeType(q, 'text'))),
+  }
 }
 const setRecording = (recording: RecordingMode) => (profile.value = { ...profile.value, recording })
 const setTicketSize = (n: number) => (profile.value = { ...profile.value, ticketSize: n })

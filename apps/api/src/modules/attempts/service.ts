@@ -24,12 +24,14 @@ export const nextCaptureTime = (now: number, random = Math.random) =>
 export async function startAttempt(deps: Deps, userId: string, examId: string): Promise<AttemptSession> {
   const now = deps.now()
   return deps.db.transaction(async (tx) => {
+    // Locks the exam against a concurrent edit (authoring takes FOR UPDATE): the attempt is built from the
+    // questions and settings as they are once that edit is done, and participants cannot change meanwhile.
+    const [exam] = await tx.select().from(exams).where(eq(exams.id, examId)).for('share')
     if (!(await isParticipant(tx, examId, userId))) throw forbidden()
 
     const existing = await findAttempt(tx, examId, userId)
     if (existing) return resume(deps, tx, existing)
 
-    const [exam] = await tx.select().from(exams).where(eq(exams.id, examId))
     if (!exam) throw notFound('Exam not found')
     if (now < exam.opensAt.getTime() || now >= exam.closesAt.getTime()) throw conflict('Exam is not open')
 
