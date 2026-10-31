@@ -18,7 +18,7 @@ export default defineConfig({
         icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,woff2,wasm,tflite}'],
+        globPatterns: ['**/*.{js,css,html,svg,woff2,wasm,tflite,task}'],
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],

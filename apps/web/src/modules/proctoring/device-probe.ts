@@ -56,7 +56,10 @@ export function useDeviceProbe() {
   async function measure() {
     if (measuring || !sensors) return // a slow computer: skip a beat instead of piling frames up
     measuring = true
-    const frame = await sensors.analyze(true).finally(() => (measuring = false))
+    const frame = await sensors
+      .analyze(true)
+      .catch(() => null)
+      .finally(() => (measuring = false))
     if (!frame || disposed) return
     timings.push(frame.ms)
     if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))

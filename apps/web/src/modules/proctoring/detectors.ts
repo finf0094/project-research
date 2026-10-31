@@ -1,7 +1,8 @@
 import type { DeviceTier } from '@exam/contracts'
 import { FaceLandmarker, ObjectDetector } from '@mediapipe/tasks-vision'
-import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_internal.js?url'
-import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_internal.wasm?url'
+// The ES-module build of MediaPipe's WASM glue: module workers load it with a plain import (no eval).
+import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_module_internal.js?url'
+import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_module_internal.wasm?url'
 import type { Pose } from './calibration'
 import { headPose, isLookingAway } from './pose'
 

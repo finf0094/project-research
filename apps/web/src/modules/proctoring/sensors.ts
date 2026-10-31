@@ -1,7 +1,7 @@
 import type { DeviceTier } from '@exam/contracts'
 import type { Pose } from './calibration'
 import type { FrameReport } from './detectors'
-import type { WorkerRequest } from './detector.worker'
+import type { WorkerRequest, WorkerResponse } from './detector.worker'
 
 export type { FrameReport } from './detectors'
 
@@ -32,18 +32,26 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     worker.postMessage(request, transfer)
   const pending = new Map<number, (report: FrameReport | null) => void>()
   let nextId = 0
-  const ready = new Promise<void>((resolve) => {
-    worker.onmessage = ({ data }) => {
-      if (data.type === 'ready') return resolve()
-      pending.get(data.id)?.(data.report)
-      pending.delete(data.id)
-    }
-  })
-  // A worker that cannot start analyses nothing; the exam goes on (signals read "not measured").
-  worker.onerror = (event) => {
-    console.error('detector worker failed', event.message)
+  /** No more analysis: the page left, or the worker could not run at all. */
+  let dead = false
+  const settleAll = () => {
     pending.forEach((settle) => settle(null))
     pending.clear()
+  }
+  let markReady = () => {}
+  const ready = new Promise<void>((resolve) => (markReady = resolve))
+  worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+    if (data.type === 'ready') return markReady()
+    pending.get(data.id)?.(data.report)
+    pending.delete(data.id)
+  }
+  // A worker that cannot load (e.g. a stale chunk after a deploy) analyses nothing; the exam goes on with
+  // signals that read "not measured" instead of waiting forever.
+  worker.onerror = (event) => {
+    console.error('detector worker failed', event.message)
+    dead = true
+    settleAll()
+    markReady()
   }
   post({ type: 'init', tier })
   await ready
@@ -62,8 +70,9 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
 
   return {
     async analyze(withObjects) {
-      if (video.readyState < 2) return null
-      const frame = await createImageBitmap(video)
+      if (dead || video.readyState < 2) return null
+      const frame = await createImageBitmap(video).catch(() => null)
+      if (!frame || dead) return (frame?.close(), null)
       const id = nextId++
       const report = new Promise<FrameReport | null>((resolve) => pending.set(id, resolve))
       post({ type: 'frame', id, frame, timestamp: performance.now(), withObjects, baseline }, [frame])
@@ -79,7 +88,8 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     dispose() {
       window.removeEventListener('pointerdown', resume)
       window.removeEventListener('keydown', resume)
-      pending.forEach((settle) => settle(null))
+      dead = true
+      settleAll()
       worker.terminate()
       void audio.close()
       video.srcObject = null

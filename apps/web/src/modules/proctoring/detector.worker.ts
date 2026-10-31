@@ -1,25 +1,22 @@
 /// <reference lib="webworker" />
 import type { DeviceTier } from '@exam/contracts'
 import type { Pose } from './calibration'
-import { loadDetectors, type Detectors } from './detectors'
+import { loadDetectors, type Detectors, type FrameReport } from './detectors'
 
 /**
  * The detector worker: the models run here, so analysis never makes the exam page stutter (architecture,
- * section 15). Frames arrive as transferred ImageBitmaps and are closed after use.
+ * section 15). Frames arrive as transferred ImageBitmaps and are closed after use. Every frame gets a
+ * reply, a failed one with `report: null`, so the page never waits forever.
  */
 export type WorkerRequest =
   | { type: 'init'; tier: DeviceTier }
   | { type: 'frame'; id: number; frame: ImageBitmap; timestamp: number; withObjects: boolean; baseline: Pose }
   | { type: 'lower'; tier: DeviceTier }
 
-declare const self: DedicatedWorkerGlobalScope & { import?: (url: string) => Promise<void> }
+export type WorkerResponse = { type: 'ready' } | { type: 'report'; id: number; report: FrameReport | null }
 
-// MediaPipe loads its WASM glue with importScripts, which module workers lack; it then calls self.import.
-// The glue is a classic script that must define a global, so it is evaluated in the global scope.
-self.import = async (url) => {
-  const code = await (await fetch(url)).text()
-  ;(0, eval)(code)
-}
+declare const self: DedicatedWorkerGlobalScope
+const reply = (response: WorkerResponse) => self.postMessage(response)
 
 let detectors: Promise<Detectors | null> | null = null
 
@@ -30,14 +27,17 @@ self.onmessage = async ({ data }: MessageEvent<WorkerRequest>) => {
       return null
     })
     await detectors
-    return self.postMessage({ type: 'ready' })
+    return reply({ type: 'ready' })
   }
   const loaded = await detectors
   if (data.type === 'lower') return loaded?.lower(data.tier)
+  let report: FrameReport | null = null
   try {
-    const report = loaded?.analyze(data.frame, data.timestamp, data.withObjects, data.baseline) ?? null
-    self.postMessage({ type: 'report', id: data.id, report })
+    report = loaded?.analyze(data.frame, data.timestamp, data.withObjects, data.baseline) ?? null
+  } catch (error) {
+    console.error('frame analysis failed', error)
   } finally {
     data.frame.close()
   }
+  reply({ type: 'report', id: data.id, report })
 }
