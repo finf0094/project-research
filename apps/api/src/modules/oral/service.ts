@@ -14,7 +14,8 @@ const roomOf = (attemptId: string) => `attempt-${attemptId}`
 
 async function issue(deps: Deps, identity: string, name: string, attemptId: string): Promise<OralRoomAccess> {
   const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = deps.config
-  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) throw new HttpError(503, 'Oral exams are not configured')
+  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET)
+    throw new HttpError(503, 'Oral exams are not configured')
   const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity, name, ttl: TOKEN_TTL })
   token.addGrant({ room: roomOf(attemptId), roomJoin: true, canPublish: true, canSubscribe: true })
   return { url: LIVEKIT_URL, token: await token.toJwt(), room: roomOf(attemptId) }
@@ -23,7 +24,10 @@ async function issue(deps: Deps, identity: string, name: string, attemptId: stri
 /** The student joins only their own running oral attempt. */
 export async function studentRoomAccess(deps: Deps, user: { id: string; name: string }, attemptId: string) {
   const attempt = await ownAttempt(deps.db, user.id, attemptId)
-  const [exam] = await deps.db.select({ profile: exams.profile }).from(exams).where(eq(exams.id, attempt.examId))
+  const [exam] = await deps.db
+    .select({ profile: exams.profile })
+    .from(exams)
+    .where(eq(exams.id, attempt.examId))
   if (exam?.profile.mode !== 'oral') throw conflict('Not an oral exam')
   if (!OPEN_STATUSES.includes(attempt.status)) throw conflict('Attempt is not running')
   return issue(deps, `student:${user.id}`, user.name, attemptId)

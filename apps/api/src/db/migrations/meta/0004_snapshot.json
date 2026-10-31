@@ -39,12 +39,8 @@
           "name": "answers_attempt_id_attempts_id_fk",
           "tableFrom": "answers",
           "tableTo": "attempts",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -52,12 +48,8 @@
           "name": "answers_question_id_questions_id_fk",
           "tableFrom": "answers",
           "tableTo": "questions",
-          "columnsFrom": [
-            "question_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["question_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -65,10 +57,7 @@
       "compositePrimaryKeys": {
         "answers_attempt_id_question_id_pk": {
           "name": "answers_attempt_id_question_id_pk",
-          "columns": [
-            "attempt_id",
-            "question_id"
-          ]
+          "columns": ["attempt_id", "question_id"]
         }
       },
       "uniqueConstraints": {},
@@ -216,12 +205,8 @@
           "name": "attempts_exam_id_exams_id_fk",
           "tableFrom": "attempts",
           "tableTo": "exams",
-          "columnsFrom": [
-            "exam_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exam_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -229,12 +214,8 @@
           "name": "attempts_user_id_users_id_fk",
           "tableFrom": "attempts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -244,10 +225,7 @@
         "attempts_exam_id_user_id_unique": {
           "name": "attempts_exam_id_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "exam_id",
-            "user_id"
-          ]
+          "columns": ["exam_id", "user_id"]
         }
       },
       "policies": {},
@@ -296,12 +274,8 @@
           "name": "blobs_attempt_id_attempts_id_fk",
           "tableFrom": "blobs",
           "tableTo": "attempts",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -309,10 +283,7 @@
       "compositePrimaryKeys": {
         "blobs_attempt_id_hash_pk": {
           "name": "blobs_attempt_id_hash_pk",
-          "columns": [
-            "attempt_id",
-            "hash"
-          ]
+          "columns": ["attempt_id", "hash"]
         }
       },
       "uniqueConstraints": {},
@@ -386,12 +357,8 @@
           "name": "commands_attempt_id_attempts_id_fk",
           "tableFrom": "commands",
           "tableTo": "attempts",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -479,12 +446,8 @@
           "name": "decisions_attempt_id_attempts_id_fk",
           "tableFrom": "decisions",
           "tableTo": "attempts",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -492,12 +455,8 @@
           "name": "decisions_reviewer_id_users_id_fk",
           "tableFrom": "decisions",
           "tableTo": "users",
-          "columnsFrom": [
-            "reviewer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reviewer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -574,12 +533,8 @@
           "name": "events_attempt_id_attempts_id_fk",
           "tableFrom": "events",
           "tableTo": "attempts",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -587,10 +542,7 @@
       "compositePrimaryKeys": {
         "events_attempt_id_seq_pk": {
           "name": "events_attempt_id_seq_pk",
-          "columns": [
-            "attempt_id",
-            "seq"
-          ]
+          "columns": ["attempt_id", "seq"]
         }
       },
       "uniqueConstraints": {},
@@ -621,12 +573,8 @@
           "name": "exam_participants_exam_id_exams_id_fk",
           "tableFrom": "exam_participants",
           "tableTo": "exams",
-          "columnsFrom": [
-            "exam_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exam_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -634,12 +582,8 @@
           "name": "exam_participants_user_id_users_id_fk",
           "tableFrom": "exam_participants",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -647,10 +591,7 @@
       "compositePrimaryKeys": {
         "exam_participants_exam_id_user_id_pk": {
           "name": "exam_participants_exam_id_user_id_pk",
-          "columns": [
-            "exam_id",
-            "user_id"
-          ]
+          "columns": ["exam_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -719,12 +660,8 @@
           "name": "exams_owner_id_users_id_fk",
           "tableFrom": "exams",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -820,12 +757,8 @@
           "name": "markers_attempt_id_attempts_id_fk",
           "tableFrom": "markers",
           "tableTo": "attempts",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -896,12 +829,8 @@
           "name": "questions_exam_id_exams_id_fk",
           "tableFrom": "questions",
           "tableTo": "exams",
-          "columnsFrom": [
-            "exam_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exam_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -911,10 +840,7 @@
         "questions_exam_id_position_unique": {
           "name": "questions_exam_id_position_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "exam_id",
-            "position"
-          ]
+          "columns": ["exam_id", "position"]
         }
       },
       "policies": {},
@@ -950,12 +876,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1016,9 +938,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},

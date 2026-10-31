@@ -23,7 +23,8 @@ export async function listForStudent(db: Db, userId: string): Promise<StudentExa
     durationMin: exam.durationMin,
     opensAt: exam.opensAt.getTime(),
     closesAt: exam.closesAt.getTime(),
-    questionCount: exam.profile.mode === 'oral' ? Math.min(questionCount, exam.profile.ticketSize ?? 3) : questionCount,
+    questionCount:
+      exam.profile.mode === 'oral' ? Math.min(questionCount, exam.profile.ticketSize ?? 3) : questionCount,
     attempt: attemptId && attemptStatus ? { id: attemptId, status: attemptStatus } : null,
   }))
 }
@@ -49,7 +50,11 @@ export async function attemptQuestions(db: Db | Tx, examId: string, ticket: stri
 }
 
 /** The exam as the student sees it: no correct answers, and for an oral exam only the drawn ticket. */
-export async function studentExam(db: Db | Tx, examId: string, ticket: string[] | null): Promise<StudentExam | null> {
+export async function studentExam(
+  db: Db | Tx,
+  examId: string,
+  ticket: string[] | null,
+): Promise<StudentExam | null> {
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId))
   if (!exam) return null
   const rows = await attemptQuestions(db, examId, ticket)

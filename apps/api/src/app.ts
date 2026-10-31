@@ -37,7 +37,15 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
   installAuth(app, deps)
 
   app.get('/health', async () => ({ ok: true }))
-  for (const module of [authRoutes, examsRoutes, attemptsRoutes, syncRoutes, blobsRoutes, reviewRoutes, oralRoutes]) {
+  for (const module of [
+    authRoutes,
+    examsRoutes,
+    attemptsRoutes,
+    syncRoutes,
+    blobsRoutes,
+    reviewRoutes,
+    oralRoutes,
+  ]) {
     await app.register(module, { prefix: '/api', deps })
   }
   return app

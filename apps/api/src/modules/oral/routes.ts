@@ -11,7 +11,9 @@ export const oralRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
   app.post('/attempts/:id/oral/token', { onRequest: requireRole('student'), schema }, async (request) =>
     studentRoomAccess(deps, currentUser(request), request.params.id),
   )
-  app.post('/examiner/attempts/:id/oral/token', { onRequest: requireRole('examiner'), schema }, async (request) =>
-    examinerRoomAccess(deps, currentUser(request), request.params.id),
+  app.post(
+    '/examiner/attempts/:id/oral/token',
+    { onRequest: requireRole('examiner'), schema },
+    async (request) => examinerRoomAccess(deps, currentUser(request), request.params.id),
   )
 }

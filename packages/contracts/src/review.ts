@@ -89,7 +89,12 @@ export const AttemptDetail = z.object({
   markers: z.array(Marker),
   serverAnalysis: ServerAnalysis.nullable(),
   decision: z
-    .object({ verdict: Verdict, comment: z.string(), score: z.number().int().nullable(), decidedAt: Timestamp })
+    .object({
+      verdict: Verdict,
+      comment: z.string(),
+      score: z.number().int().nullable(),
+      decidedAt: Timestamp,
+    })
     .nullable(),
 })
 export type AttemptDetail = z.infer<typeof AttemptDetail>

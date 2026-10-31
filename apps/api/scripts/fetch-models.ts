@@ -14,4 +14,3 @@ for (const model of Object.values(MODELS)) {
   await writeFile(path, data)
   console.log(`downloaded ${model.file}`)
 }
-
