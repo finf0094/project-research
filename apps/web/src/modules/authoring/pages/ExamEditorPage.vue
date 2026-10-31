@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { ExamDefinition } from '@exam/contracts'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
-import { useAction } from '@/shared/lib/use-action'
+import { useRoute } from 'vue-router'
 import { AppCard } from '@/shared/ui'
-import { createExam, getExam, updateExam } from '../api'
+import EditorHeader from '../components/EditorHeader.vue'
 import ExamSettingsForm from '../components/ExamSettingsForm.vue'
 import ParticipantsEditor from '../components/ParticipantsEditor.vue'
-import EditorHeader from '../components/EditorHeader.vue'
 import QuestionsWorkspace from '../components/QuestionsWorkspace.vue'
 import SaveBar from '../components/SaveBar.vue'
-import { emptyExam } from '../draft'
-import { describeIssues, questionsWithIssues } from '../issues'
+import { questionsWithIssues } from '../issues'
+import { useExamDraft } from '../use-exam-draft'
 
 /**
  * Creates a new exam (/examiner/exams/new) or edits one (/examiner/exams/:examId/edit), in three steps:
@@ -20,20 +18,17 @@ import { describeIssues, questionsWithIssues } from '../issues'
  * checked against the contract, so a problem on a hidden step is named and shown, not silently blocked.
  */
 const route = useRoute()
-const router = useRouter()
-// /new and /:examId/edit are separate page instances; the watch also covers a route reused in place.
+// /new and /:examId/edit are separate page instances; the draft also follows a route reused in place.
 const examId = computed(() => (route.params.examId ? String(route.params.examId) : null))
-const draft = ref<ExamDefinition | null>(null)
-const participants = ref<string[]>([])
-const locked = ref(false)
-const saved = ref(false)
-const invalid = ref<string[]>([])
-const load = useAction()
-const save = useAction({ 409: 'authoring.lockedNow' as const })
-const { t } = useI18n()
 type Step = 'settings' | 'questions' | 'participants'
 const step = ref<Step>('settings')
 const selected = ref(0)
+const { draft, participants, locked, saved, invalid, load, save, submit } = useExamDraft(examId, () => {
+  step.value = 'settings'
+  selected.value = 0
+})
+const { t } = useI18n()
+
 // Questions that would fail the check, marked in the outline as the examiner goes.
 const issues = computed(() => {
   const parsed = draft.value ? ExamDefinition.safeParse(draft.value) : null
@@ -62,64 +57,19 @@ const steps = computed(() => [
   ...(examId.value ? [{ value: 'participants' as const, label: t('authoring.steps.participants') }] : []),
 ])
 
-watch(
-  examId,
-  (id) => {
-    // Nothing of the previous exam may stay on screen (or be saved onto this one) while it loads.
-    draft.value = id ? null : emptyExam(Date.now())
-    participants.value = []
-    locked.value = false
-    saved.value = false
-    invalid.value = []
-    step.value = 'settings'
-    selected.value = 0
-    if (!id) return
-    void load.run(async () => {
-      const exam = await getExam(id)
-      draft.value = exam.definition
-      participants.value = exam.participants
-      locked.value = exam.locked
-    })
-  },
-  { immediate: true },
-)
-
-// Any edit makes the last check's list stale: the outline's dots keep showing what is left.
-watch(
-  draft,
-  () => {
-    invalid.value = []
-    saved.value = false
-  },
-  { deep: true },
-)
-
 const questions = computed({
   get: () => draft.value!.questions,
   set: (value) => (draft.value = { ...draft.value!, questions: value }),
 })
 
-async function submit() {
-  saved.value = false
-  // The server checks the same contract; checking first names the fields instead of a bare "bad request".
-  const parsed = ExamDefinition.safeParse(draft.value)
-  invalid.value = parsed.success ? [] : describeIssues(parsed.error.issues, t)
-  if (!parsed.success) {
-    // Open the first place that needs fixing.
-    const first = [...questionsWithIssues(parsed.error.issues)][0]
-    const inSettings = parsed.error.issues.some((i) => i.path[0] !== 'questions')
-    step.value = inSettings ? 'settings' : 'questions'
-    if (!inSettings && first !== undefined) selected.value = first
-    return
-  }
-  const id = examId.value
-  const ok = await save.run(async () => {
-    if (id) await updateExam(id, parsed.data)
-    else return router.replace(`/examiner/exams/${(await createExam(parsed.data)).id}/edit`)
-    saved.value = true
-  })
-  // Students started meanwhile: show the exam as it now is (frozen) instead of a form that cannot save.
-  if (!ok && id && save.error.value === 'authoring.lockedNow') locked.value = true
+/** Saves; when the check fails, opens the first place that needs fixing. */
+async function send() {
+  const problems = await submit()
+  if (!problems) return
+  const inSettings = problems.some((i) => i.path[0] !== 'questions')
+  step.value = inSettings ? 'settings' : 'questions'
+  const first = [...questionsWithIssues(problems)][0]
+  if (!inSettings && first !== undefined) selected.value = first
 }
 </script>
 
@@ -135,7 +85,7 @@ async function submit() {
     />
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
 
-    <form v-if="draft" class="form" novalidate @submit.prevent="submit">
+    <form v-if="draft" class="form" novalidate @submit.prevent="send">
       <p v-if="locked" class="notice" role="status">{{ $t('authoring.locked') }}</p>
       <Transition name="step" mode="out-in">
         <AppCard v-if="step === 'settings'" key="settings" class="narrow">
