@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { buildMarkers, riskScore, type StoredEvent } from '../src/jobs/analysis.ts'
 import { FRAME_H, FRAME_W, extractFrames } from '../src/ml/media.ts'
 import { analyzeRecordings, loadModels } from '../src/ml/recordings.ts'
 import { blobKey, fsStorage } from '../src/shared/storage.ts'
@@ -73,11 +74,72 @@ describe('analyzeRecordings', () => {
     const report = await analyzeRecordings(
       storage,
       attemptId,
-      [{ chunks: ['alone', 'together'], chunkStarts: [100_000, 400_000] }],
+      [
+        {
+          reason: 'risk',
+          tStart: 100_000,
+          tEnd: 410_000,
+          chunks: ['alone', 'together'],
+          chunkStarts: [100_000, 400_000],
+        },
+      ],
       new Set(['alone', 'together']),
     )
     expect(report.status).toBe('ok')
     expect([...report.checked].sort()).toEqual(['alone', 'together'])
     expect(report.findings).toEqual([{ kind: 'multiple_faces', startAt: 400_000, endAt: 403_000 }])
+  })
+})
+
+describe("reconciling the server's findings with the device", () => {
+  const ev = (seq: number, type: string, data: unknown, clientAt: number): StoredEvent => ({
+    seq,
+    type,
+    data,
+    clientAt,
+  })
+  const signal = (kind: string, from: number, to: number) => [
+    ev(1, 'proctor.signal', { kind, active: true }, from),
+    ev(2, 'proctor.signal', { kind, active: false }, to),
+  ]
+  const control = ev(
+    3,
+    'evidence.fragment',
+    { reason: 'control', tStart: 0, tEnd: 70_000, chunks: ['c'], chunkStarts: [0] },
+    70_000,
+  )
+  const opts = { endAt: 70_000, uploaded: new Set(['c']), chainBrokenAt: null }
+
+  it('does not let the device hide missing faces by reporting darkness', () => {
+    const markers = buildMarkers([...signal('too_dark', 0, 60_000), control], {
+      ...opts,
+      serverFindings: [{ kind: 'face_missing', startAt: 5000, endAt: 20_000 }],
+    })
+    expect(markers).toContainEqual(
+      expect.objectContaining({ kind: 'face_missing', source: 'model', discrepancy: true }),
+    )
+  })
+
+  it('holds a device that never reported its tier to the strictest one', () => {
+    const markers = buildMarkers([control], {
+      ...opts,
+      serverFindings: [{ kind: 'object_detected', startAt: 2000, endAt: 62_000 }],
+    })
+    expect(markers).toEqual([
+      expect.objectContaining({ kind: 'object_detected', source: 'model', discrepancy: true }),
+    ])
+  })
+
+  it('shows a confirmed finding on the timeline without counting it twice in the score', () => {
+    const reported = buildMarkers([...signal('multiple_faces', 1000, 61_000), control], opts)
+    const confirmed = buildMarkers([...signal('multiple_faces', 1000, 61_000), control], {
+      ...opts,
+      serverFindings: [{ kind: 'multiple_faces', startAt: 2000, endAt: 60_000 }],
+    })
+    expect(confirmed).toContainEqual(
+      expect.objectContaining({ kind: 'multiple_faces', source: 'model', discrepancy: false }),
+    )
+    expect(riskScore(confirmed)).toBe(riskScore(reported))
+    expect(riskScore(reported)).toBeGreaterThan(0)
   })
 })

@@ -1,4 +1,4 @@
-import type { ServerAnalysis } from '@exam/contracts'
+import type { EventData, ServerAnalysis } from '@exam/contracts'
 import type { BlobStorage } from '../shared/storage.ts'
 import { blobKey } from '../shared/storage.ts'
 import { loadFaceCounter } from './faces.ts'
@@ -7,11 +7,8 @@ import { MODELS, readModel } from './models.ts'
 import { loadObjectDetector } from './objects.ts'
 import { toIntervals, type Interval, type Observation } from './observations.ts'
 
-export interface Fragment {
-  chunks: string[]
-  /** Start time of each chunk (same order as `chunks`). */
-  chunkStarts: number[]
-}
+/** A recorded fragment as the device sealed it in its `evidence.fragment` event. */
+export type Fragment = EventData<'evidence.fragment'>
 
 export interface RecordingsReport {
   status: ServerAnalysis

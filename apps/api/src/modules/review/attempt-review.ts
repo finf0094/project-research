@@ -19,7 +19,7 @@ import { blobKey } from '../../shared/storage.ts'
 import { attemptQuestions, toStudentQuestion } from '../exams/service.ts'
 import { ownAttemptOf, toSummary } from './access.ts'
 import { autoScore } from '../exams/grading.ts'
-import { oralRecordingOf } from '../oral/recording.ts'
+import { oralRecordingOf } from './recording.ts'
 
 export async function attemptDetail(deps: Deps, ownerId: string, attemptId: string): Promise<AttemptDetail> {
   const { db } = deps

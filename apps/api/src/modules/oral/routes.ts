@@ -3,12 +3,19 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import type { ModuleOptions } from '../../deps.ts'
 import { currentUser, requireRole } from '../auth/guard.ts'
+import { watchEndedCalls } from './end-call.ts'
 import { examinerRoomAccess, studentRoomAccess } from './service.ts'
 import { recordCallEvent } from './webhooks.ts'
 
 const schema = { params: z.object({ id: z.uuid() }), response: { 200: OralRoomAccess } }
 
 export const oralRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { deps }) => {
+  // Ended attempts are watched for as long as the server runs, whether or not anyone asked for a room yet.
+  let unwatch: (() => Promise<void>) | undefined
+  app.addHook('onReady', async () => {
+    unwatch = await watchEndedCalls(deps, app.log)
+  })
+  app.addHook('onClose', async () => unwatch?.())
   // LiveKit posts its webhooks as application/webhook+json; the signature covers the exact body text.
   app.addContentTypeParser('application/webhook+json', { parseAs: 'string' }, (_request, body, done) =>
     done(null, body),

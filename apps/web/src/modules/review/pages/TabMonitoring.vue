@@ -2,7 +2,7 @@
 import type { AttemptSummary, ExaminerCommandBody } from '@exam/contracts'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAction } from '@/shared/lib/use-action'
+import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
 import { AppCard, PillTabs, StatTile } from '@/shared/ui'
 import { sendCommand } from '../api'
 import AlertsFeed from '../components/AlertsFeed.vue'
@@ -33,15 +33,27 @@ const filters = computed(() =>
 )
 
 const acting = ref<AttemptSummary | null>(null)
-const action = useAction({ 409: 'review.notRunning' as const })
-watch(acting, () => (action.error.value = null))
+// Kept per student: a command to one student must not wait for, or be dropped by, one still on its way to
+// another. The same student gets no second command until the first is answered.
+const sending = ref(new Set<string>())
+const failed = ref(new Map<string, ErrorKey | 'review.notRunning'>())
+// A dialog opens without the failure of an earlier try.
+watch(acting, (attempt) => attempt && failed.value.delete(attempt.id))
 async function send(body: ExaminerCommandBody) {
   const target = acting.value
-  if (!target || action.busy.value) return
-  const sent = await action.run(() => sendCommand(target.id, body))
-  // The examiner may have moved on to another student meanwhile: the result belongs to this one only.
-  if (acting.value?.id !== target.id) action.error.value = null
-  else if (sent) acting.value = null
+  if (!target || sending.value.has(target.id)) return
+  sending.value.add(target.id)
+  failed.value.delete(target.id)
+  try {
+    await sendCommand(target.id, body)
+    if (acting.value?.id === target.id) acting.value = null
+  } catch (error) {
+    // Shown only while that student's dialog is open; the examiner may have moved on meanwhile.
+    if (acting.value?.id === target.id)
+      failed.value.set(target.id, errorKey(error, { 409: 'review.notRunning' }))
+  } finally {
+    sending.value.delete(target.id)
+  }
   await refresh()
 }
 const openAttempt = (id: string) => router.push(`/examiner/attempts/${id}`)
@@ -94,8 +106,8 @@ const openAttempt = (id: string) => router.push(`/examiner/attempts/${id}`)
 
     <CommandDialog
       :attempt="acting"
-      :sending="action.busy.value"
-      :error="action.error.value"
+      :sending="!!acting && sending.has(acting.id)"
+      :error="(acting && failed.get(acting.id)) ?? null"
       @send="send"
       @close="acting = null"
     />

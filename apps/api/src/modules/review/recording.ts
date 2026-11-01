@@ -1,5 +1,5 @@
 import type { AttemptDetail, CallEvent } from '@exam/contracts'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import type { Db } from '../../db/client.ts'
 import { blobs, callEvents } from '../../db/schema.ts'
 import { AUDIO_LEASE_MS, MAX_AUDIO_TRIES } from '../../media/audio.ts'
@@ -17,7 +17,10 @@ export async function oralRecordingOf(
     .select({ who: callEvents.who, kind: callEvents.kind, at: callEvents.at })
     .from(callEvents)
     .where(eq(callEvents.attemptId, attempt.id))
-    .orderBy(asc(callEvents.at), asc(callEvents.receivedAt))
+    // LiveKit stamps events in whole seconds. Within one second "left" comes before "joined" (descending
+    // order of the kind does that): a quick rejoin reads as back in the call, even when a retried webhook of
+    // the drop arrived after the one of the rejoin.
+    .orderBy(asc(callEvents.at), desc(callEvents.kind), asc(callEvents.receivedAt))
   const [audio] = attempt.audioHash
     ? await db
         .select({ hash: blobs.hash })

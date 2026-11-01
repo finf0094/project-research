@@ -36,10 +36,11 @@ async function sync(attemptId: string, events: unknown[]) {
 const examiner = () => signIn(ctx.app, 'teacher@test.edu')
 
 describe('retention', () => {
-  it('deletes recordings of decided attempts after the retention period and keeps the log', async () => {
+  const DAY = 86_400_000
+
+  /** A submitted and analysed attempt with one uploaded chunk; returns its id and the chunk's hash. */
+  async function analysedWithChunk() {
     const { createHash } = await import('node:crypto')
-    const { blobs, events } = await import('../src/db/schema.ts')
-    const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
     const s = await session()
     const chain = await clientChain(s)
     const chunk = Buffer.from('chunk')
@@ -65,20 +66,61 @@ describe('retention', () => {
       payload: { lastSeq: chain.head.seq, lastHash: chain.head.hash },
     })
     await analyzeNext(ctx.deps)
-    const headers = await examiner()
+    return { attemptId: s.attemptId, hash }
+  }
+
+  async function decide(attemptId: string, verdict: string) {
     await ctx.app.inject({
       method: 'PUT',
-      url: `/api/examiner/attempts/${s.attemptId}/decision`,
-      headers,
-      payload: { verdict: 'clean', comment: '', score: 80 },
+      url: `/api/examiner/attempts/${attemptId}/decision`,
+      headers: await examiner(),
+      payload: { verdict, comment: '', score: 80 },
     })
+  }
+
+  it('deletes recordings of decided attempts after the retention period and keeps the log', async () => {
+    const { blobs, events } = await import('../src/db/schema.ts')
+    const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
+    const { attemptId, hash } = await analysedWithChunk()
+    await decide(attemptId, 'clean')
 
     expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
-    ctx.clock.now += 31 * 86_400_000
+    ctx.clock.now += 31 * DAY
     expect(await removeExpiredRecordings(ctx.deps)).toBe(1)
     expect(await ctx.deps.db.select().from(blobs)).toHaveLength(0)
-    expect(await ctx.deps.storage.get(`${s.attemptId}/${hash}`)).toBeNull()
+    expect(await ctx.deps.storage.get(`${attemptId}/${hash}`)).toBeNull()
     expect(await ctx.deps.db.select().from(events)).toHaveLength(1)
+  })
+
+  it('deletes recordings of attempts nobody ever decided', async () => {
+    const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
+    const { attemptId } = await analysedWithChunk()
+    const [row] = await ctx.deps.db.select().from(attempts).where(eq(attempts.id, attemptId))
+    expect(row!.status).toBe('ready_for_review')
+    ctx.clock.now += 29 * DAY
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
+    ctx.clock.now += 2 * DAY
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(1)
+  })
+
+  it('counts the period from the latest decision, also one that sent the attempt back to review', async () => {
+    const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
+    const { attemptId } = await analysedWithChunk()
+    ctx.clock.now += 20 * DAY
+    await decide(attemptId, 'needs_review')
+    ctx.clock.now += 20 * DAY
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
+    ctx.clock.now += 11 * DAY
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(1)
+  })
+
+  it('keeps the recordings of an attempt that is still running', async () => {
+    const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
+    const { blobs } = await import('../src/db/schema.ts')
+    const s = await session()
+    await ctx.deps.db.insert(blobs).values({ attemptId: s.attemptId, hash: 'h', mime: 'video/webm', size: 1 })
+    ctx.clock.now += 31 * DAY
+    expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
   })
 })
 

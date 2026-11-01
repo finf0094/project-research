@@ -24,31 +24,50 @@ const CLAIM_LEASE_MS = 15 * 60_000
 export async function analyzeNext(deps: Deps): Promise<boolean> {
   const attempt = await claimNext(deps)
   if (!attempt) return false
-  const report = await analyzeRecordings(
-    deps.storage,
-    attempt.id,
-    await fragmentsOf(deps.db, attempt.id),
-    await uploadedOf(deps.db, attempt.id),
-    // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
-    () => renewClaim(deps, attempt.id),
-  )
-  // The examiner's past decisions weigh the kinds (section 25.4); read before the row lock, not under it.
-  const [owner] = await deps.db.select({ id: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
-  const calibration = await calibrationFactors(deps.db, owner!.id)
-  await deps.db.transaction(async (tx) => {
-    const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')
-    if (current?.status !== 'submitted') return
-    try {
-      await tx.transaction((savepoint) => analyze(deps, savepoint, current, report, calibration))
-    } catch (error) {
-      console.error(`analysis of attempt ${attempt.id} failed; sending it to manual review`, error)
-      await tx
-        .update(attempts)
-        .set({ status: 'ready_for_review', riskScore: null, serverAnalysis: report.status })
-        .where(eq(attempts.id, attempt.id))
-    }
-  })
+  try {
+    const report = await analyzeRecordings(
+      deps.storage,
+      attempt.id,
+      await fragmentsOf(deps.db, attempt.id),
+      await uploadedOf(deps.db, attempt.id),
+      // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
+      () => renewClaim(deps, attempt.id),
+    )
+    const calibration = await calibrationOf(deps, attempt.examId)
+    await deps.db.transaction(async (tx) => {
+      const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')
+      if (current?.status !== 'submitted') return
+      try {
+        await tx.transaction((savepoint) => analyze(deps, savepoint, current, report, calibration))
+      } catch (error) {
+        console.error(`analysis of attempt ${attempt.id} failed; sending it to manual review`, error)
+        await tx
+          .update(attempts)
+          .set({ status: 'ready_for_review', riskScore: null, serverAnalysis: report.status })
+          .where(eq(attempts.id, attempt.id))
+      }
+    })
+  } catch (error) {
+    // Only the database itself can fail here (analysis failures are handled above), so the claim lease
+    // retries later; returning true lets the worker go on with the other attempts meanwhile.
+    console.error(`could not analyze attempt ${attempt.id}; retrying after the lease`, error)
+  }
   return true
+}
+
+/**
+ * The examiner's past decisions weigh the kinds (section 25.4); read before the row lock, not under it.
+ * Calibration only refines the score, so a failed read falls back to neutral factors instead of
+ * failing the attempt again on every retry.
+ */
+async function calibrationOf({ db }: Deps, examId: string): Promise<Partial<Record<MarkerKind, number>>> {
+  try {
+    const [owner] = await db.select({ id: exams.ownerId }).from(exams).where(eq(exams.id, examId))
+    return await calibrationFactors(db, owner!.id)
+  } catch (error) {
+    console.error(`could not read the calibration for exam ${examId}; scoring without it`, error)
+    return {}
+  }
 }
 
 async function claimNext({ db, config, now }: Deps) {

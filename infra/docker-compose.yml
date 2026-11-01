@@ -32,6 +32,8 @@ services:
   worker:
     build: { context: .., dockerfile: infra/Dockerfile.api }
     command: ['node', 'src/worker.ts']
+    # Lets the worker finish the attempt it is analysing on shutdown instead of being killed after 10 s.
+    stop_grace_period: 60s
     environment: *api-env
     volumes: [recordings:/data/recordings]
     depends_on: { postgres: { condition: service_healthy } }

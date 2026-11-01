@@ -163,13 +163,17 @@ describe('reconciliation with server findings', () => {
     expect(riskOnly[0]).toMatchObject({ source: 'model', discrepancy: false })
   })
 
-  it('ignores a missing face the server saw in the dark', () => {
+  // The server drops dark frames itself; the device's own darkness signal could be faked to hide faces.
+  it("keeps a missing face the server saw even while the device reports it's too dark", () => {
     const markers = buildMarkers([...watched, ...signal('too_dark', 0, 30_000)], {
       endAt: 70_000,
       uploaded: new Set(['c']),
       chainBrokenAt: null,
       serverFindings: [{ kind: 'face_missing', startAt: 5000, endAt: 20_000 }],
     })
-    expect(markers.some((m) => m.source === 'model')).toBe(false)
+    expect(markers.find((m) => m.source === 'model')).toMatchObject({
+      kind: 'face_missing',
+      discrepancy: true,
+    })
   })
 })

@@ -1,5 +1,5 @@
 import type { OralRoomAccess } from '@exam/contracts'
-import { ConnectionState, Room, RoomEvent, Track, type RemoteTrack } from 'livekit-client'
+import { ConnectionState, DisconnectReason, Room, RoomEvent, Track, type RemoteTrack } from 'livekit-client'
 import { onScopeDispose, ref, shallowRef } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 
@@ -21,6 +21,16 @@ const STATE: Record<ConnectionState, RoomState> = {
   [ConnectionState.Disconnected]: 'disconnected',
 }
 
+/** Waits before each automatic rejoin; after the last one only the Reconnect button is left. */
+const RETRY_MS = [1000, 2000, 5000, 10_000, 20_000]
+/** Ends on purpose, not lost: we left, the attempt ended (the server removed us) or another tab took over. */
+const FINAL = new Set<DisconnectReason | undefined>([
+  DisconnectReason.CLIENT_INITIATED,
+  DisconnectReason.PARTICIPANT_REMOVED,
+  DisconnectReason.DUPLICATE_IDENTITY,
+  DisconnectReason.ROOM_DELETED,
+])
+
 /**
  * One live video call (student ↔ examiner) through LiveKit.
  * - The local camera is published as clones of its tracks, so the call never stops the camera that
@@ -28,7 +38,8 @@ const STATE: Record<ConnectionState, RoomState> = {
  *   after a camera restart); publishing runs one step at a time and always ends with what was asked last.
  * - The other side's video is exposed as a stream for a muted <video>; its audio is played by LiveKit's
  *   own elements, and `audioBlocked` says when the browser wants a click first (autoplay rules).
- * - After a lost connection the call rejoins when the browser is back online. It ends with its component.
+ * - After a lost connection (a server restart, a network drop) the call rejoins a few times with growing
+ *   pauses, and whenever the browser is back online. It ends with its component.
  */
 export function useLiveRoom() {
   const state = ref<RoomState>('idle')
@@ -41,6 +52,8 @@ export function useLiveRoom() {
   let sent: { from: MediaStream | null | undefined; tracks: MediaStreamTrack[] } = { from: null, tracks: [] }
   let publishing: Promise<void> = Promise.resolve()
   let disposed = false
+  let tries = 0
+  let retry: ReturnType<typeof setTimeout> | undefined
   /** Audio elements by track: LiveKit detaches before it reports the track gone, so they are tracked here. */
   const audio = new Map<RemoteTrack, HTMLMediaElement>()
 
@@ -84,7 +97,13 @@ export function useLiveRoom() {
         if (room !== current) return
         state.value = STATE[s]
         // A camera change made while reconnecting is sent once the call is back.
-        if (s === ConnectionState.Connected) void sync()
+        if (s === ConnectionState.Connected) {
+          tries = 0
+          void sync()
+        }
+      })
+      .on(RoomEvent.Disconnected, (reason) => {
+        if (room === current && !FINAL.has(reason)) retryLater()
       })
       .on(RoomEvent.TrackSubscribed, (track) => onTrack(current, track, true))
       .on(RoomEvent.TrackUnsubscribed, (track) => onTrack(current, track, false))
@@ -105,6 +124,8 @@ export function useLiveRoom() {
       room = null
       void current.disconnect()
       state.value = error instanceof ApiError && error.status === 503 ? 'unavailable' : 'disconnected'
+      // An answer from our server (no access, attempt over, not set up) stays the same on a retry.
+      if (!(error instanceof ApiError) || (error.status >= 500 && error.status !== 503)) retryLater()
     }
   }
 
@@ -144,7 +165,13 @@ export function useLiveRoom() {
     return publishing
   }
 
+  function retryLater() {
+    const wait = RETRY_MS[tries++]
+    if (wait !== undefined) retry = setTimeout(rejoin, wait)
+  }
+
   async function leave() {
+    clearTimeout(retry)
     const current = room
     room = null
     sent.tracks.forEach((t) => t.stop())

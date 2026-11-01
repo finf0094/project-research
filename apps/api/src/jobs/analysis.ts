@@ -1,13 +1,7 @@
 import type { MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
 import type { Interval } from '../ml/observations.ts'
-import { reconcile } from './reconcile.ts'
-
-export interface Fragment {
-  reason: string
-  tStart: number
-  tEnd: number
-  chunks: string[]
-}
+import type { Fragment } from '../ml/recordings.ts'
+import { confirmedByDevice, reconcile } from './reconcile.ts'
 
 export interface StoredEvent {
   seq: number
@@ -148,7 +142,11 @@ export function buildMarkers(
   return markers.sort((a, b) => a.startAt - b.startAt)
 }
 
-/** `calibration`: per-kind factors from the examiner's past decisions (section 25.4), 1 when unknown. */
+/**
+ * `calibration`: per-kind factors from the examiner's past decisions (section 25.4), 1 when unknown.
+ * A server finding that confirms a device signal adds no score of its own: the device's marker already
+ * counts that moment, and the model marker stays on the timeline only to show the examiner the confirmation.
+ */
 export function riskScore(
   markers: MarkerDraft[],
   calibration: Partial<Record<MarkerKind, number>> = {},
@@ -156,6 +154,7 @@ export function riskScore(
   let score = 0
   for (const m of markers) {
     if (m.status === 'context') continue
+    if (m.source === 'model' && confirmedByDevice(m, markers)) continue
     const minutes = Math.max((m.endAt - m.startAt) / 60_000, 0.25)
     const weight = (WEIGHTS[m.kind] ?? 0) * (calibration[m.kind] ?? 1)
     score += weight * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)

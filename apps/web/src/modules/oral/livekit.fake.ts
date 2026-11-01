@@ -40,6 +40,16 @@ export const RoomEvent = {
   TrackMuted: 'muted',
   TrackUnmuted: 'unmuted',
   ParticipantDisconnected: 'left',
+  Disconnected: 'disconnected',
+}
+
+export const DisconnectReason = {
+  UNKNOWN_REASON: 'unknown',
+  CLIENT_INITIATED: 'client',
+  DUPLICATE_IDENTITY: 'duplicate',
+  SERVER_SHUTDOWN: 'shutdown',
+  PARTICIPANT_REMOVED: 'removed',
+  ROOM_DELETED: 'deleted',
 }
 
 export const ConnectionState = {

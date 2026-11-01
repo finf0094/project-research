@@ -28,7 +28,8 @@ export async function recordCallEvent(deps: Deps, body: string, authorization: s
   if (!kind || !attemptId || !who || !event.id) return
   const [attempt] = await deps.db.select({ id: attempts.id }).from(attempts).where(eq(attempts.id, attemptId))
   if (!attempt) return
-  // createdAt is in seconds; a redelivered webhook keeps its id and is stored once.
+  // createdAt is in whole seconds and the payload has nothing finer, nor a sequence: ties within a second are
+  // ordered where the call is read (review/recording.ts). A redelivered webhook keeps its id and is stored once.
   const at = event.createdAt ? Number(event.createdAt) * 1000 : deps.now()
   await deps.db
     .insert(callEvents)

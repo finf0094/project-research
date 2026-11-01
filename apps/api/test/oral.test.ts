@@ -1,8 +1,17 @@
 import type { AttemptSession, OralRoomAccess } from '@exam/contracts'
 import { eq } from 'drizzle-orm'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { attempts, questions } from '../src/db/schema.ts'
 import { createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
+
+// LiveKit's room service is faked: tests check whom the server removes from which room.
+const removed = vi.hoisted(() => [] as [string, string][])
+vi.mock('livekit-server-sdk', async (original) => ({
+  ...(await original<typeof import('livekit-server-sdk')>()),
+  RoomServiceClient: class {
+    removeParticipant = async (room: string, identity: string) => void removed.push([room, identity])
+  },
+}))
 
 let ctx: TestContext
 let seeded: Awaited<ReturnType<typeof seedExam>>
@@ -14,6 +23,7 @@ beforeEach(async () => {
   seeded = await seedExam(ctx, { mode: 'oral', recording: 'full', ticketSize: 1 })
   student = await signIn(ctx.app, 'student@test.edu')
   examiner = await signIn(ctx.app, 'teacher@test.edu')
+  removed.length = 0
 })
 afterEach(() => ctx.close())
 
@@ -78,6 +88,15 @@ describe('oral room tokens', () => {
       video: { room: mine.room },
     })
     expect(decodeJwt(theirs.token).sub).toBe(`examiner:${seeded.examiner.id}`)
+    // Both may send only a camera and a microphone, and no data.
+    for (const { token: jwt } of [mine, theirs])
+      expect(decodeJwt(jwt).video).toMatchObject({
+        canPublishSources: ['camera', 'microphone'],
+        canPublishData: false,
+      })
+    const { exp } = decodeJwt(theirs.token)
+    expect(exp - Date.now() / 1000).toBeGreaterThan(3500)
+    expect(exp - Date.now() / 1000).toBeLessThanOrEqual(3600)
   })
 
   it('keeps other people out and closes the room after the deadline or termination', async () => {
@@ -91,6 +110,32 @@ describe('oral room tokens', () => {
     ctx.clock.now -= 61 * 60_000
     await ctx.deps.db.update(attempts).set({ status: 'terminated' }).where(eq(attempts.id, attemptId))
     expect((await token(`/api/attempts/${attemptId}/oral/token`, student)).statusCode).toBe(409)
+    expect((await token(`/api/examiner/attempts/${attemptId}/oral/token`, examiner)).statusCode).toBe(409)
+  })
+})
+
+describe('end of the call', () => {
+  const studentInRoom = (attemptId: string) => [`attempt-${attemptId}`, `student:${seeded.student.id}`]
+
+  it('removes the student from the room when the examiner terminates the attempt', async () => {
+    configureLiveKit()
+    const { attemptId } = await start()
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/examiner/attempts/${attemptId}/commands`,
+      headers: examiner,
+      payload: { type: 'terminate' },
+    })
+    expect(res.statusCode, res.body).toBeLessThan(300)
+    await vi.waitFor(() => expect(removed).toContainEqual(studentInRoom(attemptId)))
+  })
+
+  it('removes the student once the attempt is submitted, by whichever process', async () => {
+    configureLiveKit()
+    const { attemptId } = await start()
+    // Written straight to the database, as the worker closing an overdue attempt does.
+    await ctx.deps.db.update(attempts).set({ status: 'submitted' }).where(eq(attempts.id, attemptId))
+    await vi.waitFor(() => expect(removed).toContainEqual(studentInRoom(attemptId)))
   })
 })
 

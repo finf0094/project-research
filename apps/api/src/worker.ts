@@ -27,6 +27,8 @@ const POLL_MS = 15_000
 const RETENTION_EVERY_MS = 3_600_000
 let stopping = false
 let lastRetention = 0
+/** Ends the current pause early; replaced by every pause, so a stop signal never waits out POLL_MS. */
+let wake = () => {}
 
 async function tick() {
   await closeExpired(deps)
@@ -36,15 +38,20 @@ async function tick() {
   while (!stopping && (await mergeNextAudio(deps))) {
     /* merge the analysed oral answers */
   }
-  if (Date.now() - lastRetention > RETENTION_EVERY_MS) {
+  if (!stopping && Date.now() - lastRetention > RETENTION_EVERY_MS) {
     await removeExpiredRecordings(deps)
     await removeExpiredSessions(deps)
     lastRetention = Date.now()
   }
 }
 
-process.once('SIGTERM', () => (stopping = true))
-process.once('SIGINT', () => (stopping = true))
+// The drain loops check `stopping` before every job, so a stop lets the current job finish and then exits.
+const stop = () => {
+  stopping = true
+  wake()
+}
+process.once('SIGTERM', stop)
+process.once('SIGINT', stop)
 
 // Without models every attempt would silently skip the server's second opinion; better not to start at all.
 if (config.REQUIRE_MODELS && !(await loadModels())) throw new Error('ML models missing: run `pnpm models`')
@@ -56,6 +63,13 @@ while (!stopping) {
   } catch (error) {
     console.error('worker tick failed', error)
   }
-  await new Promise((resolve) => setTimeout(resolve, POLL_MS))
+  if (stopping) break
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, POLL_MS)
+    wake = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+  })
 }
 await close()

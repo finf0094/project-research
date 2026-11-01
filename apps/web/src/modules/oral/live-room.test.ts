@@ -93,6 +93,49 @@ describe('useLiveRoom', () => {
     expect(call.state.value).toBe('connected')
   })
 
+  it('rejoins a call the server dropped, with growing pauses and a capped number of times', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const { call } = setup()
+      let fail = false
+      await call.join(() => (fail ? Promise.reject(new TypeError('Failed to fetch')) : access()))
+      const drop = (room = rooms.at(-1)!) => {
+        room.emit('state', 'disconnected')
+        room.emit('disconnected', 'shutdown')
+      }
+      drop()
+      await vi.advanceTimersByTimeAsync(999)
+      expect(rooms).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(rooms).toHaveLength(2)
+      expect(call.state.value).toBe('connected')
+
+      // The server stays away: five tries in all, then only the Reconnect button.
+      fail = true
+      drop()
+      await vi.advanceTimersByTimeAsync(600_000)
+      expect(rooms).toHaveLength(2 + 5)
+      expect(call.state.value).toBe('disconnected')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('stays out of a call it was removed from', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const { call } = setup()
+      await call.join(access)
+      rooms[0]!.emit('state', 'disconnected')
+      rooms[0]!.emit('disconnected', 'removed') // the attempt ended
+      await vi.advanceTimersByTimeAsync(600_000)
+      expect(rooms).toHaveLength(1)
+      expect(call.state.value).toBe('disconnected')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('never leaves a call open after the page is gone, even when joining finishes later', async () => {
     const { call, dispose } = setup()
     let grant: () => void = () => undefined
