@@ -112,32 +112,42 @@ nav {
   padding-block: var(--space-4) var(--space-12);
 }
 @media (width < 900px) {
+  /* A top bar: logo and account on the first row, the sections as labelled pills below. */
   .shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: var(--space-4);
+    padding: var(--space-3);
   }
   .side {
     position: static;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--space-3);
     block-size: auto;
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-3);
   }
   nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
     display: flex;
+    contain: inline-size;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .item {
+    flex: none;
+    min-block-size: 40px;
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    white-space: nowrap;
   }
   .foot {
-    margin: 0 0 0 auto;
+    margin: 0;
   }
-}
-@media (width < 600px) {
-  /* Icons only; the names stay for screen readers. */
-  .label {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
+  .content {
+    padding-block: 0 var(--space-12);
   }
 }
 </style>

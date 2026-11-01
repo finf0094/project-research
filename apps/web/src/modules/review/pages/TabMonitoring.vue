@@ -121,7 +121,7 @@ const openAttempt = (id: string) => router.push(`/examiner/attempts/${id}`)
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: var(--space-4);
 }
 .layout {
@@ -142,7 +142,7 @@ const openAttempt = (id: string) => router.push(`/examiner/attempts/${id}`)
 }
 @media (width < 1100px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

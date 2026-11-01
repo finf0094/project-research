@@ -70,7 +70,7 @@ function choose(code: Locale, menu?: HTMLElement | null) {
 }
 .pill {
   min-inline-size: 40px;
-  min-block-size: 32px;
+  min-block-size: 40px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;

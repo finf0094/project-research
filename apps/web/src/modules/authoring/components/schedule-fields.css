@@ -21,7 +21,7 @@
   font-weight: 600;
 }
 .chip {
-  min-height: 36px;
+  min-height: 40px;
   padding: 0 var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -44,7 +44,7 @@
 }
 .custom {
   width: 84px;
-  min-height: 36px;
+  min-height: 40px;
   padding: 0 var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -68,5 +68,11 @@
   &.error {
     background: var(--danger-tint);
     color: var(--danger);
+  }
+}
+/* Phones: the caption gets its own line, the chips wrap neatly under it. */
+@media (width < 600px) {
+  .caption {
+    flex-basis: 100%;
   }
 }

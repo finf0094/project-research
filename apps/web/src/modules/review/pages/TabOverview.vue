@@ -37,7 +37,7 @@ const { exam, now } = useExamHub()
 }
 @media (width < 1000px) {
   .top {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

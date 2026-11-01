@@ -45,6 +45,8 @@ const model = defineModel<T>({ required: true })
   color: var(--text-2);
   font-weight: 600;
   font-size: var(--text-sm);
+  white-space: nowrap;
+  flex: none;
   transition:
     background-color var(--dur) var(--ease),
     color var(--dur) var(--ease);
@@ -64,5 +66,18 @@ const model = defineModel<T>({ required: true })
   background: color-mix(in oklab, currentColor 14%, transparent);
   font-size: var(--text-xs);
   text-align: center;
+}
+/* Phones: one full-width row that scrolls sideways, never a wrapped pill-shaped blob. The containment
+   keeps the long row from widening the page. */
+@media (width < 600px) {
+  .tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    inline-size: 100%;
+    contain: inline-size;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
 }
 </style>

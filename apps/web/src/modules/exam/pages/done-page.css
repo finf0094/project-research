@@ -1,0 +1,109 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--space-4);
+}
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  justify-items: start;
+  inline-size: min(560px, 100%);
+  overflow: hidden;
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  animation: rise var(--dur-slow) var(--ease) both;
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block-start: -40%;
+    inset-inline-end: -30%;
+    inline-size: 300px;
+    aspect-ratio: 1;
+    border: 1px dashed var(--border);
+    border-radius: 50%;
+  }
+}
+.badge {
+  /* The check draws itself once the badge has popped in. */
+  :deep(path) {
+    stroke-dasharray: 40;
+    animation: draw 500ms var(--ease) 450ms both;
+  }
+  display: grid;
+  place-items: center;
+  inline-size: 72px;
+  block-size: 72px;
+  border-radius: var(--radius-lg);
+  background: var(--lime);
+  color: var(--on-lime);
+  animation: pop 600ms var(--ease-spring) 120ms both;
+}
+h1 {
+  font-size: var(--text-2xl);
+}
+.lead {
+  color: var(--text-2);
+}
+.steps {
+  display: grid;
+  gap: var(--space-2);
+  inline-size: 100%;
+  padding: 0;
+  list-style: none;
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+  }
+}
+.title {
+  font-weight: 700;
+}
+.note {
+  font-size: var(--text-sm);
+}
+.tick {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  color: var(--on-ok);
+  font-size: var(--text-sm);
+  &.done {
+    border-color: var(--ok);
+    background: var(--ok);
+    animation: pop 400ms var(--ease-spring) both;
+  }
+  /* Sending: a ring that spins until the last fragment is on the server. */
+  &.busy {
+    border-color: var(--accent) transparent var(--accent) var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+}
+@keyframes spin {
+  to {
+    rotate: 1turn;
+  }
+}
+.warn {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+@media (width < 600px) {
+  .card {
+    padding: var(--space-6);
+  }
+}

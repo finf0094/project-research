@@ -44,7 +44,7 @@ const name = useId()
 .flag {
   display: flex;
   align-items: center;
-  block-size: 40px;
+  block-size: 48px;
   border-radius: var(--radius-pill);
   background: var(--surface-2);
 }
@@ -55,8 +55,8 @@ const name = useId()
   label {
     display: grid;
     place-items: center;
-    inline-size: 32px;
-    block-size: 32px;
+    inline-size: 40px;
+    block-size: 40px;
     border-radius: 50%;
     cursor: pointer;
     color: var(--text-2);

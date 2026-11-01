@@ -97,7 +97,7 @@ function download() {
 }
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: var(--space-4);
 }
 .middle {
@@ -110,7 +110,7 @@ function download() {
 }
 @media (width < 1000px) {
   .middle {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

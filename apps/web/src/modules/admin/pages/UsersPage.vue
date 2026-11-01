@@ -32,7 +32,7 @@ const TONE = { student: 'off', examiner: 'accent', admin: 'warn' } as const
           <tbody>
             <tr v-for="u in users" :key="u.id">
               <th scope="row">{{ u.name }}</th>
-              <td>{{ u.email }}</td>
+              <td class="email">{{ u.email }}</td>
               <td>
                 <StatusPill :tone="TONE[u.role]">{{ $t(`admin.roles.${u.role}`) }}</StatusPill>
               </td>
@@ -76,7 +76,36 @@ thead th {
 }
 @media (width < 900px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Phones: name and role on one line, the email under them. */
+@media (width < 600px) {
+  thead {
+    display: none;
+  }
+  table,
+  tbody {
+    display: block;
+  }
+  tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1) var(--space-3);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--border);
+  }
+  th,
+  td {
+    padding: 0;
+    border: 0;
+  }
+  .email {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
   }
 }
 </style>

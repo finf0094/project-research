@@ -61,7 +61,7 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
             <th scope="row">
               <span class="who"><Avatar :name="a.student.name" :size="32" />{{ a.student.name }}</span>
             </th>
-            <td class="num">
+            <td class="num" :data-label="$t('hub.results.columns.auto')">
               <span v-if="!a.points" class="muted">—</span>
               <template v-else>{{ a.points.auto }}/{{ a.points.max }}</template
               ><span v-if="a.points?.open" class="muted" :title="$t('hub.queue.open')"
@@ -69,17 +69,19 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
                 ><span class="visually-hidden">{{ $t('hub.queue.open') }}</span></span
               >
             </td>
-            <td>
+            <td :data-label="$t('hub.results.columns.score')">
               <span v-if="finalScore(a) !== null" class="score">{{ finalScore(a) }}</span>
               <span v-else class="muted">{{ $t('hub.results.afterReview') }}</span>
             </td>
-            <td>
+            <td :data-label="$t('hub.results.columns.record')">
               <StatusPill :tone="RECORD_TONE[a.result?.verdict ?? 'pending']">{{
                 $t(`hub.results.record.${a.result?.verdict ?? 'pending'}`)
               }}</StatusPill>
             </td>
-            <td class="outcome" :class="outcome(a)">{{ $t(`hub.results.verdict.${outcome(a)}`) }}</td>
-            <td>
+            <td class="outcome" :class="outcome(a)" :data-label="$t('hub.results.columns.result')">
+              {{ $t(`hub.results.verdict.${outcome(a)}`) }}
+            </td>
+            <td class="actions">
               <RouterLink
                 :to="`/examiner/attempts/${a.id}`"
                 class="open"
@@ -95,91 +97,4 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
   </section>
 </template>
 
-<style scoped>
-.sheet {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
-}
-.head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  h2 {
-    flex: 1;
-    font-size: var(--text-lg);
-  }
-  input {
-    min-inline-size: 200px;
-    border-radius: var(--radius-pill);
-  }
-}
-.wrap {
-  overflow-x: auto;
-}
-table {
-  inline-size: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-th,
-td {
-  padding: var(--space-3);
-  text-align: start;
-  white-space: nowrap;
-}
-thead th {
-  color: var(--text-2);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-tbody tr {
-  border-top: 1px solid var(--border);
-}
-.who {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-weight: 600;
-}
-.num {
-  font-variant-numeric: tabular-nums;
-}
-.score {
-  display: inline-grid;
-  place-items: center;
-  min-inline-size: 56px;
-  padding: 6px var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  font-family: var(--font-display);
-  font-weight: 700;
-}
-.outcome {
-  font-weight: 700;
-  &.pass {
-    color: var(--ok);
-  }
-  &.fail {
-    color: var(--danger);
-  }
-  &.pending {
-    color: var(--warn);
-  }
-}
-.open {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 32px;
-  block-size: 32px;
-  border-radius: 50%;
-  color: var(--text-2);
-  &:hover {
-    background: var(--surface-2);
-  }
-}
-</style>
+<style scoped src="./grade-sheet.css"></style>

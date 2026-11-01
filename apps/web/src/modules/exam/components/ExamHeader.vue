@@ -95,4 +95,13 @@ const focus = useFullscreen()
   align-items: center;
   gap: var(--space-3);
 }
+/* Phones: the timer and the submit button stay in reach while the question scrolls. */
+@media (width < 900px) {
+  .header {
+    position: sticky;
+    inset-block-start: var(--space-2);
+    z-index: 2;
+    box-shadow: var(--shadow-2);
+  }
+}
 </style>

@@ -63,4 +63,9 @@ withDefaults(
   background: var(--ink);
   color: var(--on-ink);
 }
+@media (width < 600px) {
+  .tile {
+    padding: var(--space-4);
+  }
+}
 </style>
