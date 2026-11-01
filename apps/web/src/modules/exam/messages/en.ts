@@ -161,7 +161,7 @@ export const en: typeof ru = {
       persist: {
         title: 'Reliable storage',
         ok: 'Your data will not be wiped',
-        hint: 'The browser may clear data when space runs low — keep the tab open until everything is sent.',
+        hint: 'You can start. Just keep the tab open until everything is sent: the browser may clear data when space runs low.',
       },
     },
   },

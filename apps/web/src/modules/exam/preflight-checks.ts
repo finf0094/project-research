@@ -1,4 +1,4 @@
-import { Camera, HardDrive, Laptop, Mic, Sun, User, Wifi } from 'lucide-vue-next'
+import { Camera, HardDrive, Laptop, Mic, ShieldCheck, Sun, User, Wifi } from 'lucide-vue-next'
 import { computed, onMounted, ref, type Component, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { useDeviceProbe } from '@/modules/proctoring'
@@ -26,7 +26,8 @@ const DEVICE_LOOK = {
 const BROWSER_LOOK = {
   browser: { icon: Laptop, tone: 'accent' },
   storage: { icon: HardDrive, tone: 'lime' },
-  persist: { icon: HardDrive, tone: 'lime' },
+  // Its own icon: two drive icons in a row read as the same check twice.
+  persist: { icon: ShieldCheck, tone: 'sky' },
 } as const
 
 /**

@@ -17,10 +17,12 @@ const CHUNK_BUDGET_BYTES = 3 * 1024 * 1024
 /** How long a stopped recorder may take to deliver its data after the stop event (some Safari versions). */
 const LATE_DATA_MS = 1000
 /** WebM where the browser has it; Safari (iPhone) records MP4. The server decodes both. */
+/** How often the recorder hands over data within a chunk. */
+const TIMESLICE_MS = 1000
 const MIME_CANDIDATES = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
 
 /**
- * Records the camera in 10 s chunks and hands each one over (the caller keeps the ring).
+ * Records the camera in chunks of up to 10 s and hands each one over (the caller keeps the ring).
  * The recorder restarts every chunk, so each chunk is a standalone playable file
  * (chunks of one continuous recording would only play together with the first one).
  */
@@ -67,7 +69,9 @@ export function startRecorder(
     })
     current = { recorder, done }
     try {
-      recorder.start()
+      // Data every second, joined into one file per chunk: Safari on iPhone may hand over nothing at all
+      // when asked only at stop, which left whole exams with empty recordings.
+      recorder.start(TIMESLICE_MS)
     } catch (error) {
       // iOS may refuse to start while the page is in the background: the next chunk tries again.
       console.warn('recording paused', error)

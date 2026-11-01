@@ -39,14 +39,17 @@ export async function request<T = unknown>(
   return schema ? schema.parse(data) : (data as T)
 }
 
-/** Uploads a binary body (recorded chunks). */
+/** The slowest uplink an upload is given time for (a weak mobile connection), in bytes per second. */
+const SLOWEST_UPLINK_BPS = 25_000
+
+/** Uploads a binary body (recorded chunks); a large one gets more time than a minute on a slow uplink. */
 export async function upload(path: string, blob: Blob, signal?: AbortSignal): Promise<void> {
   const response = await fetch(`/api${path}`, {
     method: 'PUT',
     credentials: 'same-origin',
     headers: { 'content-type': blob.type },
     body: blob,
-    signal: withTimeout(60_000, signal),
+    signal: withTimeout(Math.max(60_000, (blob.size / SLOWEST_UPLINK_BPS) * 1000), signal),
   })
   if (!response.ok) throw new ApiError(response.status, await errorMessage(response))
 }

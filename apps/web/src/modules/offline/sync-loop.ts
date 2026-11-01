@@ -3,7 +3,7 @@ import Dexie from 'dexie'
 import { ApiError, isNetworkError, request } from '@/shared/lib/http'
 import type { ServerClock } from './clock'
 import { initialConnection, nextConnection, retryDelay, type SyncOutcome } from './connection'
-import { uploadChunks } from './chunk-upload'
+import { CHUNKS_PER_TICK, CHUNKS_PER_TICK_CLOSED, uploadChunks } from './chunk-upload'
 import { db } from './db'
 import type { EventLog } from './event-log'
 import { countChunks } from './local-data'
@@ -137,8 +137,17 @@ export function startSync(options: SyncOptions): SyncHandle {
     await options.onResponse(response)
 
     const allAcked = !accepting || ackedSeq >= log.head().seq
-    if (allAcked && (connection.status === 'online' || !accepting))
-      await uploadChunks(attemptId, aborter.signal, running)
+    const more =
+      allAcked &&
+      (connection.status === 'online' || !accepting) &&
+      (await uploadChunks(
+        attemptId,
+        aborter.signal,
+        running,
+        accepting ? CHUNKS_PER_TICK : CHUNKS_PER_TICK_CLOSED,
+      ))
+    // A finished attempt has only its recording left to send: the next batch goes at once, not after a pause.
+    if (more && !accepting) return 0
     if (allAcked) return IDLE_MS
     // Not everything acknowledged: continue at once if the server moved forward, otherwise back off.
     return ackedSeq > attempt.ackedSeq || relayedSeq > relayedBefore ? 0 : retryDelay(2)

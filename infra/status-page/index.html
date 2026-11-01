@@ -87,6 +87,11 @@
           transform: rotate(360deg);
         }
       }
+      @media (prefers-reduced-motion: reduce) {
+        .busy .badge span {
+          animation: none;
+        }
+      }
       .title {
         margin: 0;
         font-size: 20px;
@@ -382,17 +387,23 @@
         )
       }
 
+      let lastHistory = null
       async function loadHistory() {
         const box = $('history')
         const res = await fetch('/deploy-history.txt', { cache: 'no-store' }).catch(() => null)
         if (!res?.ok) {
+          lastHistory = null
           box.replaceChildren(
             el('p', { className: 'sub', textContent: 'История появится после следующего обновления.' }),
           )
           return
         }
+        const text = await res.text()
+        // Unchanged history: keep the DOM as it is, so open "Подробнее" and keyboard focus survive the refresh.
+        if (text === lastHistory) return
+        lastHistory = text
         const opened = new Set([...box.querySelectorAll('details.deploy[open]')].map((d) => d.dataset.key))
-        const deploys = parseHistory(await res.text())
+        const deploys = parseHistory(text)
         box.replaceChildren(
           ...deploys.map((d, i) => {
             const key = `${d.sha}@${d.at}`

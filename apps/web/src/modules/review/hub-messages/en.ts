@@ -89,7 +89,7 @@ export const en: typeof ru = {
       withMarkersNote: 'worth a look',
       ofParticipants: 'of {n} participant | of {n} participants',
       alerts: 'Alerts',
-      alertsNote: 'at most two a minute',
+      alertsNote: 'at most two a minute, the rest are in the student list',
       noAlerts: 'All quiet. Submissions, dropped connections and high risk will appear here.',
       alert: {
         submitted: '{name} submitted the exam',
@@ -113,7 +113,7 @@ export const en: typeof ru = {
       filter: 'Queue filter',
       empty: 'Nothing here.',
       auto: 'Auto-graded',
-      open: '+ open answers',
+      open: '+ open questions',
     },
     results: {
       average: 'Average score',

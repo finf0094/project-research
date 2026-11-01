@@ -143,4 +143,44 @@ describe('sync loop', () => {
     expect((await db.attempts.get(ATTEMPT))!.ackedSeq).toBe(log.head().seq)
     expect(await db.chunks.count()).toBe(0)
   }, 60_000)
+
+  it('sends the recording of a closed attempt without pausing between batches', async () => {
+    const { log } = await setup()
+    await db.chunks.bulkPut(
+      Array.from({ length: 25 }, (_, i) => ({
+        attemptId: ATTEMPT,
+        hash: i.toString(16).padStart(64, '0'),
+        tStart: i,
+        blob: new Blob(['x'], { type: 'video/mp4' }),
+      })),
+    )
+    let syncs = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        if (init.method === 'PUT') return respond({}, 204)
+        syncs++
+        return respond({
+          ackedSeq: 0,
+          status: 'submitted',
+          deadline: Date.now(),
+          serverTime: Date.now(),
+          chainBroken: false,
+          commands: [],
+        })
+      }),
+    )
+    const handle = startSync({
+      attemptId: ATTEMPT,
+      log,
+      clock: createServerClock(0),
+      onResponse: () => undefined,
+      onStatus: () => undefined,
+      onUnauthorized: () => undefined,
+    })
+    // Well before the 4 s idle pause: all 25 are sent in back-to-back batches of 10.
+    await vi.waitFor(async () => expect(await db.chunks.count()).toBe(0), { timeout: 2000, interval: 20 })
+    handle.stop()
+    expect(syncs).toBe(3)
+  })
 })
