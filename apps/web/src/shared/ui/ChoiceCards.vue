@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends string">
-import type { Component } from 'vue'
+import { useId, type Component } from 'vue'
 
 /**
  * One choice out of a few, each explained in a line (an exam's format, how it is recorded): cards a
@@ -11,13 +11,15 @@ defineProps<{
   disabled?: boolean
 }>()
 const model = defineModel<T>({ required: true })
+// One group: arrow keys move between the cards, a screen reader counts them.
+const name = useId()
 </script>
 
 <template>
   <fieldset class="cards" :disabled="disabled">
     <legend>{{ label }}</legend>
     <label v-for="item in items" :key="item.value" class="card">
-      <input v-model="model" class="visually-hidden" type="radio" :value="item.value" />
+      <input v-model="model" class="visually-hidden" type="radio" :name="name" :value="item.value" />
       <component :is="item.icon" class="icon" :size="20" aria-hidden="true" />
       <span class="title">{{ item.title }}</span>
       <span class="text">{{ item.text }}</span>

@@ -47,8 +47,11 @@ function gazeOff(iris: number, cornerA: number, cornerB: number) {
 
 /** Forehead top, chin, and the two cheeks (MediaPipe face mesh indices): the face's outline. */
 const OUTLINE = [10, 152, 234, 454]
-/** How far past the picture's edge a point may lie (the model estimates hidden points slightly outside). */
-const EDGE_SLACK = 0.02
+/**
+ * How far past the picture's edge a point may lie: the model places the forehead's top slightly outside
+ * when the student leans in, which is still a face the proctor sees well.
+ */
+const EDGE_SLACK = 0.06
 
 /**
  * The whole face is in the picture: a face cut off at the chin or the forehead (the camera tilted, the

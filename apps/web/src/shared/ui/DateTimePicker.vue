@@ -62,7 +62,7 @@ const close = (event: Event) =>
       <span :id="`${id}-value`">{{ shown }}</span>
     </button>
 
-    <div :id="id" popover class="panel" @toggle="onToggle">
+    <div :id="id" popover class="panel" role="dialog" :aria-labelledby="`${id}-label`" @toggle="onToggle">
       <header class="month">
         <button type="button" class="nav" :aria-label="t('common.picker.prev')" @click="shiftMonth(-1)">
           <ChevronLeft :size="18" aria-hidden="true" />

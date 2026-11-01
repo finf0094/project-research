@@ -19,15 +19,15 @@ describe('device tiers', () => {
   it('maps measured analysis time to a tier and lowers one step at a time', () => {
     expect(tierFromTiming(20)).toBe('full')
     expect(tierFromTiming(120)).toBe('lite')
-    expect(tierFromTiming(500)).toBe('minimal')
+    expect(tierFromTiming(500)).toBe('slow')
     expect(lowerTier('full')).toBe('lite')
-    expect(lowerTier('lite')).toBe('minimal')
-    expect(lowerTier('minimal')).toBe('minimal') // the face check is never given up
+    expect(lowerTier('lite')).toBe('slow')
+    expect(lowerTier('slow')).toBe('slow') // the face check is never given up
   })
 
   it('keeps the face check on the weakest devices', () => {
-    expect(UNMEASURED.minimal).not.toContain('face_missing')
-    expect(UNMEASURED.minimal).not.toContain('multiple_faces')
+    expect(UNMEASURED.slow).not.toContain('face_missing')
+    expect(UNMEASURED.slow).not.toContain('multiple_faces')
     expect(UNMEASURED.none).toContain('face_missing')
   })
 })

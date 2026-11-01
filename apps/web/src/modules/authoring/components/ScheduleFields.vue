@@ -29,8 +29,12 @@ const closesAt = computed({
   get: () => model.value.closesAt,
   set: (at: number) => (model.value = { ...model.value, closesAt: at }),
 })
-const setDuration = (minutes: number) =>
-  minutes > 0 && (model.value = { ...model.value, durationMin: Math.min(600, Math.round(minutes)) })
+/** 1–600 whole minutes (the contract's range); the field then shows what was kept. */
+function setDuration(minutes: number, input?: HTMLInputElement) {
+  const kept = Math.min(600, Math.max(1, Math.round(minutes || 0)))
+  model.value = { ...model.value, durationMin: kept }
+  if (input) input.value = String(kept)
+}
 
 const PRESETS = {
   sitting: () => (model.value.durationMin + SITTING_SLACK_MIN) * MINUTE,
@@ -40,11 +44,12 @@ const PRESETS = {
 type Preset = keyof typeof PRESETS
 const applyPreset = (preset: Preset) =>
   (model.value = { ...model.value, closesAt: model.value.opensAt + PRESETS[preset]() })
-const activePreset = computed(() =>
-  (Object.keys(PRESETS) as Preset[]).find(
-    (preset) => model.value.closesAt - model.value.opensAt === PRESETS[preset](),
-  ),
-)
+const activePreset = computed(() => {
+  const window = model.value.closesAt - model.value.opensAt
+  // As the server decides: a window up to the exam plus the slack is a sitting.
+  if (window > model.value.durationMin * MINUTE && window <= PRESETS.sitting()) return 'sitting'
+  return (['day', 'week'] as const).find((preset) => window === PRESETS[preset]())
+})
 
 const invalid = computed(() => model.value.closesAt <= model.value.opensAt)
 /** The last start that still gets the whole time (later starts end at the close). */
@@ -78,7 +83,9 @@ const summary = computed(() => {
         {{ t(`authoring.schedule.presets.${preset}`) }}
       </button>
     </div>
-    <p v-if="activePreset === 'sitting'" class="note">{{ t('authoring.schedule.sittingNote') }}</p>
+    <p v-if="activePreset === 'sitting' && model.profile.mode === 'written'" class="note">
+      {{ t('authoring.schedule.sittingNote') }}
+    </p>
 
     <div class="duration" role="group" :aria-label="t('authoring.settings.duration')">
       <span class="caption">{{ t('authoring.settings.duration') }}</span>
@@ -99,7 +106,9 @@ const summary = computed(() => {
         max="600"
         :value="model.durationMin"
         :aria-label="t('authoring.schedule.customDuration')"
-        @change="setDuration(Number(($event.target as HTMLInputElement).value))"
+        @change="
+          setDuration(Number(($event.target as HTMLInputElement).value), $event.target as HTMLInputElement)
+        "
       />
     </div>
 

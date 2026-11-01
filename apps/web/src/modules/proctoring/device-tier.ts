@@ -10,13 +10,13 @@ const KEY = 'exam.deviceTier'
 export function tierFromTiming(msPerFrame: number): DeviceTier {
   if (msPerFrame < 60) return 'full'
   if (msPerFrame < 200) return 'lite'
-  return 'minimal'
+  return 'slow'
 }
 
 export function savedTier(): DeviceTier {
   try {
     const value = localStorage.getItem(KEY)
-    return value === 'full' || value === 'lite' || value === 'minimal' ? value : 'lite'
+    return value === 'full' || value === 'lite' || value === 'slow' ? value : 'lite'
   } catch {
     return 'lite'
   }
@@ -34,14 +34,15 @@ export function saveTier(tier: DeviceTier) {
 export const UNMEASURED: Record<DeviceTier, ObservedKind[]> = {
   full: [],
   lite: ['object_detected'],
-  // The weakest devices keep the face check, at a slower pace; gaze and objects cost too much.
-  minimal: ['object_detected', 'looking_away'],
+  // Weak devices keep the face check, at a slower pace; gaze and objects cost too much.
+  slow: ['object_detected', 'looking_away'],
   none: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'],
+  minimal: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'], // only older clients
 }
 
 /** One step down when analysis gets too slow during the exam: the exam itself must stay smooth. */
 export function lowerTier(tier: DeviceTier): DeviceTier {
-  return tier === 'full' ? 'lite' : tier === 'lite' ? 'minimal' : tier
+  return tier === 'full' ? 'lite' : tier === 'lite' ? 'slow' : tier
 }
 
 /** Average analysis time above which the tier is lowered one step. */
