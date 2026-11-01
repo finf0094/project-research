@@ -1,6 +1,6 @@
 # exam — online exams that keep working without internet
 
-A web system for written online exams with adaptive proctoring, built for unstable connections.
+A web system for written and oral online exams with adaptive proctoring, built for unstable connections.
 Everything a student does is sealed into a tamper-evident event log on the device first; a sync loop
 delivers it whenever the network allows. The architecture is described in
 [`docs/system_architecture.docx`](docs/system_architecture.docx).
@@ -22,9 +22,12 @@ Modules are imported only through their `index.ts` (enforced by ESLint).
 | Web module   | Responsibility                                                                                     |
 | ------------ | -------------------------------------------------------------------------------------------------- |
 | `offline`    | IndexedDB, event log with hash chain, server clock, connection state, sync loop, chunk upload      |
-| `exam`       | preflight, the exam itself, finishing and submission                                               |
+| `exam`       | student home, preflight, the written exam, finishing, results; packages for starting offline       |
 | `proctoring` | on-device face/light/noise detection, hints, risk level, ring-buffer recording, evidence fragments |
-| `review`     | examiner: exams, live monitoring, attempt review with markers and fragments, decisions             |
+| `oral`       | the live call (LiveKit): room state, own camera, the call stage and the ticket                     |
+| `review`     | examiner: exam hub (overview, monitoring, review queue, results), attempt review, oral room        |
+| `authoring`  | examiner: the exam editor (basics, questions with a student preview, participants)                 |
+| `admin`      | users                                                                                              |
 | `auth`       | sign-in, session, role routing                                                                     |
 
 | API module          | Responsibility                                                                                 |
@@ -33,8 +36,12 @@ Modules are imported only through their `index.ts` (enforced by ESLint).
 | `exams`, `attempts` | exam list, start/resume (per-attempt HMAC key), submit                                         |
 | `sync`              | verifies and stores events append-only, projects answers, returns ack/status/deadline/commands |
 | `blobs`             | upload of recorded chunks announced in the chain                                               |
-| `review`            | examiner endpoints                                                                             |
-| `jobs`              | worker: close expired attempts, analyze into markers and a risk score, retention               |
+| `review`            | examiner endpoints: exams, live stream (SSE), attempts, markers, decisions, publishing         |
+| `results`           | a student's own result once decided and published                                              |
+| `oral`              | LiveKit tokens, signed webhooks of the call (who joined and left), the answer's merged audio   |
+| `preload`           | encrypted exam packages and the start code (offline start)                                     |
+| `users`             | administrator: accounts                                                                        |
+| `jobs`              | worker: close expired attempts, analysis into markers and a risk score, merge-audio, retention |
 
 ## Running locally
 
@@ -60,6 +67,10 @@ pnpm typecheck
 pnpm test          # unit tests; API tests need a database exam_test (TEST_DATABASE_URL)
 pnpm --filter @exam/web e2e   # Playwright, against the running stack with a fresh seed
 ```
+
+Two e2e scenarios need extra services and are switched on explicitly: `E2E_LIVEKIT=1` (a LiveKit server and the
+API's `LIVEKIT_*` settings) and `E2E_OFFLINE_START=1` (`vite preview` of a fresh build on :4173, whose service
+worker keeps the app and the models offline).
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit and API tests and the web build.
 
@@ -101,22 +112,38 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   measuring that kind; dark frames never produce "no face". Models are pinned by SHA-256 (`pnpm models`).
 - Oral exams: LiveKit rooms (one per attempt) with tokens from the API; the ticket is drawn at random from the
   question pool when the attempt starts. The student's camera is recorded in full locally, as for written
-  exams. Tested against LiveKit server 1.9.11 (`--dev`) with two browsers: `e2e/oral-call.spec.ts` checks that both
+  exams. LiveKit's webhooks (signed with the API secret, stored once per event id) record who joined and left the
+  call; the review shows the student's time on the call with every drop. After analysis the worker's
+  `merge-audio` job joins the sound of all recorded chunks, in recording order with gaps kept as silence, into
+  one seekable Opus file (served with byte ranges), so the examiner can hear what was said while the call was down. Tested against LiveKit server 1.9.11 (`--dev`) with two browsers: `e2e/oral-call.spec.ts` checks that both
   sides receive live video and play live sound, that the call comes back after the student reloads, and that ending the
   exam closes it (run with `E2E_LIVEKIT=1` on a fresh seed while LiveKit and the API's `LIVEKIT_*` settings are up).
   Without `LIVEKIT_*` settings the API answers 503 and both sides see "video call unavailable".
 - The recording ring (last ~3 minutes, 10 s chunks) and pending fragment requests live in IndexedDB, so a
   reload or crash loses neither.
 - Languages: Russian (default), Kazakh and English through vue-i18n; each module owns its texts
-  (`modules/*/messages.ts`) and the other languages must match the Russian keys at compile time.
+  (`messages.ts`, or a `messages/` folder with one file per language) and the other languages must match the
+  Russian keys at compile time.
   Kazakh dates are spelled by the app, since browsers often ship no Kazakh calendar data.
 - API docs: OpenAPI generated from the Zod contracts (`@fastify/swagger`), browsable at `/api/docs`.
 - Exam authoring: examiners create and edit their own exams (settings, questions with correct answers, the
   oral ticket size) and choose participants by email. Once a student has started, questions and settings are
   frozen (answers, tickets and sealed logs refer to them); participants can still change. The administrator's
   role is user management (no self sign-up); the seed has `admin@example.edu`.
+- Offline start (stage 6): from a day before an exam opens, the student's device downloads the written exam
+  sealed with AES-256-GCM under a key stretched (PBKDF2-SHA-256, 300 000 rounds) from the exam's 10-character
+  start code, together with the attempt id and chain key reserved for that student. With no network at the
+  start, the student types the code the examiner reads out (shown on the exam's overview), and the attempt
+  begins on the device; the first sync creates it on the server, which accepts the claimed start time only with
+  a package and within the attempt's duration plus the offline window. Editing an exam changes its code, so an
+  outdated package no longer opens. Oral exams need the call and are not offered offline.
+- Students see their score and a question-by-question review once the examiner has decided and published;
+  publishing waits until the exam and its offline window are over, since the review shows correct answers.
+- Interface: two shells (a top bar for students, a sidebar for staff), design tokens with a dark theme, and a
+  small motion system (page rise, staggered entrances, counters, a live pulse, list moves) that switches off for
+  people who ask for reduced motion.
 - Runtime: Node.js 22.18+ (type stripping) instead of 24; no reka-ui (native `<dialog>` and inputs suffice).
 
-**Not implemented yet**
+**Beyond this version**
 
-- The room hub for classrooms (section 25.1, beyond this version).
+- The room hub for classrooms (section 25.1, "directions for development").
