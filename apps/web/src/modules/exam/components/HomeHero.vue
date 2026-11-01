@@ -170,10 +170,9 @@ h2 {
   .side {
     justify-items: stretch;
   }
-  /* The accent square moves to the top corner, clear of the full-width button. */
+  /* No room for the drifting square beside a full-width button: cut by the card's edge it read as a glitch. */
   .orb {
-    inset-block: -18px auto;
-    inset-inline-end: 40px;
+    display: none;
   }
 }
 </style>
