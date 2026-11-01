@@ -1,7 +1,15 @@
 import { createHash } from 'node:crypto'
 import { SyncBody, SyncResponse } from '@exam/contracts'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
-import { SYNC_BUDGET_MS, cloudHealth, isNetworkError, pass, relay, type Upstream } from './cloud.ts'
+import {
+  INLINE_FORWARD_MS,
+  SYNC_BUDGET_MS,
+  cloudHealth,
+  isNetworkError,
+  pass,
+  relay,
+  type Upstream,
+} from './cloud.ts'
 import { forwardAttempt } from './forwarder.ts'
 import type { HubStore } from './store.ts'
 
@@ -33,7 +41,7 @@ export function buildHub({ store, upstream }: { store: HubStore; upstream: Upstr
     if (attemptId && health.down()) return keep(request, reply, attemptId)
     try {
       // The cloud first gets what the hub collected, so events arrive in order.
-      if (attemptId) await forwardAttempt(store, upstream, attemptId).catch(logRefusal)
+      if (attemptId) await forwardAttempt(store, upstream, attemptId, INLINE_FORWARD_MS).catch(logRefusal)
       const stream = request.url.endsWith('/stream')
       const response = await pass(request, upstream, stream ? null : attemptId ? SYNC_BUDGET_MS : 60_000)
       health.answered()

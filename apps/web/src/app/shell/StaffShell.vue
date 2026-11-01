@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, Users } from 'lucide-vue-next'
+import { FileText, SlidersHorizontal, Users } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
@@ -17,7 +17,10 @@ const inSection = (to: string) => route.path === to || route.path.startsWith(`${
 const nav = computed(() =>
   auth.role === 'admin'
     ? [{ to: '/admin', label: 'app.nav.users', icon: Users }]
-    : [{ to: '/examiner', label: 'app.nav.exams', icon: FileText }],
+    : [
+        { to: '/examiner', label: 'app.nav.exams', icon: FileText },
+        { to: '/calibration', label: 'app.nav.calibration', icon: SlidersHorizontal },
+      ],
 )
 </script>
 

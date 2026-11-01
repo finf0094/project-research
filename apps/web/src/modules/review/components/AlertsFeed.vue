@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, CheckCircle2, ShieldCheck, Wifi, WifiOff } from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, Layers, ShieldCheck, Wifi, WifiOff } from 'lucide-vue-next'
 import type { Alert, AlertKind } from '../alerts'
 import { IconTile } from '@/shared/ui'
 
@@ -20,6 +20,7 @@ const LOOK = {
   online: { icon: Wifi, tone: 'ink' },
   risk: { icon: AlertTriangle, tone: 'danger' },
   ready: { icon: ShieldCheck, tone: 'ink' },
+  more: { icon: Layers, tone: 'ink' },
 } as const satisfies Record<AlertKind, unknown>
 </script>
 
@@ -33,13 +34,26 @@ const LOOK = {
     <!-- A log: new alerts are announced; the ticking "ago" is hidden from it so it is not re-read. -->
     <TransitionGroup tag="ul" name="list" role="log" aria-live="polite" aria-relevant="additions">
       <li v-for="alert in alerts" :key="alert.id">
-        <button type="button" class="item" @click="$emit('open', alert.attemptId)">
+        <!-- Folded by the attention budget: a quiet line, nothing to open (the list shows every change). -->
+        <component
+          :is="alert.kind === 'more' ? 'div' : 'button'"
+          :type="alert.kind === 'more' ? undefined : 'button'"
+          class="item"
+          :class="{ folded: alert.kind === 'more' }"
+          @click="alert.kind !== 'more' && $emit('open', alert.attemptId)"
+        >
           <IconTile :icon="LOOK[alert.kind].icon" :tone="LOOK[alert.kind].tone" />
           <span>
-            <span class="text">{{ $t(`hub.monitoring.alert.${alert.kind}`, { name: alert.name }) }}</span>
+            <span class="text">{{
+              $t(
+                `hub.monitoring.alert.${alert.kind}`,
+                { name: alert.name, n: alert.count ?? 0 },
+                alert.count ?? 0,
+              )
+            }}</span>
             <span class="when" aria-hidden="true">{{ $t(...ago(alert.at, now)) }}</span>
           </span>
-        </button>
+        </component>
       </li>
     </TransitionGroup>
   </section>
@@ -94,6 +108,13 @@ ul {
   > span {
     display: grid;
     gap: 2px;
+  }
+}
+.folded {
+  opacity: 0.75;
+  cursor: default;
+  &:hover {
+    background: rgb(255 255 255 / 0.06);
   }
 }
 .text {

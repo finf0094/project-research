@@ -64,7 +64,8 @@ async function claimNext({ db, now }: Deps) {
     if (!row) return null
     await tx
       .update(attempts)
-      .set({ audioClaimedAt: new Date(now()) })
+      // The try is counted here, so a merge that crashes the worker is not retried forever either.
+      .set({ audioClaimedAt: new Date(now()), audioTries: sql`${attempts.audioTries} + 1` })
       .where(eq(attempts.id, row.id))
     return row
   })

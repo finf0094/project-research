@@ -6,6 +6,7 @@ import {
   type ExaminerCommandBody,
   type UpdateMarkerBody,
   StartCode,
+  CalibrationRow,
 } from '@exam/contracts'
 import { z } from 'zod'
 import { request } from '@/shared/lib/http'
@@ -35,3 +36,5 @@ export const chunkUrl = (attemptId: string, hash: string) =>
   `/api/examiner/attempts/${attemptId}/chunks/${hash}`
 
 export const getStartCode = (examId: string) => request(`/examiner/exams/${examId}/start-code`, {}, StartCode)
+
+export const getCalibration = () => request('/examiner/calibration', {}, z.array(CalibrationRow))

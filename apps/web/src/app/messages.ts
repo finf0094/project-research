@@ -3,7 +3,7 @@ import { defineMessages } from '@/shared/i18n'
 export const appMessages = defineMessages({
   ru: {
     app: {
-      nav: { label: 'Разделы', exams: 'Экзамены', users: 'Пользователи' },
+      nav: { label: 'Разделы', exams: 'Экзамены', calibration: 'Калибровка', users: 'Пользователи' },
       account: 'Учётная запись: {name}',
       home: 'На главную',
       logout: 'Выйти',
@@ -13,7 +13,7 @@ export const appMessages = defineMessages({
   },
   kk: {
     app: {
-      nav: { label: 'Бөлімдер', exams: 'Емтихандар', users: 'Пайдаланушылар' },
+      nav: { label: 'Бөлімдер', exams: 'Емтихандар', calibration: 'Калибрлеу', users: 'Пайдаланушылар' },
       account: 'Есептік жазба: {name}',
       home: 'Басты бетке',
       logout: 'Шығу',
@@ -23,7 +23,7 @@ export const appMessages = defineMessages({
   },
   en: {
     app: {
-      nav: { label: 'Sections', exams: 'Exams', users: 'Users' },
+      nav: { label: 'Sections', exams: 'Exams', calibration: 'Calibration', users: 'Users' },
       account: 'Account: {name}',
       home: 'Home',
       logout: 'Sign out',

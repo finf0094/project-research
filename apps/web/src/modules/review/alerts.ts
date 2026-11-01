@@ -1,7 +1,7 @@
 import type { AttemptSummary } from '@exam/contracts'
 import { HIGH_RISK } from './labels'
 
-export type AlertKind = 'submitted' | 'offline' | 'online' | 'risk' | 'ready'
+export type AlertKind = 'submitted' | 'offline' | 'online' | 'risk' | 'ready' | 'more'
 
 export interface Alert {
   id: string
@@ -9,6 +9,8 @@ export interface Alert {
   name: string
   attemptId: string
   at: number
+  /** `more`: how many changes were folded into this line by the attention budget. */
+  count?: number
 }
 
 const FINISHED = new Set(['submitted', 'ready_for_review', 'decided'])

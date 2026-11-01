@@ -177,3 +177,15 @@ export const ExaminerCommandBody = z.discriminatedUnion('type', [
   z.object({ type: z.literal('terminate') }),
 ])
 export type ExaminerCommandBody = z.infer<typeof ExaminerCommandBody>
+
+/**
+ * How often the examiner agreed with markers of one kind (section 25.4): confirmed vs dismissed, and the
+ * factor that kind's weight in the review priority gets from it (1 until there are enough decisions).
+ */
+export const CalibrationRow = z.object({
+  kind: MarkerKind,
+  confirmed: z.number().int().nonnegative(),
+  dismissed: z.number().int().nonnegative(),
+  factor: z.number(),
+})
+export type CalibrationRow = z.infer<typeof CalibrationRow>

@@ -89,7 +89,7 @@ export const en: typeof ru = {
       withMarkersNote: 'worth a look',
       ofParticipants: 'of {n} participant | of {n} participants',
       alerts: 'Alerts',
-      alertsNote: 'only what matters',
+      alertsNote: 'at most two a minute',
       noAlerts: 'All quiet. Submissions, dropped connections and high risk will appear here.',
       alert: {
         submitted: '{name} submitted the exam',
@@ -97,6 +97,7 @@ export const en: typeof ru = {
         online: '{name} is back online',
         risk: 'High risk: {name}',
         ready: '{name}: recording analysed',
+        more: '{n} more event — see the list of students | {n} more events — see the list of students',
       },
       secondsAgo: '{n} second ago | {n} seconds ago',
       minutesAgo: '{n} minute ago | {n} minutes ago',

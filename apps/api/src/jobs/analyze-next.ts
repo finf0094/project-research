@@ -1,9 +1,10 @@
 import { and, asc, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import type { ServerAnalysis } from '@exam/contracts'
 import type { Db, Tx } from '../db/client.ts'
-import { answers, attempts, blobs, commands, events, markers } from '../db/schema.ts'
+import { answers, attempts, blobs, commands, events, exams, markers } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { attemptQuestions } from '../modules/exams/service.ts'
+import { calibrationFactors } from '../modules/review/calibration.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
 import { analyzeRecordings, type Fragment, type RecordingsReport } from '../ml/recordings.ts'
 import { buildMarkers, riskScore } from './analysis.ts'
@@ -166,13 +167,15 @@ async function analyze(
     captureRequests: captures.map((c) => c.at.getTime()).filter((at) => at < finishedAt),
     serverFindings: recordings.findings,
   })
+  // The examiner's past decisions weigh the kinds (section 25.4): noisy ones count less in the priority.
+  const [owner] = await tx.select({ id: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
   await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
   if (drafts.length) await tx.insert(markers).values(drafts.map((m) => ({ ...m, attemptId: attempt.id })))
   await tx
     .update(attempts)
     .set({
       status: 'ready_for_review',
-      riskScore: riskScore(drafts),
+      riskScore: riskScore(drafts, await calibrationFactors(tx, owner!.id)),
       serverAnalysis: analysisStatus(recordings, uploadedSet),
     })
     .where(eq(attempts.id, attempt.id))

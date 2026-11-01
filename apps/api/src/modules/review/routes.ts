@@ -6,6 +6,7 @@ import {
   ExaminerExam,
   Sha256,
   UpdateMarkerBody,
+  CalibrationRow,
 } from '@exam/contracts'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
@@ -15,6 +16,7 @@ import { attemptDetail, decide, readChunk, sendCommand, updateMarker } from './a
 import { listAttempts } from './attempt-list.ts'
 import { examSummary, listExams, publishResults } from './exam-summary.ts'
 import { byteRange } from '../../shared/range.ts'
+import { calibration } from './calibration.ts'
 import { registerStream } from './stream.ts'
 
 const IdParams = z.object({ id: z.uuid() })
@@ -39,6 +41,12 @@ export const reviewRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { 
     await publishResults(deps, me(request), request.params.id)
     return reply.code(204).send()
   })
+
+  app.get(
+    '/examiner/calibration',
+    { schema: { response: { 200: z.array(CalibrationRow) } } },
+    async (request) => calibration(deps.db, me(request)),
+  )
 
   app.get(
     '/examiner/exams/:id/attempts',

@@ -90,7 +90,7 @@ export const kk: typeof ru = {
       withMarkersNote: 'назар аударған жөн',
       ofParticipants: '{n} қатысушының',
       alerts: 'Хабарландырулар',
-      alertsNote: 'тек маңыздысы',
+      alertsNote: 'минутына екіден аспайды',
       noAlerts: 'Әзірге тыныш. Мұнда тапсырулар, байланыс үзілістері және жоғары тәуекел шығады.',
       alert: {
         submitted: '{name} емтиханды тапсырды',
@@ -98,6 +98,7 @@ export const kk: typeof ru = {
         online: '{name} қайта желіде',
         risk: 'Жоғары тәуекел: {name}',
         ready: '{name}: жазбаны талдау аяқталды',
+        more: 'Тағы {n} оқиға — олар студенттер тізімінде',
       },
       secondsAgo: '{n} секунд бұрын',
       minutesAgo: '{n} минут бұрын',

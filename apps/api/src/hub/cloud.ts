@@ -8,9 +8,19 @@ export interface Upstream {
 }
 
 /** Headers that describe one hop, not the request: never passed on. */
-const HOP = new Set(['host', 'connection', 'content-length', 'transfer-encoding', 'keep-alive'])
+// fetch has already decoded a compressed body, so its encoding must not be announced again.
+const HOP = new Set([
+  'host',
+  'connection',
+  'content-length',
+  'transfer-encoding',
+  'keep-alive',
+  'content-encoding',
+])
 /** An outside link that stalls is as bad as one that fails: a device's sync gives up after 10 s. */
 export const SYNC_BUDGET_MS = 3000
+/** Delivering what the hub holds before a device's sync: brief, so the device still gets an answer in time. */
+export const INLINE_FORWARD_MS = 1500
 /** After a failure the cloud is not tried for this long, so devices get the hub's answer at once. */
 const DOWN_FOR_MS = 15_000
 

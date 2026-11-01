@@ -2,6 +2,7 @@ import type { AttemptSummary, ExaminerExam } from '@exam/contracts'
 import { inject, onScopeDispose, provide, ref, type InjectionKey, type Ref } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 import { alertsBetween, type Alert } from './alerts'
+import { withinBudget } from './attention-budget'
 import { getExam, listAttempts } from './api'
 import { useLiveUpdates } from './live-updates'
 
@@ -41,7 +42,8 @@ export function provideExamHub(examId: string): ExamHub {
   // Only the newest refresh is applied: the stream, the poll and commands all refresh, and answers may
   // arrive out of order.
   let latest = 0
-  let loaded = false // the first load is the baseline, not news
+  let loaded = false
+  let shownAt: number[] = [] // when alerts were shown, for the attention budget // the first load is the baseline, not news
   async function refresh() {
     if (missing.value) return
     const mine = ++latest
@@ -49,8 +51,12 @@ export function provideExamHub(examId: string): ExamHub {
       const [freshExam, freshAttempts] = await Promise.all([getExam(examId), listAttempts(examId)])
       if (mine !== latest) return
       if (loaded) {
-        const changes = alertsBetween(attempts.value, freshAttempts, Date.now()).reverse()
-        if (changes.length) alerts.value = [...changes, ...alerts.value].slice(0, ALERTS_KEPT)
+        const changes = alertsBetween(attempts.value, freshAttempts, Date.now())
+        if (changes.length) {
+          const budgeted = withinBudget(changes, shownAt, Date.now())
+          shownAt = budgeted.shownAt
+          alerts.value = [...budgeted.alerts.reverse(), ...alerts.value].slice(0, ALERTS_KEPT)
+        }
       }
       exam.value = freshExam
       attempts.value = freshAttempts

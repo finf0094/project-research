@@ -148,12 +148,17 @@ export function buildMarkers(
   return markers.sort((a, b) => a.startAt - b.startAt)
 }
 
-export function riskScore(markers: MarkerDraft[]): number {
+/** `calibration`: per-kind factors from the examiner's past decisions (section 25.4), 1 when unknown. */
+export function riskScore(
+  markers: MarkerDraft[],
+  calibration: Partial<Record<MarkerKind, number>> = {},
+): number {
   let score = 0
   for (const m of markers) {
     if (m.status === 'context') continue
     const minutes = Math.max((m.endAt - m.startAt) / 60_000, 0.25)
-    score += (WEIGHTS[m.kind] ?? 0) * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)
+    const weight = (WEIGHTS[m.kind] ?? 0) * (calibration[m.kind] ?? 1)
+    score += weight * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)
   }
   return Math.min(100, Math.round(score))
 }

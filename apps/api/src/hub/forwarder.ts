@@ -11,6 +11,7 @@ export async function forwardAttempt(
   store: HubStore,
   upstream: Upstream,
   attemptId: string,
+  timeoutMs = 5_000,
 ): Promise<boolean> {
   let done = true
   await store.update(attemptId, async (state) => {
@@ -19,8 +20,10 @@ export async function forwardAttempt(
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${upstream.token}` },
       body: JSON.stringify({ events: state.pending.slice(0, 100) }),
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(timeoutMs),
     })
+    // The cloud has no such attempt (removed): nothing to deliver it to, ever.
+    if (response.status === 404) return { ...state, pending: [] }
     if (!response.ok) throw new Error(`cloud refused the relay: ${response.status}`)
     const last = SyncResponse.parse(await response.json())
     // A closed attempt or a broken chain takes nothing more: what is left would only be sent again forever.
