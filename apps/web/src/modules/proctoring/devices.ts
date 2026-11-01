@@ -1,7 +1,10 @@
 import type { SetSignal } from './signals'
 
-/** Names of headphones and headsets (as systems label them, English and Russian). */
-const HEADPHONES = /head(phone|set)|ear(phone|bud)|airpods|\bbuds\b|hands-?free|наушник|гарнитур/i
+/** Names of headphones and headsets (as systems label them, English and Russian). "Buds2" too. */
+const HEADPHONES = /head(phone|set)|ear(phone|bud)|airpods|\bbuds|hands-?free|наушник|гарнитур/i
+/** A laptop's built-in jack (Windows: "Speakers/Headphones (Realtek)") is named so with nothing plugged in. */
+const SHARED_JACK = /speakers?\s*\/\s*headphones|динамики\s*\/\s*наушники/gi
+const isHeadset = (label: string) => HEADPHONES.test(label.replace(SHARED_JACK, ''))
 /** Names of cameras that are programs, not devices: they can show a recording or another person. */
 const VIRTUAL =
   /virtual|\bobs\b|manycam|snap camera|xsplit|droidcam|epoccam|\bcamo\b|mmhmm|splitcam|youcam|e2esoft|vcam/i
@@ -19,12 +22,13 @@ export function watchDevices(stream: MediaStream, setSignal: SetSignal) {
   let stopped = false
   const check = async () => {
     const microphone = stream.getAudioTracks()[0]?.label ?? ''
-    // The sound goes to the system's default output; its name says whether that is a headset.
-    const outputs = await media.enumerateDevices().catch(() => [])
-    const output = outputs.find((d) => d.kind === 'audiooutput' && d.deviceId === 'default')?.label ?? ''
+    // The sound goes to the system's default output; its name says whether that is a headset. Chromium
+    // lists it as 'default'; elsewhere the default comes first (Safari lists no outputs at all).
+    const outputs = (await media.enumerateDevices().catch(() => [])).filter((d) => d.kind === 'audiooutput')
+    const output = (outputs.find((d) => d.deviceId === 'default') ?? outputs[0])?.label ?? ''
     if (stopped) return
     setSignal('virtual_camera', isVirtualCamera(stream))
-    setSignal('headphones', HEADPHONES.test(microphone) || HEADPHONES.test(output))
+    setSignal('headphones', isHeadset(microphone) || isHeadset(output))
   }
   void check()
   media.addEventListener('devicechange', check)

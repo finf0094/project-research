@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildMarkers, riskScore, type StoredEvent } from './analysis.ts'
+import { buildMarkers, type StoredEvent } from './analysis.ts'
+import { riskScore } from './risk-score.ts'
 
 const ev = (seq: number, type: string, data: unknown, clientAt: number): StoredEvent => ({
   seq,

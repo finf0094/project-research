@@ -43,6 +43,14 @@ describe('devices in use', () => {
     )
   })
 
+  it('sees "Buds2", and not the laptop jack that Windows names "Speakers/Headphones"', async () => {
+    const buds = setup('Webcam', 'Galaxy Buds2 Pro')
+    await vi.waitFor(() => expect(buds.signals).toContainEqual(['headphones', true]))
+    vi.unstubAllGlobals()
+    const jack = setup('Webcam', 'Microphone Array (Realtek)', 'Default - Speakers/Headphones (Realtek(R) Audio)')
+    await vi.waitFor(() => expect(jack.signals).toContainEqual(['headphones', false]))
+  })
+
   it('checks again when a device is plugged in', async () => {
     const { signals, events, stop } = setup('Webcam', 'Microphone')
     await vi.waitFor(() => expect(signals).toHaveLength(2))

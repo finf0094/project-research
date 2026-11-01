@@ -17,7 +17,8 @@ import { attemptQuestions } from '../modules/exams/service.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
 import { analyzeRecordings, type RecordingsReport } from '../ml/recordings.ts'
-import { buildMarkers, findingsFor, riskScore } from './analysis.ts'
+import { buildMarkers, findingsFor } from './analysis.ts'
+import { riskScore } from './risk-score.ts'
 import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
 
 /** A claim older than this belongs to a worker that died; another worker may take the attempt. */

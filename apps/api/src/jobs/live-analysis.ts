@@ -7,7 +7,8 @@ import { toIntervals } from '../ml/observations.ts'
 import { markLiveDue } from '../modules/attempts/live-due.ts'
 import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
-import { buildMarkers, findingsFor, riskScore } from './analysis.ts'
+import { buildMarkers, findingsFor } from './analysis.ts'
+import { riskScore } from './risk-score.ts'
 import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
 
 /** A burst of signals settles this long before the markers are rebuilt (one rebuild, not one per event). */
