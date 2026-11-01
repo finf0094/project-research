@@ -2,7 +2,7 @@ import type { AttemptSummary, ExaminerExam } from '@exam/contracts'
 import { inject, onScopeDispose, provide, ref, type InjectionKey, type Ref } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 import { alertsBetween, type Alert } from './alerts'
-import { addToFeed, withinBudget } from './attention-budget'
+import { addToFeed, withinBudget, type Shown } from './attention-budget'
 import { getExam, listAttempts } from './api'
 import { useLiveUpdates } from './live-updates'
 
@@ -42,8 +42,8 @@ export function provideExamHub(examId: string): ExamHub {
   // Only the newest refresh is applied: the stream, the poll and commands all refresh, and answers may
   // arrive out of order.
   let latest = 0
-  let loaded = false
-  let shownAt: number[] = [] // when alerts were shown, for the attention budget // the first load is the baseline, not news
+  let loaded = false // the first load is the baseline, not news
+  let shown: Shown[] = [] // alerts shown lately, for the attention budget
   async function refresh() {
     if (missing.value) return
     const mine = ++latest
@@ -53,8 +53,8 @@ export function provideExamHub(examId: string): ExamHub {
       if (loaded) {
         const changes = alertsBetween(attempts.value, freshAttempts, Date.now())
         if (changes.length) {
-          const budgeted = withinBudget(changes, shownAt, Date.now())
-          shownAt = budgeted.shownAt
+          const budgeted = withinBudget(changes, shown, Date.now())
+          shown = budgeted.shown
           alerts.value = addToFeed(alerts.value, budgeted.alerts, Date.now(), ALERTS_KEPT)
         }
       }

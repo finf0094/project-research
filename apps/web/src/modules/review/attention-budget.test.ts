@@ -13,16 +13,17 @@ const alert = (kind: AlertKind, name: string = kind): Alert => ({
 describe('attention budget', () => {
   it('shows the most important two a minute and folds the rest into one line', () => {
     const fresh = [alert('online'), alert('submitted'), alert('risk'), alert('offline')]
-    const { alerts, shownAt } = withinBudget(fresh, [], 1000)
+    const { alerts, shown } = withinBudget(fresh, [], 1000)
     expect(alerts.map((a) => a.kind)).toEqual(['risk', 'offline', 'more'])
     expect(alerts[2]!.count).toBe(2)
     // Within the same minute only high risk still gets through on its own…
-    expect(withinBudget([alert('offline', 'o2')], shownAt, 30_000).alerts.map((a) => a.kind)).toEqual([
-      'more',
-    ])
-    expect(withinBudget([alert('risk', 'r2')], shownAt, 30_000).alerts.map((a) => a.kind)).toEqual(['risk'])
+    expect(withinBudget([alert('offline', 'o2')], shown, 30_000).alerts.map((a) => a.kind)).toEqual(['more'])
+    expect(withinBudget([alert('risk', 'r2')], shown, 30_000).alerts.map((a) => a.kind)).toEqual(['risk'])
+    // …but a burst of high risk is capped as well.
+    const risks = [alert('risk', 'r3'), alert('risk', 'r4'), alert('risk', 'r5')]
+    expect(withinBudget(risks, shown, 30_000).alerts.map((a) => a.kind)).toEqual(['risk', 'more'])
     // …and a minute later the rest does again.
-    expect(withinBudget([alert('offline', 'o2')], shownAt, 62_000).alerts.map((a) => a.kind)).toEqual([
+    expect(withinBudget([alert('offline', 'o2')], shown, 62_000).alerts.map((a) => a.kind)).toEqual([
       'offline',
     ])
   })

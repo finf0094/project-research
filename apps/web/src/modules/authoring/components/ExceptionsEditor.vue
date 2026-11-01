@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SignalException, SignalKind } from '@exam/contracts'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
 import { setException } from '../api'
 
@@ -8,7 +8,9 @@ import { setException } from '../api'
  * Section 25.3, individual exceptions: for a student with special needs, signals that are not watched (the
  * device raises no hint, the server sets no marker). Saved as soon as a box is ticked.
  */
-const props = defineProps<{ examId: string; participants: string[]; exceptions: SignalException[] }>()
+const props = defineProps<{ examId: string; participants: string[] }>()
+/** Owned by the editor page, so the saved state survives switching tabs. */
+const exceptions = defineModel<SignalException[]>('exceptions', { required: true })
 const SIGNALS: SignalKind[] = [
   'face_missing',
   'looking_away',
@@ -19,23 +21,25 @@ const SIGNALS: SignalKind[] = [
   'paste',
 ]
 
-const disabled = ref(new Map<string, SignalKind[]>())
-watch(
-  () => props.exceptions,
-  (list) => (disabled.value = new Map(list.map((e) => [e.email, e.disabledSignals]))),
-  { immediate: true },
-)
+const disabledFor = (email: string) => exceptions.value.find((e) => e.email === email)?.disabledSignals ?? []
+const withSignals = (email: string, disabledSignals: SignalKind[]) => [
+  ...exceptions.value.filter((e) => e.email !== email),
+  { email, disabledSignals },
+]
 const save = useAction()
-const saving = ref<string | null>(null)
+const saving = ref(new Set<string>())
 
-function toggle(email: string, signal: SignalKind, on: boolean) {
-  const current = disabled.value.get(email) ?? []
-  const next = on ? [...current, signal] : current.filter((s) => s !== signal)
-  disabled.value = new Map(disabled.value).set(email, next)
-  saving.value = email
-  void save
-    .run(() => setException(props.examId, { email, disabledSignals: next }))
-    .finally(() => (saving.value = null))
+/** Shown at once and saved; a refused save puts the student's previous list back. */
+async function toggle(email: string, signal: SignalKind, on: boolean) {
+  const before = disabledFor(email)
+  const next = on ? [...before, signal] : before.filter((s) => s !== signal)
+  exceptions.value = withSignals(email, next)
+  saving.value = new Set(saving.value).add(email)
+  const saved = await save.run(() => setException(props.examId, { email, disabledSignals: next }))
+  if (!saved) exceptions.value = withSignals(email, before)
+  const rest = new Set(saving.value)
+  rest.delete(email)
+  saving.value = rest
 }
 </script>
 
@@ -47,16 +51,16 @@ function toggle(email: string, signal: SignalKind, on: boolean) {
     <details v-for="email in participants" :key="email" class="student">
       <summary>
         {{ email }}
-        <span v-if="disabled.get(email)?.length" class="count">{{
-          $t('authoring.exceptions.count', { n: disabled.get(email)!.length })
+        <span v-if="disabledFor(email).length" class="count">{{
+          $t('authoring.exceptions.count', { n: disabledFor(email).length })
         }}</span>
       </summary>
-      <fieldset :disabled="saving === email">
+      <fieldset :disabled="saving.has(email)">
         <legend class="visually-hidden">{{ $t('authoring.exceptions.for', { email }) }}</legend>
         <label v-for="signal in SIGNALS" :key="signal">
           <input
             type="checkbox"
-            :checked="disabled.get(email)?.includes(signal)"
+            :checked="disabledFor(email).includes(signal)"
             @change="toggle(email, signal, ($event.target as HTMLInputElement).checked)"
           />
           {{ $t(`review.marker.${signal}`) }}

@@ -77,8 +77,10 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
 
   const showHint = () => hints.show(active)
 
+  // Signals the examiner switched off for this student (section 25.3): no hint, no event, no risk.
+  const ignored = new Set<SignalKind>(options.ignore)
   function setSignal(kind: SignalKind, on: boolean) {
-    if (on === active.has(kind)) return
+    if (ignored.has(kind) || on === active.has(kind)) return
     if (on) {
       active.add(kind)
       activations.push(now())
@@ -109,9 +111,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     }
   }
 
-  const ignored = new Set<string>(options.ignore)
   function observe(kind: ObservedKind, present: boolean) {
-    if (ignored.has(kind)) return
     const transition = tracker.observe(kind, present, now())
     if (transition) setSignal(transition.kind, transition.active)
   }

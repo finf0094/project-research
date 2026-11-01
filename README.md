@@ -160,4 +160,18 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   so a device keeps its events until the cloud has them and can send them directly if it leaves the room.
   Attempts with relayed events are marked for the examiner, as the hub's receipt times are taken on trust (its
   `HUB_TOKEN` must be guarded like a server secret). Devices must reach the hub under the exam's usual address
-  (room DNS and a certificate for it): cookies and on-device data belong to that address.
+  (room DNS and a certificate for it): cookies and on-device data belong to that address. Update the hubs
+  before the cloud: the cloud answers 410 for a removed attempt, which an older hub would keep retrying.
+- 25.2 Attention budget: the live alerts feed shows at most two alerts a minute; alerts on high-risk attempts always
+  get through, the rest of that minute fold into a single "and N more" line (`review/attention-budget.ts`).
+- 25.3 Individual exceptions: in the participants tab an examiner can stop tracking chosen signals for one student
+  (for example voice for a student who reads aloud). The student's proctor does not watch them, and analysis
+  drops markers of those kinds; the list survives re-saving participants and travels in the offline package.
+- 25.4 Calibration: the "Калибровка" page shows, per marker kind, how often the examiner confirmed or dismissed
+  it. After five decisions a kind that is mostly dismissed weighs less in the review priority (down to ×0.25);
+  a reliable kind is never raised, and nothing is decided automatically. A control sample shows how many
+  reviewed attempts without markers still turned out to be violations — what the markers miss.
+- 25.5 Scaling: the API is stateless (sessions and attempts live in Postgres), so several instances run behind
+  a balancer; live monitoring goes between them through Postgres LISTEN/NOTIFY instead of Redis/NATS, and
+  workers claim jobs with `FOR UPDATE SKIP LOCKED` and leases, so they scale by adding processes. Partitioning
+  the events table and a MinIO cluster are deployment work not done here.

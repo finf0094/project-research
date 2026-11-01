@@ -114,9 +114,9 @@ async function send() {
           />
           <ExceptionsEditor
             v-if="examId"
+            v-model:exceptions="exceptions"
             :exam-id="examId"
             :participants="participants"
-            :exceptions="exceptions"
           />
         </AppCard>
       </Transition>

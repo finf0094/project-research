@@ -1,5 +1,6 @@
 import type { AttemptSession, AuthoredExam } from '@exam/contracts'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { packageVersion } from '../src/modules/exams/offline.ts'
 import { createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
 
 let ctx: TestContext
@@ -42,5 +43,14 @@ describe('individual exceptions (section 25.3)', () => {
 
   it('apply only to participants', async () => {
     expect((await setException('outsider@test.edu', ['noise'])).statusCode).toBe(400)
+  })
+})
+
+describe('offline package version', () => {
+  it('changes with the student’s exceptions, so a downloaded package is replaced', () => {
+    const exam = { startCodeEnc: 'sealed code' }
+    expect(packageVersion(exam, [])).not.toBe(packageVersion(exam, ['noise']))
+    expect(packageVersion(exam, ['noise', 'paste'])).toBe(packageVersion(exam, ['paste', 'noise']))
+    expect(packageVersion({ startCodeEnc: null }, [])).toBeNull()
   })
 })

@@ -18,6 +18,15 @@ export const offlineCapable = (exam: Pick<ExamRow, 'profile' | 'opensAt' | 'clos
   exam.profile.mode === 'written' &&
   exam.closesAt.getTime() - exam.opensAt.getTime() <= exam.durationMin * 60_000 + SITTING_SLACK_MS
 
-/** Changes with the start code (an edit resets it), revealing nothing about it. */
-export const packageVersion = (exam: Pick<ExamRow, 'startCodeEnc'>) =>
-  exam.startCodeEnc ? createHash('sha256').update(exam.startCodeEnc).digest('hex').slice(0, 16) : null
+/**
+ * Changes with the start code (an edit resets it) and with the student's exceptions (they travel in the
+ * package), revealing nothing about either.
+ */
+export const packageVersion = (exam: Pick<ExamRow, 'startCodeEnc'>, disabledSignals: readonly string[]) =>
+  exam.startCodeEnc
+    ? createHash('sha256')
+        .update(exam.startCodeEnc)
+        .update([...disabledSignals].sort().join(','))
+        .digest('hex')
+        .slice(0, 16)
+    : null

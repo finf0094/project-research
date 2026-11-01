@@ -40,6 +40,7 @@ export async function examPackage(deps: Deps, userId: string, examId: string): P
   if (started) throw conflict('The attempt has already started')
 
   exam = await withStartCode(deps, exam)
+  const disabledSignals = await disabledSignalsOf(deps.db, examId, userId)
   const reservation = await deps.db.transaction((tx) => reserve(deps, tx, examId, userId))
   return {
     examId,
@@ -52,8 +53,8 @@ export async function examPackage(deps: Deps, userId: string, examId: string): P
     iterations: PACKAGE_ITERATIONS,
     sealed: await sealedFor(deps, exam),
     serverTime: now,
-    disabledSignals: await disabledSignalsOf(deps.db, examId, userId),
-    version: packageVersion(exam)!,
+    disabledSignals,
+    version: packageVersion(exam, disabledSignals)!,
   }
 }
 

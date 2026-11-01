@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Calibration, CalibrationRow } from '@exam/contracts'
+import { CALIBRATION_MIN_DECISIONS, type Calibration, type CalibrationRow } from '@exam/contracts'
 import { computed, onMounted, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
 import { IconTile } from '@/shared/ui'
@@ -8,7 +8,7 @@ import { MARKER_ICON } from '../marker-look'
 
 /**
  * Section 25.4: how often the examiner's decisions agreed with each kind of marker, and what that does to
- * the review priority. Noisy kinds (mostly dismissed) weigh less; reliable ones more. No model is retrained.
+ * the review priority. Noisy kinds (mostly dismissed) weigh less; reliable ones keep their weight. No model is retrained.
  */
 const data = ref<Calibration | null>(null)
 const load = useAction()
@@ -19,9 +19,8 @@ const sorted = computed(() =>
 )
 const share = (r: CalibrationRow) => Math.round((100 * r.confirmed) / Math.max(1, r.confirmed + r.dismissed))
 const decisions = (r: CalibrationRow) => r.confirmed + r.dismissed
-const effect = (r: CalibrationRow) => (r.factor < 1 ? 'less' : decisions(r) < MIN_DECISIONS ? 'few' : 'same')
-/** As on the server: fewer decisions than this say too little to change a weight. */
-const MIN_DECISIONS = 5
+const effect = (r: CalibrationRow) =>
+  r.factor < 1 ? 'less' : decisions(r) < CALIBRATION_MIN_DECISIONS ? 'few' : 'same'
 const missRate = computed(() => {
   const c = data.value?.control
   return c && c.unmarked ? Math.round((100 * c.missed) / c.unmarked) : null

@@ -1,10 +1,12 @@
-import type { Calibration, CalibrationRow, MarkerKind } from '@exam/contracts'
+import {
+  CALIBRATION_MIN_DECISIONS,
+  type Calibration,
+  type CalibrationRow,
+  type MarkerKind,
+} from '@exam/contracts'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Db, Tx } from '../../db/client.ts'
 import { attempts, decisions, exams, markers } from '../../db/schema.ts'
-
-/** Below this many decisions a kind keeps its usual weight: a few judgements say little. */
-export const MIN_DECISIONS = 5
 
 /**
  * Section 25.4: "the thresholds of noisy kinds are raised". The share of a kind's markers the examiner
@@ -12,7 +14,7 @@ export const MIN_DECISIONS = 5
  * dismissed keeps its weight; a noisy kind counts less in the review priority, down to a quarter.
  */
 export function calibrationFactor(confirmed: number, dismissed: number): number {
-  if (confirmed + dismissed < MIN_DECISIONS) return 1
+  if (confirmed + dismissed < CALIBRATION_MIN_DECISIONS) return 1
   const precision = (confirmed + 1) / (confirmed + dismissed + 2)
   return Math.min(1, Math.max(0.25, Math.round(precision * 2 * 100) / 100))
 }

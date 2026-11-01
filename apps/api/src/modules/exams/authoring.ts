@@ -1,5 +1,5 @@
 import type { AuthoredExam, ExamDefinition, ParticipantsResult } from '@exam/contracts'
-import { and, asc, count, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, notInArray } from 'drizzle-orm'
 import type { Db, Tx } from '../../db/client.ts'
 import { examExceptions } from './exceptions.ts'
 import { attempts, examParticipants, exams, questions, users } from '../../db/schema.ts'
@@ -127,16 +127,20 @@ export async function setParticipants(
       .from(attempts)
       .where(eq(attempts.examId, examId))
     const keep = new Set([...students.map((s) => s.id), ...started.map((s) => s.userId)])
-    // A student who stays keeps their individual exception.
-    const before = await tx.select().from(examParticipants).where(eq(examParticipants.examId, examId))
-    const exceptionOf = new Map(before.map((p) => [p.userId, p.disabledSignals]))
-    await tx.delete(examParticipants).where(eq(examParticipants.examId, examId))
+    // Only the difference changes, so a student who stays keeps their row and its individual exception.
+    await tx
+      .delete(examParticipants)
+      .where(
+        and(
+          eq(examParticipants.examId, examId),
+          keep.size ? notInArray(examParticipants.userId, [...keep]) : undefined,
+        ),
+      )
     if (keep.size)
       await tx
         .insert(examParticipants)
-        .values(
-          [...keep].map((userId) => ({ examId, userId, disabledSignals: exceptionOf.get(userId) ?? [] })),
-        )
+        .values([...keep].map((userId) => ({ examId, userId })))
+        .onConflictDoNothing()
     const found = new Set(students.map((s) => s.email))
     return { participants: await participantEmails(tx, examId), unknown: wanted.filter((e) => !found.has(e)) }
   })

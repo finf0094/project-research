@@ -17,22 +17,32 @@ const PRIORITY: Record<AlertKind, number> = {
   more: 5,
 }
 
-export function withinBudget(fresh: Alert[], shownAt: number[], now: number) {
-  const recent = shownAt.filter((t) => now - t < MINUTE)
+/** When an alert was shown, and whether it was a high-risk one (those have a budget of their own). */
+export interface Shown {
+  at: number
+  risk: boolean
+}
+
+export function withinBudget(fresh: Alert[], shown: Shown[], now: number) {
+  const recent = shown.filter((s) => now - s.at < MINUTE)
   let room = Math.max(0, ALERTS_PER_MINUTE - recent.length)
-  const shown: Alert[] = []
+  // High risk is what a proctor must not miss: it gets through even when the budget is spent, but a burst
+  // of it (a room's Wi-Fi or lights failing) is capped too.
+  let riskRoom = Math.max(0, ALERTS_PER_MINUTE - recent.filter((s) => s.risk).length)
+  const passed: Alert[] = []
   let folded = 0
   for (const alert of fresh.toSorted((a, b) => PRIORITY[a.kind] - PRIORITY[b.kind])) {
-    // High risk always gets through: it is the one thing a proctor must not miss.
-    if (alert.kind === 'risk' || room > 0) {
-      shown.push(alert)
+    const risk = alert.kind === 'risk'
+    if (risk ? riskRoom > 0 : room > 0) {
+      passed.push(alert)
       room--
+      if (risk) riskRoom--
     } else folded++
   }
   const alerts: Alert[] = folded
-    ? [...shown, { id: `more:${now}`, kind: 'more', name: '', attemptId: '', at: now, count: folded }]
-    : shown
-  return { alerts, shownAt: [...recent, ...shown.map(() => now)] }
+    ? [...passed, { id: `more:${now}`, kind: 'more', name: '', attemptId: '', at: now, count: folded }]
+    : passed
+  return { alerts, shown: [...recent, ...passed.map((a) => ({ at: now, risk: a.kind === 'risk' }))] }
 }
 
 /**
@@ -45,10 +55,10 @@ export function addToFeed(feed: Alert[], budgeted: Alert[], now: number, keep: n
   if (more && top?.kind === 'more' && now - top.at < MINUTE) {
     const rest = budgeted.filter((a) => a !== more)
     return [
-      ...rest.reverse(),
+      ...rest.toReversed(),
       { ...top, count: (top.count ?? 0) + (more.count ?? 0) },
       ...feed.slice(1),
     ].slice(0, keep)
   }
-  return [...budgeted.reverse(), ...feed].slice(0, keep)
+  return [...budgeted.toReversed(), ...feed].slice(0, keep)
 }

@@ -11,13 +11,14 @@ export async function listForStudent(db: Db, userId: string): Promise<StudentExa
       questionCount: db.$count(questions, eq(questions.examId, exams.id)),
       attemptId: attempts.id,
       attemptStatus: attempts.status,
+      disabledSignals: examParticipants.disabledSignals,
     })
     .from(examParticipants)
     .innerJoin(exams, eq(exams.id, examParticipants.examId))
     .leftJoin(attempts, and(eq(attempts.examId, exams.id), eq(attempts.userId, userId)))
     .where(eq(examParticipants.userId, userId))
     .orderBy(asc(exams.opensAt))
-  return rows.map(({ exam, questionCount, attemptId, attemptStatus }) => ({
+  return rows.map(({ exam, questionCount, attemptId, attemptStatus, disabledSignals }) => ({
     id: exam.id,
     title: exam.title,
     mode: exam.profile.mode,
@@ -34,7 +35,7 @@ export async function listForStudent(db: Db, userId: string): Promise<StudentExa
             resultReady: attemptStatus === 'decided' && !!exam.publishedAt,
           }
         : null,
-    offline: offlineCapable(exam) ? { version: packageVersion(exam) } : null,
+    offline: offlineCapable(exam) ? { version: packageVersion(exam, disabledSignals) } : null,
   }))
 }
 
