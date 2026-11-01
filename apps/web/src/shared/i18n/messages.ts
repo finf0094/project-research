@@ -10,6 +10,13 @@ export const commonMessages = defineMessages({
       understood: 'Понятно',
       back: 'Назад',
       teacherMessage: 'Сообщение преподавателя',
+      picker: {
+        prev: 'Предыдущий месяц',
+        next: 'Следующий месяц',
+        time: 'Время',
+        exactTime: 'Точное время',
+        done: 'Готово',
+      },
       error: {
         offline: 'Нет связи с сервером. Проверьте интернет и повторите.',
         signedOut: 'Сессия входа закончилась. Войдите снова.',
@@ -29,6 +36,13 @@ export const commonMessages = defineMessages({
       understood: 'Түсінікті',
       back: 'Артқа',
       teacherMessage: 'Оқытушының хабарламасы',
+      picker: {
+        prev: 'Алдыңғы ай',
+        next: 'Келесі ай',
+        time: 'Уақыт',
+        exactTime: 'Нақты уақыт',
+        done: 'Дайын',
+      },
       error: {
         offline: 'Сервермен байланыс жоқ. Интернетті тексеріп, қайталаңыз.',
         signedOut: 'Кіру сессиясы аяқталды. Қайта кіріңіз.',
@@ -48,6 +62,13 @@ export const commonMessages = defineMessages({
       understood: 'Got it',
       back: 'Back',
       teacherMessage: 'Message from the examiner',
+      picker: {
+        prev: 'Previous month',
+        next: 'Next month',
+        time: 'Time',
+        exactTime: 'Exact time',
+        done: 'Done',
+      },
       error: {
         offline: 'No connection to the server. Check the internet and try again.',
         signedOut: 'Your session has ended. Please sign in again.',

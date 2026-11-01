@@ -22,7 +22,6 @@ export const en: typeof ru = {
     settings: {
       title: 'Settings',
       name: 'Title',
-      duration: 'Duration, minutes',
       opensAt: 'Opens',
       closesAt: 'Closes',
       mode: 'Format',
@@ -32,6 +31,23 @@ export const en: typeof ru = {
       adaptive: 'Adaptive (disputed moments only)',
       full: 'Full',
       ticketSize: 'Questions per ticket',
+      duration: 'Length',
+      namePlaceholder: 'For example, “Databases · final exam”',
+      writtenText: 'Tests and written answers, works offline too',
+      oralText: 'Video call with the examiner, a random ticket',
+      adaptiveText: 'Only disputed moments go to the server',
+      fullText: 'The whole exam is recorded (always for oral)',
+    },
+    schedule: {
+      window: 'Exam window',
+      presets: { sitting: 'One sitting', day: '1 day', week: '1 week' },
+      sittingNote:
+        'Everyone writes at the same time. Such an exam can even start without internet, with the examiner’s code.',
+      minutes: '{n} min',
+      customDuration: 'Custom length, minutes',
+      summary: 'Window {days} d · full time for those who start by {until}',
+      tooShort: 'The window is shorter than the exam: nobody gets the full time. Move the close.',
+      closesBeforeOpens: 'The exam closes before it opens. Fix the dates.',
     },
     questions: {
       untitled: 'No text yet',

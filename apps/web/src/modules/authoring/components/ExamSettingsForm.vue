@@ -1,80 +1,87 @@
 <script setup lang="ts">
 import type { ExamDefinition, ExamMode, RecordingMode } from '@exam/contracts'
+import { Mic, PenLine, ScanEye, Video } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { fromLocalInput, toLocalInput, useFields } from '@/shared/lib/fields'
+import { useI18n } from 'vue-i18n'
+import { useFields } from '@/shared/lib/fields'
+import { ChoiceCards } from '@/shared/ui'
 import { changeType } from '../draft'
+import ScheduleFields from './ScheduleFields.vue'
 
-/** Title, timing and format of an exam (everything except the questions). */
+/** Title, format, timing and recording of an exam (everything except the questions). */
 const model = defineModel<ExamDefinition>({ required: true })
 defineProps<{ disabled: boolean }>()
+const { t } = useI18n()
 const field = useFields(model)
 const title = field('title')
-const durationMin = field('durationMin')
 const profile = field('profile')
 
-const date = (key: 'opensAt' | 'closesAt') =>
-  computed({
-    get: () => toLocalInput(model.value[key]),
-    set: (value: string) => value && (model.value = { ...model.value, [key]: fromLocalInput(value) }),
-  })
-const opensAt = date('opensAt')
-const closesAt = date('closesAt')
+const modes = computed(() =>
+  (['written', 'oral'] as const).map((value) => ({
+    value,
+    title: t(`authoring.settings.${value}`),
+    text: t(`authoring.settings.${value}Text`),
+    icon: value === 'written' ? PenLine : Mic,
+  })),
+)
+const recordings = computed(() =>
+  (['adaptive', 'full'] as const).map((value) => ({
+    value,
+    title: t(`authoring.settings.${value}`),
+    text: t(`authoring.settings.${value}Text`),
+    icon: value === 'adaptive' ? ScanEye : Video,
+  })),
+)
 
-function setMode(mode: ExamMode) {
-  const { questions } = model.value
-  if (mode === 'written') {
-    model.value = { ...model.value, profile: { mode, recording: profile.value.recording } }
-    return
-  }
-  // An oral exam is recorded in full, draws a ticket, and its questions are open (answered aloud).
-  model.value = {
-    ...model.value,
-    profile: { mode, recording: 'full', ticketSize: Math.min(2, questions.length) || 1 },
-    questions: questions.map((q) => (q.type === 'text' ? q : changeType(q, 'text'))),
-  }
-}
-const setRecording = (recording: RecordingMode) => (profile.value = { ...profile.value, recording })
-const setTicketSize = (n: number) => (profile.value = { ...profile.value, ticketSize: n })
+const mode = computed({
+  get: () => profile.value.mode,
+  set: (next: ExamMode) => {
+    const { questions } = model.value
+    if (next === 'written') {
+      model.value = { ...model.value, profile: { mode: next, recording: profile.value.recording } }
+      return
+    }
+    // An oral exam is recorded in full, draws a ticket, and its questions are open (answered aloud).
+    model.value = {
+      ...model.value,
+      profile: { mode: next, recording: 'full', ticketSize: Math.min(2, questions.length) || 1 },
+      questions: questions.map((q) => (q.type === 'text' ? q : changeType(q, 'text'))),
+    }
+  },
+})
+const recording = computed({
+  get: () => profile.value.recording,
+  set: (next: RecordingMode) => (profile.value = { ...profile.value, recording: next }),
+})
+const setTicketSize = (n: number) => n > 0 && (profile.value = { ...profile.value, ticketSize: n })
 </script>
 
 <template>
   <fieldset class="settings" :disabled="disabled">
-    <legend>{{ $t('authoring.settings.title') }}</legend>
-    <label class="wide">
-      {{ $t('authoring.settings.name') }}
-      <input v-model.trim="title" required maxlength="200" />
+    <legend>{{ t('authoring.settings.title') }}</legend>
+    <label class="name">
+      {{ t('authoring.settings.name') }}
+      <input
+        v-model.trim="title"
+        required
+        maxlength="200"
+        :placeholder="t('authoring.settings.namePlaceholder')"
+      />
     </label>
-    <label>
-      {{ $t('authoring.settings.opensAt') }}
-      <input v-model="opensAt" type="datetime-local" required />
-    </label>
-    <label>
-      {{ $t('authoring.settings.closesAt') }}
-      <input v-model="closesAt" type="datetime-local" required />
-    </label>
-    <label>
-      {{ $t('authoring.settings.duration') }}
-      <input v-model.number="durationMin" type="number" min="1" max="600" required />
-    </label>
-    <label>
-      {{ $t('authoring.settings.mode') }}
-      <select :value="profile.mode" @change="setMode(($event.target as HTMLSelectElement).value as ExamMode)">
-        <option value="written">{{ $t('authoring.settings.written') }}</option>
-        <option value="oral">{{ $t('authoring.settings.oral') }}</option>
-      </select>
-    </label>
-    <label>
-      {{ $t('authoring.settings.recording') }}
-      <select
-        :value="profile.recording"
-        @change="setRecording(($event.target as HTMLSelectElement).value as RecordingMode)"
-      >
-        <option value="adaptive">{{ $t('authoring.settings.adaptive') }}</option>
-        <option value="full">{{ $t('authoring.settings.full') }}</option>
-      </select>
-    </label>
-    <label v-if="profile.mode === 'oral'">
-      {{ $t('authoring.settings.ticketSize') }}
+
+    <ChoiceCards v-model="mode" :label="t('authoring.settings.mode')" :items="modes" :disabled="disabled" />
+
+    <ScheduleFields v-model="model" />
+
+    <ChoiceCards
+      v-model="recording"
+      :label="t('authoring.settings.recording')"
+      :items="recordings"
+      :disabled="disabled || mode === 'oral'"
+    />
+
+    <label v-if="mode === 'oral'" class="ticket">
+      {{ t('authoring.settings.ticketSize') }}
       <input
         :value="profile.ticketSize"
         type="number"
@@ -90,8 +97,7 @@ const setTicketSize = (n: number) => (profile.value = { ...profile.value, ticket
 <style scoped>
 .settings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-5);
   margin: 0;
   padding: 0;
   border: 0;
@@ -107,7 +113,11 @@ label {
   font-size: var(--text-sm);
   font-weight: 600;
 }
-.wide {
-  grid-column: 1 / -1;
+.name input {
+  min-height: 52px;
+  font-size: var(--text-md);
+}
+.ticket {
+  max-width: 220px;
 }
 </style>
