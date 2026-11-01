@@ -45,6 +45,17 @@ function gazeOff(iris: number, cornerA: number, cornerB: number) {
   return ratio < GAZE_BAND[0] || ratio > GAZE_BAND[1]
 }
 
+/**
+ * How far the head may be turned from the camera at preflight. A camera beside or above the screen turns
+ * a student looking at the screen by less; more is someone looking elsewhere, whose pose must not become
+ * the neutral one (the exam would then take looking away for looking at the screen).
+ */
+const FACING_DEG = 25
+
+export function isFacing(pose: Pose): boolean {
+  return Math.abs(pose.yaw) <= FACING_DEG && Math.abs(pose.pitch) <= FACING_DEG
+}
+
 /** Forehead top, chin, and the two cheeks (MediaPipe face mesh indices): the face's outline. */
 const OUTLINE = [10, 152, 234, 454]
 /**

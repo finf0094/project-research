@@ -48,10 +48,10 @@
     color: var(--accent-ink);
   }
 
-  /* A focused answer never hides under the exam's pinned bar (ExamHeader: ~64 px, 8 px from the top). */
-  @media (max-width: 900px) and (min-height: 600px) {
+  /* A focused answer never hides under the exam's pinned bar (ExamHeader, 8 px from the top). */
+  @media (width < 900px) and (height >= 600px) {
     html:has(.exam-bar) {
-      scroll-padding-block-start: calc(64px + var(--space-2) + var(--space-4));
+      scroll-padding-block-start: calc(var(--exam-bar-height) + var(--space-2) + var(--space-4));
     }
   }
 

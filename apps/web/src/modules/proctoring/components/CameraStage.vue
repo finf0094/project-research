@@ -17,6 +17,8 @@ const props = defineProps<{
   faces: number | null
   /** The single face sits in the oval. */
   placed?: boolean | null
+  /** The single face looks at the screen. */
+  facing?: boolean | null
   brightness: number | null
 }>()
 const { t } = useI18n()
@@ -27,9 +29,10 @@ watchEffect(() => {
   if (video.value) video.value.srcObject = props.stream
 })
 
-/** What the chip says: seen well, out of the oval, nobody, or too many people. */
+/** What the chip says: seen well, out of the oval, turned away, nobody, or too many people. */
 const seen = computed(() => {
-  if (props.faces === 1) return props.placed === false ? 'center' : 'good'
+  if (props.faces === 1)
+    return props.placed === false ? 'center' : props.facing === false ? 'straight' : 'good'
   return props.faces && props.faces > 1 ? 'many' : props.faces === 0 ? 'none' : null
 })
 const OVERLAY = {

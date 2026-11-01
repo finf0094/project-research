@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import type { AttemptDetail } from '@exam/contracts'
-import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { formatClock } from '@/shared/lib/format'
 import { StatusPill } from '@/shared/ui'
 import { STATUS_TONE } from '../labels'
 import type { QueuePlace } from '../review-queue'
 
 /** Who, where in the queue, the attempt's state at a glance, and the way back to the queue or on to the next. */
-defineProps<{ detail: AttemptDetail; queue: QueuePlace | null }>()
+const props = defineProps<{ detail: AttemptDetail; queue: QueuePlace | null }>()
+
+/** Where the server's own check of the recording is: during the exam, after it, or done. */
+const aiCheck = computed(() => {
+  const { status } = props.detail.summary
+  const working = status === 'active' || status === 'submitted'
+  if (!working && props.detail.serverAnalysis !== 'ok') return null // the "not checked" pill says it
+  if (!props.detail.serverCheck.recorded) return working ? 'none' : null
+  return status === 'active' ? 'live' : status === 'submitted' ? 'running' : 'done'
+})
 </script>
 
 <template>
@@ -57,6 +67,15 @@ defineProps<{ detail: AttemptDetail; queue: QueuePlace | null }>()
             $t(detail.serverAnalysis === 'partial' ? 'review.attempt.partial' : 'review.attempt.unchecked')
           }}</StatusPill
         >
+        <StatusPill
+          v-if="aiCheck"
+          :tone="aiCheck === 'done' ? 'ok' : 'accent'"
+          :class="{ working: aiCheck === 'live' || aiCheck === 'running' }"
+          :title="$t('review.attempt.ai.hint')"
+        >
+          <Sparkles :size="14" aria-hidden="true" />
+          {{ $t(`review.attempt.ai.${aiCheck}`, detail.serverCheck) }}
+        </StatusPill>
       </div>
       <RouterLink v-if="queue?.next" :to="`/examiner/attempts/${queue.next.id}`" class="next">
         {{ $t('review.attempt.next', { name: queue.next.name }) }}
@@ -121,6 +140,20 @@ defineProps<{ detail: AttemptDetail; queue: QueuePlace | null }>()
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+/* The check is still running: the icon breathes. */
+.working svg {
+  animation: breathe 1.6s var(--ease) infinite alternate;
+}
+@keyframes breathe {
+  to {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .working svg {
+    animation: none;
+  }
 }
 .next {
   display: inline-flex;

@@ -138,6 +138,11 @@ export const AttemptDetail = z.object({
   timeline: z.array(TimelineEvent),
   markers: z.array(Marker),
   serverAnalysis: ServerAnalysis.nullable(),
+  /**
+   * How far the server's models got: recording chunks uploaded so far, and how many of them were looked
+   * at (during the exam and after it). Shows the examiner that the check is running and where it is.
+   */
+  serverCheck: z.object({ recorded: z.number().int(), checked: z.number().int() }),
   /** Oral exams: who joined and left the call, in order. */
   call: z.array(CallEvent),
   /**

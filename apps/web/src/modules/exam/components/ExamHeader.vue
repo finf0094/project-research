@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Maximize, Minimize } from 'lucide-vue-next'
-import { SyncStatusBadge } from '@/modules/offline'
+import { Check, Maximize, Minimize, RefreshCw, WifiOff } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { SyncStatusBadge, useSyncStore } from '@/modules/offline'
 import { useFullscreen } from '@/shared/lib/use-fullscreen'
 import { AppButton, AppLogo } from '@/shared/ui'
 import ExamTimer from './ExamTimer.vue'
@@ -9,6 +11,22 @@ import ExamTimer from './ExamTimer.vue'
 defineProps<{ title: string; step: string; remainingMs: number; finishing: boolean }>()
 defineEmits<{ finish: [] }>()
 const focus = useFullscreen()
+/* The pinned bar's short save status: icon plus a word, so it never relies on colour alone. */
+const ru = { saved: 'Сохранено', sending: 'Отправка', offline: 'Нет сети' }
+const { t } = useI18n<[typeof ru], 'ru' | 'kk' | 'en'>({
+  messages: {
+    ru,
+    kk: { saved: 'Сақталды', sending: 'Жіберу', offline: 'Желі жоқ' },
+    en: { saved: 'Saved', sending: 'Sending', offline: 'Offline' },
+  },
+})
+const sync = useSyncStore()
+const short = computed(() => {
+  const { connection, pendingEvents } = sync.status
+  if (connection === 'offline') return { tone: 'off', icon: WifiOff, text: 'offline' }
+  if (pendingEvents > 0) return { tone: 'warn', icon: RefreshCw, text: 'sending' }
+  return { tone: 'ok', icon: Check, text: 'saved' }
+})
 </script>
 
 <template>
@@ -21,6 +39,10 @@ const focus = useFullscreen()
       </div>
     </div>
     <SyncStatusBadge class="badge" />
+    <!-- The badge above stays the live region for screen readers; this is its visible short form. -->
+    <span class="sync-short" :class="short.tone" aria-hidden="true">
+      <component :is="short.icon" :size="14" />{{ t(short.text) }}
+    </span>
     <div class="actions">
       <button
         v-if="focus.supported"
@@ -86,10 +108,38 @@ const focus = useFullscreen()
     color: var(--accent-ink);
   }
 }
+/* Only on the narrowest phones would the button squeeze the title; everywhere else it stays. */
+@media (width < 480px) {
+  .focus {
+    display: none;
+  }
+}
 @media (width < 700px) {
   .focus-label {
     position: absolute;
     clip-path: inset(50%);
+  }
+}
+.sync-short {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  &.ok {
+    background: var(--ok-tint);
+    color: var(--ok);
+  }
+  &.warn {
+    background: var(--warn-tint);
+    color: var(--warn);
+  }
+  &.off {
+    background: var(--off-tint);
+    color: var(--off);
   }
 }
 .actions {
@@ -99,8 +149,9 @@ const focus = useFullscreen()
 }
 /* Phones held upright: one compact pinned row (title, timer, submit) stays in reach while the question
    scrolls. Not in landscape, where it would eat a third of the screen. base.css keeps focus clear of it. */
-@media (max-width: 900px) and (min-height: 600px) {
+@media (width < 900px) and (height >= 600px) {
   .header {
+    min-block-size: var(--exam-bar-height);
     position: sticky;
     inset-block-start: var(--space-2);
     z-index: 2;
@@ -123,33 +174,26 @@ const focus = useFullscreen()
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* Both stay for screen readers; the badge's full text gives way to its short form. */
   .step,
   .badge {
-    /* The text stays for screen readers; the badge keeps its coloured dot. */
-    font-size: 0;
-  }
-  .step {
     position: absolute;
     clip-path: inset(50%);
   }
-  .badge {
-    gap: 0;
-    padding: var(--space-2);
+  .sync-short {
+    display: inline-flex;
   }
   .actions {
     gap: var(--space-2);
   }
-  /* Room for the title: phone browsers barely offer fullscreen; wider screens keep the button. */
-  .focus {
-    display: none;
-  }
-  .actions .submit {
-    min-height: var(--tap);
-    padding: 0 var(--space-4);
-  }
+  .focus,
+  .actions .submit,
   .actions :deep(.timer) {
+    block-size: var(--tap);
     min-height: var(--tap);
     padding: 0 var(--space-3);
+  }
+  .actions :deep(.timer) {
     font-size: var(--text-md);
   }
 }

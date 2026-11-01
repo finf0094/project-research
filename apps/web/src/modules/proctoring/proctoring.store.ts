@@ -70,6 +70,9 @@ export const useProctoringStore = defineStore('proctoring', () => {
     try {
       media = await abortable(requestCamera(), abort.signal, (m) => stopTracks(m))
       if (!media) return
+      // The student sees themselves at once; the models load meanwhile (seconds on a phone).
+      stream.value = media
+      camera.value = 'on'
       const proctor = await abortable(
         startProctor(media, {
           ...opts,
@@ -83,11 +86,9 @@ export const useProctoringStore = defineStore('proctoring', () => {
         abort.signal,
         (p) => void p.stop(true),
       )
-      if (!proctor) return stopTracks(media)
+      if (!proctor) return release(media)
 
       running = { attemptId: opts.attemptId, proctor, media }
-      stream.value = media
-      camera.value = 'on'
       if (cameraOff) await recordCamera(opts, false)
       // A camera that dies mid-exam (unplugged, taken by another app) is recorded and shown at once.
       for (const track of media.getTracks()) {
@@ -102,11 +103,20 @@ export const useProctoringStore = defineStore('proctoring', () => {
     } catch (error) {
       console.error('proctoring could not start', error)
       // Whatever was acquired is released, so the camera light goes off and a retry does not open a second one.
-      if (running?.media !== media) stopTracks(media)
+      if (running?.media !== media) release(media)
       if (!abort.signal.aborted) await cameraLost(opts)
     } finally {
       if (launching === abort) launching = null
       if (camera.value === 'starting') camera.value = 'off'
+    }
+  }
+
+  /** A camera shown but never handed to a running proctor goes off again. */
+  function release(media: MediaStream | null) {
+    stopTracks(media)
+    if (media && stream.value === media) {
+      stream.value = null
+      camera.value = 'off'
     }
   }
 

@@ -1,5 +1,5 @@
 import type { AttemptDetail, DecisionBody, UpdateMarkerBody } from '@exam/contracts'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onScopeDispose, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
 import { chunkUrl, decide, getAttempt, judgeMarker, listAttempts } from './api'
 import { queuePlace, type QueuePlace } from './review-queue'
@@ -38,6 +38,14 @@ export function useAttemptReview(attemptId: string) {
     await action.run(load)
     if (detail.value) void loadQueue(detail.value.examId)
   })
+
+  // While the exam runs or its recording is analysed, markers keep arriving: the page follows them.
+  const REFRESH_MS = 5_000
+  const refresh = setInterval(() => {
+    const status = detail.value?.summary.status
+    if (status === 'active' || status === 'submitted') void load().catch(() => undefined)
+  }, REFRESH_MS)
+  onScopeDispose(() => clearInterval(refresh))
 
   const marker = computed(() => detail.value?.markers.find((m) => m.id === selected.value) ?? null)
   const sources = computed(() => (marker.value?.chunks ?? []).map((hash) => chunkUrl(attemptId, hash)))

@@ -1,11 +1,12 @@
 import type { AttemptDetail, DecisionBody, ExaminerCommandBody, UpdateMarkerBody } from '@exam/contracts'
 import { isEmptyAnswer } from '@exam/contracts'
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, count, desc, eq } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
 import {
   answers,
   attempts,
   blobs,
+  chunkObservations,
   commands,
   decisions,
   events,
@@ -20,6 +21,7 @@ import { attemptQuestions, toStudentQuestion } from '../exams/service.ts'
 import { ownAttemptOf, toSummary } from './access.ts'
 import { autoScore } from '../exams/grading.ts'
 import { oralRecordingOf } from './recording.ts'
+import { fragmentsOf, uploadedOf } from '../../jobs/attempt-data.ts'
 
 export async function attemptDetail(deps: Deps, ownerId: string, attemptId: string): Promise<AttemptDetail> {
   const { db } = deps
@@ -47,6 +49,14 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
     .where(eq(decisions.attemptId, attemptId))
     .orderBy(desc(decisions.seq))
     .limit(1)
+  // Recording chunks only (an oral exam's merged audio is a blob too, but no chunk of a fragment).
+  const uploaded = await uploadedOf(db, attemptId)
+  const chunks = new Set((await fragmentsOf(db, attemptId)).flatMap((f) => f.chunks))
+  const recorded = [...chunks].filter((hash) => uploaded.has(hash)).length
+  const [checked] = await db
+    .select({ n: count() })
+    .from(chunkObservations)
+    .where(eq(chunkObservations.attemptId, attemptId))
   const flagged = markerRows.filter((m) => m.status !== 'context').length
 
   return {
@@ -71,6 +81,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       chunks: m.chunks,
     })),
     serverAnalysis: attempt.serverAnalysis,
+    serverCheck: { recorded, checked: Math.min(checked?.n ?? 0, recorded) },
     ...(exam.profile.mode === 'oral'
       ? await oralRecordingOf(db, attempt, deps.now())
       : { call: [], audio: null }),

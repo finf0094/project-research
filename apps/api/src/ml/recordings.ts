@@ -55,6 +55,8 @@ export async function analyzeRecordings(
   heartbeat: () => Promise<void> = async () => undefined,
   /** Chunks the live analysis already looked at during the exam: not decoded twice. */
   known: ReadonlyMap<string, Observation[]> = new Map(),
+  /** Called with each chunk looked at now, so it is kept like the live analysis keeps its own. */
+  onObserved: (hash: string, observations: Observation[]) => Promise<void> = async () => undefined,
 ): Promise<RecordingsReport> {
   const checked = new Set<string>()
   try {
@@ -67,9 +69,9 @@ export async function analyzeRecordings(
     for (const [hash, chunkStart] of starts) {
       if (!uploaded.has(hash)) continue
       // An empty entry is a chunk that could not be decoded live: tried again here.
-      const seen = known.get(hash)?.length
-        ? known.get(hash)!
-        : await observeChunk(models, storage, attemptId, hash, chunkStart)
+      const cached = known.get(hash)
+      const seen = cached?.length ? cached : await observeChunk(models, storage, attemptId, hash, chunkStart)
+      if (seen && seen !== cached) await onObserved(hash, seen)
       if (seen) {
         observations.push(...seen)
         checked.add(hash)

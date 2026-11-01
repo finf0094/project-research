@@ -30,6 +30,7 @@ export const proctoringMessages = defineMessages({
         none: 'Сядьте так, чтобы лицо было в овале',
         many: 'В кадре должны быть только вы',
         center: 'Поместите лицо в овал',
+        straight: 'Смотрите прямо в экран',
         light: { dark: 'Темно', ok: 'Нормальное', good: 'Хорошее' },
       },
       check: {
@@ -53,6 +54,7 @@ export const proctoringMessages = defineMessages({
           faceMany: 'В кадре должны быть только вы.',
           faceNone: 'Сядьте так, чтобы лицо было в кадре.',
           faceCenter: 'Сядьте так, чтобы лицо было в овале, не слишком далеко от камеры.',
+          faceStraight: 'Смотрите прямо в экран, не поворачивая голову.',
           light: 'Слишком темно: включите свет или повернитесь к окну.',
         },
       },
@@ -87,6 +89,7 @@ export const proctoringMessages = defineMessages({
         none: 'Бетіңіз сопақтың ішінде болатындай отырыңыз',
         many: 'Кадрда тек сіз болуыңыз керек',
         center: 'Бетіңізді сопақтың ішіне орналастырыңыз',
+        straight: 'Экранға тура қараңыз',
         light: { dark: 'Қараңғы', ok: 'Қалыпты', good: 'Жақсы' },
       },
       check: {
@@ -109,6 +112,7 @@ export const proctoringMessages = defineMessages({
           faceMany: 'Кадрда тек сіз болуыңыз керек.',
           faceNone: 'Бетіңіз кадрда болатындай отырыңыз.',
           faceCenter: 'Бетіңіз сопақтың ішінде, камерадан тым алыс емес болатындай отырыңыз.',
+          faceStraight: 'Басыңызды бұрмай, экранға тура қараңыз.',
           light: 'Тым қараңғы: жарықты қосыңыз немесе терезеге қарай бұрылыңыз.',
         },
       },
@@ -143,6 +147,7 @@ export const proctoringMessages = defineMessages({
         none: 'Sit so that your face is inside the oval',
         many: 'Only you should be in view',
         center: 'Place your face in the oval',
+        straight: 'Look straight at the screen',
         light: { dark: 'Dark', ok: 'Fine', good: 'Good' },
       },
       check: {
@@ -165,6 +170,7 @@ export const proctoringMessages = defineMessages({
           faceMany: 'Only you should be in view.',
           faceNone: 'Sit so that your face is in view.',
           faceCenter: 'Sit so that your face is in the oval, not too far from the camera.',
+          faceStraight: 'Look straight at the screen without turning your head.',
           light: 'Too dark: turn on a light or face a window.',
         },
       },

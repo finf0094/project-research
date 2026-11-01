@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countFaces, headPose, isFramed, isInOval, isLookingAway } from './pose'
+import { countFaces, headPose, isFacing, isFramed, isInOval, isLookingAway } from './pose'
 
 /** A face result with a head rotated by `yawDeg` around the vertical axis and eyes centred. */
 function face(yawDeg: number, irisShift = 0) {
@@ -89,5 +89,14 @@ describe('a face in the picture', () => {
     expect(isInOval(at(0.5, 0.15, 0.37), 360 / 640)).toBe(false) // at the top edge of what is shown
     // A 16:9 laptop camera: the view drops the sides, so a face at x 0.69 of the raw frame is at its edge.
     expect(isInOval(at(0.69, 0.2, 0.75), 16 / 9)).toBe(false)
+  })
+})
+
+describe('looking at the screen at preflight', () => {
+  it('accepts a camera slightly above or beside the screen, not a head turned away', () => {
+    expect(isFacing({ yaw: 0, pitch: 0 })).toBe(true)
+    expect(isFacing({ yaw: 15, pitch: -12 })).toBe(true)
+    expect(isFacing({ yaw: 38, pitch: 5 })).toBe(false)
+    expect(isFacing({ yaw: 5, pitch: 30 })).toBe(false)
   })
 })

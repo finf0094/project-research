@@ -1,7 +1,16 @@
 import { and, asc, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import type { MarkerKind, ServerAnalysis } from '@exam/contracts'
 import type { Tx } from '../db/client.ts'
-import { answers, attempts, blobs, commands, events, exams, markers } from '../db/schema.ts'
+import {
+  answers,
+  attempts,
+  blobs,
+  chunkObservations,
+  commands,
+  events,
+  exams,
+  markers,
+} from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { attemptQuestions } from '../modules/exams/service.ts'
@@ -31,6 +40,15 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
       // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
       () => renewClaim(deps, attempt.id),
       await observationsOf(deps.db, attempt.id),
+      (hash, observations) =>
+        deps.db
+          .insert(chunkObservations)
+          .values({ attemptId: attempt.id, hash, observations })
+          .onConflictDoUpdate({
+            target: [chunkObservations.attemptId, chunkObservations.hash],
+            set: { observations },
+          })
+          .then(() => undefined),
     )
     // The examiner's past decisions weigh the kinds (25.4), read outside the lock; a failed read is neutral.
     const [owner] = await deps.db

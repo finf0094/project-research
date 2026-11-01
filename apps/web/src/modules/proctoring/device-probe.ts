@@ -1,6 +1,7 @@
 import { computed, onScopeDispose, ref, shallowRef } from 'vue'
 import { stopTracks } from '@/shared/lib/media'
 import { saveBaseline, type Pose } from './calibration'
+import { isFacing } from './pose'
 import { saveTier, tierFromTiming } from './device-tier'
 import { createSensors, requestCamera, type Sensors } from './sensors'
 import { DARK_BRIGHTNESS, OBJECTS_EVERY_MS } from './signals'
@@ -28,6 +29,8 @@ export function useDeviceProbe() {
   const faces = ref<number | null>(null)
   /** The single face sits in the oval (null without exactly one face). */
   const placed = ref<boolean | null>(null)
+  /** The single face looks at the screen, not sideways or up (null without a measured pose). */
+  const facing = ref<boolean | null>(null)
   const brightness = ref<number | null>(null)
   const hasMic = ref(false)
   const faceSteady = ref(false)
@@ -55,7 +58,9 @@ export function useDeviceProbe() {
       ? 'faceMany'
       : faces.value === 1 && placed.value === false
         ? 'faceCenter'
-        : 'faceNone'
+        : faces.value === 1 && facing.value === false
+          ? 'faceStraight'
+          : 'faceNone'
 
   /** Bumped by every start: a slower earlier start that finishes late stops what it began. */
   let run = 0
@@ -129,13 +134,18 @@ export function useDeviceProbe() {
     if (!frame || disposed || state.value !== 'running') return
     timings.push(frame.ms)
     if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))
-    if (frame.pose) poses.push(frame.pose)
-    saveBaseline(poses.slice(-10))
     faces.value = frame.faces
     placed.value = frame.inOval
+    facing.value = frame.faces === 1 && frame.pose ? isFacing(frame.pose) : null
     brightness.value = frame.brightness
-    // Seen well means one face, wholly in view and inside the oval: where the exam will expect it.
-    faceStreak = frame.faces === 1 && frame.inOval === true ? faceStreak + 1 : 0
+    // Only a pose looking at the screen becomes the neutral one.
+    if (frame.faces === 1 && frame.pose && facing.value) {
+      poses.push(frame.pose)
+      saveBaseline(poses.slice(-10))
+    }
+    // Seen well means one face, wholly in view, inside the oval and looking at the screen.
+    const seenWell = frame.faces === 1 && frame.inOval === true && facing.value !== false
+    faceStreak = seenWell ? faceStreak + 1 : 0
     lightStreak = frame.brightness >= DARK_BRIGHTNESS ? lightStreak + 1 : 0
     if (faceStreak >= STEADY_FRAMES) faceSteady.value = true
     if (lightStreak >= STEADY_FRAMES) lightSteady.value = true
@@ -150,7 +160,7 @@ export function useDeviceProbe() {
     for (const track of stream.value?.getAudioTracks() ?? []) track.removeEventListener('ended', micLost)
     stopTracks(stream.value)
     stream.value = null
-    faces.value = null
+    faces.value = placed.value = facing.value = null
     brightness.value = null
     hasMic.value = false
     faceSteady.value = lightSteady.value = false
@@ -161,7 +171,7 @@ export function useDeviceProbe() {
     disposed = true
     release()
   })
-  return { state, denied, stream, faces, placed, brightness, checks, ready, start }
+  return { state, denied, stream, faces, placed, facing, brightness, checks, ready, start }
 }
 
 function median(values: number[]) {

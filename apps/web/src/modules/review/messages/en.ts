@@ -88,6 +88,13 @@ export const en: typeof ru = {
       partial: 'Recording partly checked by the server',
       unchecked: 'Recording not checked by the server',
       uncheckedHint: 'Some markers may be missing: the server did not look at these recordings itself',
+      ai: {
+        live: 'AI is checking the recording during the exam: {checked} of {recorded}',
+        running: 'AI is analysing the recording: {checked} of {recorded}',
+        done: 'AI checked the recording: {checked} of {recorded}',
+        none: 'No recording for the AI to check yet',
+        hint: 'The server looks at the uploaded video and sound pieces itself and adds markers. The page refreshes by itself.',
+      },
       markers: 'Markers',
       markersNote: 'Markers are set automatically. They are a reason to look, not proof of a violation.',
       noMarkers: 'No markers.',

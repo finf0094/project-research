@@ -65,6 +65,8 @@
     --space-12: 48px;
     /* The smallest comfortable touch target on phones. */
     --tap: 40px;
+    /* The exam's pinned bar on phones (ExamHeader); base.css keeps focused answers clear of it. */
+    --exam-bar-height: 64px;
     --radius-sm: 12px;
     --radius: 16px;
     --radius-lg: 24px;
