@@ -1,14 +1,15 @@
 import { and, asc, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import type { MarkerKind, ServerAnalysis } from '@exam/contracts'
-import type { Db, Tx } from '../db/client.ts'
+import type { Tx } from '../db/client.ts'
 import { answers, attempts, blobs, commands, events, exams, markers } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { attemptQuestions } from '../modules/exams/service.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
-import { analyzeRecordings, type Fragment, type RecordingsReport } from '../ml/recordings.ts'
+import { analyzeRecordings, type RecordingsReport } from '../ml/recordings.ts'
 import { buildMarkers, riskScore } from './analysis.ts'
+import { fragmentsOf, uploadedOf } from './attempt-data.ts'
 
 /** A claim older than this belongs to a worker that died; another worker may take the attempt. */
 const CLAIM_LEASE_MS = 15 * 60_000
@@ -107,19 +108,6 @@ const renewClaim = ({ db, now }: Deps, attemptId: string) =>
 function analysisStatus(report: RecordingsReport, uploaded: ReadonlySet<string>): ServerAnalysis {
   if (report.status !== 'ok') return report.status
   return [...uploaded].every((hash) => report.checked.has(hash)) ? 'ok' : 'partial'
-}
-
-async function fragmentsOf(db: Db, attemptId: string) {
-  const rows = await db
-    .select({ data: events.data })
-    .from(events)
-    .where(and(eq(events.attemptId, attemptId), eq(events.type, 'evidence.fragment')))
-  return rows.map((r) => r.data as Fragment)
-}
-
-async function uploadedOf(db: Db | Tx, attemptId: string) {
-  const rows = await db.select({ hash: blobs.hash }).from(blobs).where(eq(blobs.attemptId, attemptId))
-  return new Set(rows.map((b) => b.hash))
 }
 
 async function analyze(

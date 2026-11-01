@@ -134,6 +134,13 @@
       "when": 1793498789859,
       "tag": "0018_decided_markers_index",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793528527744,
+      "tag": "0019_live_analysis",
+      "breakpoints": true
     }
   ]
 }

@@ -61,6 +61,8 @@ export const attempts = pgTable(
     audioClaimedAt: timestamp('audio_claimed_at', { withTimezone: true }),
     /** Failed merge runs so far; a few transient failures are retried, then the merge is given up. */
     audioTries: integer('audio_tries').notNull().default(0),
+    /** New signals or recordings arrived during the exam: the worker rebuilds its markers live then. */
+    liveDueAt: timestamp('live_due_at', { withTimezone: true }),
   },
   (t) => [
     unique().on(t.examId, t.userId),

@@ -1,5 +1,16 @@
 import { sql } from 'drizzle-orm'
-import { bigserial, boolean, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+  bigserial,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core'
 import type { MarkerKind, MarkerSource, MarkerStatus, Verdict } from '@exam/contracts'
 import { epochMs } from './columns.ts'
 import { attempts } from './attempts.ts'
@@ -53,4 +64,23 @@ export const decisions = pgTable(
     seq: bigserial('seq', { mode: 'number' }).notNull(),
   },
   (t) => [index().on(t.attemptId, t.decidedAt)],
+)
+
+/**
+ * What the server's models saw in one recorded chunk (one entry per second), kept once computed: the live
+ * analysis during the exam then looks only at chunks that are new.
+ */
+export const chunkObservations = pgTable(
+  'chunk_observations',
+  {
+    attemptId: uuid('attempt_id')
+      .notNull()
+      .references(() => attempts.id, { onDelete: 'cascade' }),
+    hash: text('hash').notNull(),
+    /** Empty when the chunk could not be decoded: it is not tried again. */
+    observations: jsonb('observations')
+      .$type<{ at: number; faces: number; object: boolean; dark: boolean }[]>()
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.attemptId, t.hash] })],
 )

@@ -4,6 +4,7 @@ import type { Deps } from '../deps.ts'
 import { blobKey } from '../shared/storage.ts'
 
 export { analyzeNext } from './analyze-next.ts'
+export { analyzeLiveNext } from './live-analysis.ts'
 export { mergeNextAudio } from './merge-audio.ts'
 
 /** Attempts nobody submitted: once the offline window after the deadline is over, no answer can count anymore. */

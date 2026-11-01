@@ -17,7 +17,7 @@ export interface RecordingsReport {
   checked: ReadonlySet<string>
 }
 
-interface Models {
+export interface Models {
   faces: (rgb: Buffer) => Promise<number>
   objects: (rgb: Buffer) => Promise<boolean>
 }
@@ -63,22 +63,11 @@ export async function analyzeRecordings(
     const observations: Observation[] = []
     for (const [hash, chunkStart] of starts) {
       if (!uploaded.has(hash)) continue
-      const video = await storage.get(blobKey(attemptId, hash))
-      const frames = video
-        ? await extractFrames(video).catch((error: unknown) => {
-            console.error(`could not decode chunk ${hash}`, error)
-            return null
-          })
-        : null
-      for (const [second, frame] of (frames ?? []).entries()) {
-        observations.push({
-          at: chunkStart + second * 1000,
-          faces: await models.faces(frame),
-          object: await models.objects(frame),
-          dark: isDark(frame),
-        })
+      const seen = await observeChunk(models, storage, attemptId, hash, chunkStart)
+      if (seen) {
+        observations.push(...seen)
+        checked.add(hash)
       }
-      if (frames) checked.add(hash)
       await heartbeat()
     }
     return { status: 'ok', findings: toIntervals(observations), checked }
@@ -86,4 +75,35 @@ export async function analyzeRecordings(
     console.error(`server analysis of attempt ${attemptId} failed`, error)
     return { status: 'failed', findings: [], checked }
   }
+}
+
+/**
+ * What the models see in one recorded chunk, one frame per second; null when the chunk is missing or
+ * cannot be decoded. Used by the analysis after the exam and by the live one during it.
+ */
+export async function observeChunk(
+  models: Models,
+  storage: BlobStorage,
+  attemptId: string,
+  hash: string,
+  chunkStart: number,
+): Promise<Observation[] | null> {
+  const video = await storage.get(blobKey(attemptId, hash))
+  const frames = video
+    ? await extractFrames(video).catch((error: unknown) => {
+        console.error(`could not decode chunk ${hash}`, error)
+        return null
+      })
+    : null
+  if (!frames) return null
+  const observations: Observation[] = []
+  for (const [second, frame] of frames.entries()) {
+    observations.push({
+      at: chunkStart + second * 1000,
+      faces: await models.faces(frame),
+      object: await models.objects(frame),
+      dark: isDark(frame),
+    })
+  }
+  return observations
 }

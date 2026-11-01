@@ -56,6 +56,8 @@ export function buildMarkers(
     captureRequests?: number[]
     /** What the server's own models found in the recordings; null when that analysis did not run. */
     serverFindings?: Interval[] | null
+    /** During the exam: uploads are still on their way, so a chunk not here yet is not "missing". */
+    live?: boolean
   },
 ): MarkerDraft[] {
   const fragments = events.flatMap((e) => (e.type === 'evidence.fragment' ? [e.data as Fragment] : []))
@@ -123,7 +125,7 @@ export function buildMarkers(
     const at = events.at(-1)?.clientAt ?? opts.endAt
     system('chain_broken', at)
   }
-  for (const f of fragments) {
+  for (const f of opts.live ? [] : fragments) {
     if (f.chunks.some((c) => !opts.uploaded.has(c)))
       add('missing_fragment', f.tStart, f.tEnd, 'pending', 'server')
   }

@@ -5,6 +5,7 @@ import type { Tx } from '../../db/client.ts'
 import { answers, attempts, commands, events, questions } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { notFound } from '../../shared/errors.ts'
+import { markLiveDue } from '../attempts/live-due.ts'
 import { OPEN_STATUSES, attemptKey, nextCaptureTime, ownAttempt } from '../attempts/service.ts'
 import { attemptQuestions } from '../exams/service.ts'
 import { countsTowardGrade, isValidAnswer } from './projection.ts'
@@ -34,6 +35,7 @@ export async function acceptEvents(
     const open = OPEN_STATUSES.includes(attempt.status)
     let head: ChainHead = { seq: attempt.lastSeq, hash: attempt.lastHash }
     let { connection, chainBrokenAt, nextCaptureAt } = attempt
+    let liveWork = false
 
     if (open && chainBrokenAt === null) {
       const key = await importHmacKey(new Uint8Array(attemptKey(deps, attempt)))
@@ -65,6 +67,8 @@ export async function acceptEvents(
           now,
         })
         if (event.type === 'network.changed') connection = event.data.to
+        // A signal or a recorded fragment: the examiner should see it now, not after the exam.
+        if (event.type === 'proctor.signal' || event.type === 'evidence.fragment') liveWork = true
         // Once the student has finished, proctoring is off: never ask for a fragment that cannot come.
         if (event.type === 'session.submitted') nextCaptureAt = null
         head = { seq: event.seq, hash: event.hash }
@@ -85,6 +89,7 @@ export async function acceptEvents(
       })
       .where(eq(attempts.id, attemptId))
 
+    if (liveWork) await markLiveDue(tx, attemptId, now)
     if (attempt.status === 'active' && nextCaptureAt && now >= nextCaptureAt.getTime()) {
       await tx.insert(commands).values({
         attemptId,

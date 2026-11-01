@@ -4,6 +4,7 @@ import { blobs, events } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { badRequest, conflict, notFound } from '../../shared/errors.ts'
 import { blobKey } from '../../shared/storage.ts'
+import { markLiveDue } from '../attempts/live-due.ts'
 import { ownAttempt } from '../attempts/service.ts'
 
 export const MAX_CHUNK_BYTES = 5 * 1024 * 1024
@@ -47,4 +48,6 @@ export async function putChunk(
 
   await deps.storage.put(blobKey(attemptId, hash), body)
   await deps.db.insert(blobs).values({ attemptId, hash, mime, size: body.length }).onConflictDoNothing()
+  // A new recording of a running exam: the server's models look at it now (live analysis).
+  await markLiveDue(deps.db, attemptId, deps.now())
 }

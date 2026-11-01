@@ -2,6 +2,7 @@ import { loadConfig } from './config.ts'
 import { createDb } from './db/client.ts'
 import type { Deps } from './deps.ts'
 import {
+  analyzeLiveNext,
   analyzeNext,
   closeExpired,
   mergeNextAudio,
@@ -23,7 +24,8 @@ const deps: Deps = {
   listen,
 }
 
-const POLL_MS = 15_000
+/** Short, so signals of a running exam turn into markers within seconds (live analysis). */
+const POLL_MS = 3_000
 const RETENTION_EVERY_MS = 3_600_000
 let stopping = false
 let lastRetention = 0
@@ -32,6 +34,9 @@ let wake = () => {}
 
 async function tick() {
   await closeExpired(deps)
+  while (!stopping && (await analyzeLiveNext(deps))) {
+    /* rebuild the markers of running exams that got new signals or recordings */
+  }
   while (!stopping && (await analyzeNext(deps))) {
     /* drain the ready attempts */
   }
