@@ -45,6 +45,12 @@ export function registerStream(app: FastifyInstance, deps: Deps) {
   })
 }
 
+/**
+ * One event to one watcher. Nothing after the end (a shutdown in progress); a watcher that stopped reading
+ * (a sleeping laptop) is dropped instead of buffered without bound: its browser reconnects and resyncs.
+ */
 function send(res: ServerResponse, event: string, data: object) {
-  if (!res.destroyed) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+  if (res.destroyed || res.writableEnded) return
+  if (res.writableNeedDrain) return void res.destroy()
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 }

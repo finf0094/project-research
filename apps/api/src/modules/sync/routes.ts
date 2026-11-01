@@ -33,6 +33,8 @@ export const syncRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
     '/hub/attempts/:id/events',
     {
       bodyLimit: 4 * 1024 * 1024,
+      // A hub delivers a backlog in batches of 100; this only stops a runaway (or stolen-token) loop.
+      config: { rateLimit: { max: 600, timeWindow: '1 minute' } },
       schema: {
         hide: true,
         params: z.object({ id: z.uuid() }),

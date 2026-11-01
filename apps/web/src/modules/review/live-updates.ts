@@ -4,8 +4,12 @@ import { onScopeDispose, ref } from 'vue'
 const FALLBACK_POLL_MS = 15_000
 /** At most one reload per this interval, however many attempts change (an exam opening, many reconnects). */
 const BATCH_MS = 500
-/** After an HTTP error (API restarting, 502 from the proxy) the browser gives up; we try again. */
+/**
+ * After an HTTP error (API restarting, 502 from the proxy, an expired session) the browser gives up; we try
+ * again, waiting longer each time up to a minute, with jitter so the monitors of a restarted API spread out.
+ */
 const RECONNECT_MS = 5_000
+const RECONNECT_MAX_MS = 60_000
 
 /**
  * Keeps a page in step with an exam's attempts through the server's event stream (SSE). The browser
@@ -18,6 +22,7 @@ export function useLiveUpdates(examId: string, onChange: () => void) {
   let batch: ReturnType<typeof setTimeout> | undefined
   let retry: ReturnType<typeof setTimeout> | undefined
   let opened = false
+  let failures = 0
 
   function changed() {
     batch ??= setTimeout(() => {
@@ -30,6 +35,7 @@ export function useLiveUpdates(examId: string, onChange: () => void) {
     source = new EventSource(`/api/examiner/exams/${examId}/stream`)
     source.addEventListener('open', () => {
       connected.value = true
+      failures = 0
       // A reconnect may have missed changes; the first open follows the page's own load.
       if (opened) changed()
       opened = true
@@ -38,7 +44,8 @@ export function useLiveUpdates(examId: string, onChange: () => void) {
       connected.value = false
       if (source?.readyState !== EventSource.CLOSED) return
       source.close()
-      retry = setTimeout(connect, RECONNECT_MS)
+      const wait = Math.min(RECONNECT_MAX_MS, RECONNECT_MS * 2 ** failures++)
+      retry = setTimeout(connect, wait * (0.5 + Math.random() / 2))
     })
     source.addEventListener('attempt', changed)
     source.addEventListener('resync', changed)

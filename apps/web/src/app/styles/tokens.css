@@ -17,6 +17,12 @@
     --ink: light-dark(#16153a, #26254f);
     --on-ink: #ffffff;
     --on-ink-2: rgb(255 255 255 / 0.72);
+    /* Light layers on ink (and on video): a faint fill, a stronger one, a dashed outline, a bright edge. */
+    --on-ink-tint: rgb(255 255 255 / 0.08);
+    --on-ink-tint-2: rgb(255 255 255 / 0.12);
+    --on-ink-tint-3: rgb(255 255 255 / 0.2);
+    --on-ink-line: rgb(255 255 255 / 0.14);
+    --on-ink-edge: rgb(255 255 255 / 0.6);
     --lime: #cff56a;
     --on-lime: #15142b;
     --ok: light-dark(#1b7a52, #5bd69b);

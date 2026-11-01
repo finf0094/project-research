@@ -39,6 +39,16 @@
     }
   }
 
+  /* <Transition name="fade">: a quiet swap of a status line. */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity var(--dur-fast) var(--ease);
+  }
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+
   /* <Transition name="rise">: what replaces something rises in; what leaves just fades. */
   .rise-enter-active {
     animation: rise var(--dur) var(--ease) both;

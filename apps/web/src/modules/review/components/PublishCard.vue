@@ -55,7 +55,7 @@ defineEmits<{ publish: []; download: [] }>()
 .pending {
   padding: var(--space-3);
   border-radius: var(--radius);
-  background: rgb(255 255 255 / 0.08);
+  background: var(--on-ink-tint);
   font-size: var(--text-sm);
 }
 .label,
@@ -73,6 +73,6 @@ h2 {
   margin-top: var(--space-2);
 }
 .soft {
-  background: rgb(255 255 255 / 0.1);
+  background: var(--on-ink-tint);
 }
 </style>

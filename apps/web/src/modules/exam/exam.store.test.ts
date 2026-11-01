@@ -14,7 +14,13 @@ const proctoring = vi.hoisted(() => ({
 vi.mock('@/modules/proctoring', () => ({ useProctoringStore: () => proctoring }))
 
 let ATTEMPT = ''
-let server: { status: SyncResponse['status']; commands: Command[]; submits: number; deadline: number }
+let server: {
+  status: SyncResponse['status']
+  commands: Command[]
+  submits: number
+  deadline: number
+  submittedSeq?: number
+}
 
 const questions = [
   { id: 'q1', type: 'multiple' as const, text: 'Q1', options: [{ id: 'a', text: 'A' }], points: 1 },
@@ -60,6 +66,7 @@ beforeEach(() => {
     vi.fn(async (url: string, init: RequestInit) => {
       if (url.endsWith('/submit')) {
         server.submits++
+        server.submittedSeq = JSON.parse(String(init.body)).lastSeq
         server.status = 'submitted'
         return json({ status: 'submitted' })
       }
@@ -99,6 +106,20 @@ describe('exam store', () => {
     expect(server.submits).toBe(1)
     expect(exam.endedBy).toBe('student')
     expect(proctoring.stop).toHaveBeenCalled()
+  })
+
+  it('submits only after session.submitted is in the log, even if a sync runs while finishing', async () => {
+    await seed()
+    const exam = useExamStore()
+    await exam.open(ATTEMPT)
+    exam.answer('q2', 'typed')
+    // A slow proctoring stop leaves time for the sync woken by the answer to run before the final event.
+    proctoring.stop.mockImplementationOnce(() => new Promise((r) => setTimeout(r, 300)))
+    await exam.finish()
+    await vi.waitFor(() => expect(exam.finished).toBe(true), { timeout: 10_000 })
+    const log = await listEvents(ATTEMPT)
+    expect(log.at(-1)!.type).toBe('session.submitted')
+    expect(server.submittedSeq).toBe(log.at(-1)!.seq)
   })
 
   it('finishes by itself when the examiner terminates the attempt', async () => {

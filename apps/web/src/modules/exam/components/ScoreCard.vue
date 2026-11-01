@@ -73,7 +73,7 @@ const title = computed(() => {
     inset-inline-end: -25%;
     inline-size: 280px;
     aspect-ratio: 1;
-    border: 1px dashed rgb(255 255 255 / 0.14);
+    border: 1px dashed var(--on-ink-line);
     border-radius: 50%;
   }
 }
@@ -107,7 +107,7 @@ circle {
   stroke-linecap: round;
 }
 .track {
-  stroke: rgb(255 255 255 / 0.1);
+  stroke: var(--on-ink-tint);
 }
 .bar {
   stroke: var(--lime);
@@ -151,7 +151,7 @@ h1 {
   div {
     padding: var(--space-3);
     border-radius: var(--radius);
-    background: rgb(255 255 255 / 0.08);
+    background: var(--on-ink-tint);
   }
   dt {
     color: var(--on-ink-2);

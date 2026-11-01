@@ -6,6 +6,13 @@ import { createTextDrafts } from './text-drafts'
 
 export const isAnswered = (value: AnswerValue | undefined) => !isEmptyAnswer(value)
 
+/** Where a reopened attempt continues: the first question without an answer, or the first one. */
+export const firstUnanswered = (questions: Question[], saved: Record<string, AnswerValue>) =>
+  Math.max(
+    0,
+    questions.findIndex((q) => !isAnswered(saved[q.id])),
+  )
+
 /**
  * The student's answers. Choices are saved at once; text after a pause, on blur, on page hide and before
  * finishing. Saving means: sealed into the event log and stored on the device in one step.

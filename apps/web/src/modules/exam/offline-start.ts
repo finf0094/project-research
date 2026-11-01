@@ -23,7 +23,9 @@ export async function startOffline(pkg: StoredPackage, code: string): Promise<Lo
     key: pkg.key,
     head: { seq: 0, hash: await genesisHash(pkg.attemptId) },
     ackedSeq: 0,
-    deadline: Math.min(now + pkg.durationMin * 60_000, pkg.closesAt),
+    // A device clock running behind may say "before opening"; the server then starts the attempt at the
+    // opening, so the deadline counts from there too instead of ending early.
+    deadline: Math.min(Math.max(now, pkg.opensAt) + pkg.durationMin * 60_000, pkg.closesAt),
     status: 'active',
     clockOffset: pkg.clockOffset,
     endedBy: null,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, useId, watch } from 'vue'
+import { onMounted, ref, useId, watch } from 'vue'
 
 const props = defineProps<{ open: boolean; title: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -7,14 +7,13 @@ const dialog = ref<HTMLDialogElement>()
 const titleId = useId()
 
 // The native <dialog> gives focus trapping, Esc handling and an accessible modal for free.
-watch(
-  () => props.open,
-  (open) => {
-    if (open && !dialog.value?.open) dialog.value?.showModal()
-    if (!open && dialog.value?.open) dialog.value.close()
-  },
-  { flush: 'post', immediate: true },
-)
+function sync(open: boolean) {
+  if (open && !dialog.value?.open) dialog.value?.showModal()
+  if (!open && dialog.value?.open) dialog.value.close()
+}
+// Mounted already open (a message waiting when the page appears): the element exists only from here.
+onMounted(() => sync(props.open))
+watch(() => props.open, sync, { flush: 'post' })
 </script>
 
 <template>

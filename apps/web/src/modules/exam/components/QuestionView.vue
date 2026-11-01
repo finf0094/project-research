@@ -38,6 +38,7 @@ const number = computed(() => String(props.index + 1).padStart(2, '0'))
       <ChoiceList
         :options="question.options"
         :multiple="question.type === 'multiple'"
+        :labelledby="`q-${question.id}`"
         :model-value="value"
         @update:model-value="emit('answer', $event)"
       />

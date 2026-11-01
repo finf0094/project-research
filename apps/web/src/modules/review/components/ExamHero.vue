@@ -60,7 +60,7 @@ defineProps<{ exam: ExaminerExam }>()
     inset-inline-end: -8%;
     inline-size: 420px;
     aspect-ratio: 1;
-    border: 1px dashed rgb(255 255 255 / 0.14);
+    border: 1px dashed var(--on-ink-line);
     border-radius: 50%;
   }
 }
@@ -98,7 +98,7 @@ h2 {
   li {
     padding: 6px var(--space-3);
     border-radius: var(--radius-pill);
-    background: rgb(255 255 255 / 0.08);
+    background: var(--on-ink-tint);
     color: var(--on-ink-2);
     font-size: var(--text-sm);
   }
@@ -114,7 +114,7 @@ h2 {
   gap: var(--space-3);
 }
 .soft {
-  background: rgb(255 255 255 / 0.1);
+  background: var(--on-ink-tint);
 }
 .count {
   display: inline-grid;

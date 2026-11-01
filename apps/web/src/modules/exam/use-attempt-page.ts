@@ -16,6 +16,8 @@ export function useAttemptPage(mode: ExamMode) {
   const attemptId = computed(() => String(route.params.attemptId))
   const loadError = ref(false)
   const confirming = ref(false)
+  // Opening after the page is gone would start sync, timers, the tab lock and the camera with nothing to close them.
+  let unmounted = false
 
   async function open(id: string) {
     loadError.value = false
@@ -23,6 +25,7 @@ export function useAttemptPage(mode: ExamMode) {
       // The page is decided before the session starts (an attempt this device had never seen gets past
       // the route guard): the next page would otherwise open it while this one closes it on unmount.
       const actual = (await loadAttempt(id)).exam.profile.mode
+      if (unmounted) return
       if (actual !== mode) {
         await router.replace({ path: attemptPath(id, actual), query: route.query, hash: route.hash })
         return
@@ -40,6 +43,7 @@ export function useAttemptPage(mode: ExamMode) {
     (locked) => locked && router.replace(`/attempts/${attemptId.value}/done`),
   )
   onUnmounted(() => {
+    unmounted = true
     if (!exam.locked) exam.close()
   })
 

@@ -6,6 +6,8 @@ const props = defineProps<{
   options: Option[]
   multiple: boolean
   modelValue: string | string[] | undefined
+  /** Id of the element with the question text, so a screen reader names the group by the question. */
+  labelledby?: string
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string | string[]] }>()
 const name = useId()
@@ -23,8 +25,8 @@ function toggle(id: string) {
 
 <template>
   <!-- Native radios/checkboxes inside labels: keyboard and screen readers work without extra code. -->
-  <fieldset class="choices">
-    <legend class="visually-hidden">
+  <fieldset class="choices" :aria-labelledby="labelledby ? `${labelledby} ${name}-how` : undefined">
+    <legend :id="`${name}-how`" class="visually-hidden">
       {{ $t(multiple ? 'exam.question.chooseMany' : 'exam.question.chooseOne') }}
     </legend>
     <label

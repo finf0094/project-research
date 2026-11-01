@@ -115,7 +115,7 @@ const status = computed(() =>
   inline-size: 64px;
   block-size: 64px;
   border-radius: var(--radius-lg);
-  background: rgb(255 255 255 / 0.08);
+  background: var(--on-ink-tint);
 }
 .message {
   color: var(--on-ink);
@@ -180,7 +180,7 @@ const status = computed(() =>
   inline-size: clamp(96px, 22%, 200px);
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  border: 2px solid rgb(255 255 255 / 0.7);
+  border: 2px solid var(--on-ink-edge);
   border-radius: var(--radius);
   background: #000;
   box-shadow: var(--shadow-2);

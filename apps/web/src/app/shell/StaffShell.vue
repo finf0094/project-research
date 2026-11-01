@@ -93,7 +93,7 @@ nav {
     background-color var(--dur) var(--ease),
     color var(--dur) var(--ease);
   &:hover {
-    background: rgb(255 255 255 / 0.08);
+    background: var(--on-ink-tint);
     color: var(--on-ink);
   }
   &.active {

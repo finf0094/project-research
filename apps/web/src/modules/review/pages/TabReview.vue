@@ -34,7 +34,7 @@ const filters = computed(() => [
         </div>
         <div class="middle">
           <div class="bar" aria-hidden="true">
-            <span :style="{ inlineSize: `${finished ? (100 * checked) / finished : 0}%` }" />
+            <span :style="{ scale: `${finished ? checked / finished : 0} 1` }" />
           </div>
           <p class="hint">{{ $t('hub.queue.hint') }}</p>
         </div>
@@ -105,13 +105,15 @@ const filters = computed(() => [
   block-size: 8px;
   overflow: hidden;
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 0.12);
+  background: var(--on-ink-tint-2);
   span {
     display: block;
     block-size: 100%;
     border-radius: inherit;
     background: var(--lime);
-    transition: inline-size var(--dur-slow) var(--ease);
+    /* Scaled, not resized: the bar fills without a layout on every frame. */
+    transform-origin: left;
+    transition: scale var(--dur-slow) var(--ease);
   }
 }
 .hint {

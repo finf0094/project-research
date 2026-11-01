@@ -24,4 +24,11 @@ describe('ChoiceList', () => {
     expect(inputs.map((i) => i.attributes('type'))).toEqual(['radio', 'radio'])
     expect((inputs[1]!.element as HTMLInputElement).checked).toBe(true)
   })
+
+  it('names the group by the question text', () => {
+    const props = { options, multiple: false, modelValue: undefined, labelledby: 'q-1' }
+    const wrapper = mount(ChoiceList, { props, global })
+    const legendId = wrapper.find('legend').attributes('id')
+    expect(wrapper.find('fieldset').attributes('aria-labelledby')).toBe(`q-1 ${legendId}`)
+  })
 })

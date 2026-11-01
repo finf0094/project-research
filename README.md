@@ -91,6 +91,11 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
 **Simplified**
 
 - Worker queue: a polling loop over PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED`) instead of pg-boss.
+- Append-only events: a trigger refuses UPDATE, DELETE and TRUNCATE on `events` instead of a database role
+  limited to INSERT and SELECT (the document's §15). A production deployment should do both: the owner of the
+  database can drop a trigger, a restricted role cannot.
+- Server analysis takes one frame a second from a fragment (the document says two); head pose, the
+  same-person check and voice detection on the server are not built.
 - Recordings: filesystem `BlobStorage` behind an interface (S3/MinIO plugs in there); the examiner gets chunks
   through the API, not presigned links.
 - Live monitoring: Server-Sent Events per exam (`GET /examiner/exams/:id/stream`), fed by PostgreSQL

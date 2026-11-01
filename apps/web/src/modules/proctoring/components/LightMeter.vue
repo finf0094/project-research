@@ -56,7 +56,7 @@ const level = computed(() =>
     flex: 1;
     block-size: 5px;
     border-radius: var(--radius-pill);
-    background: rgb(255 255 255 / 0.18);
+    background: var(--on-ink-tint-3);
     transition: background-color var(--dur) var(--ease);
   }
 }

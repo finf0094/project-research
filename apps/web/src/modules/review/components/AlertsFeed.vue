@@ -98,12 +98,12 @@ ul {
   padding: var(--space-3);
   border: 0;
   border-radius: var(--radius);
-  background: rgb(255 255 255 / 0.06);
+  background: var(--on-ink-tint);
   color: inherit;
   text-align: start;
   transition: background-color var(--dur) var(--ease);
   &:hover {
-    background: rgb(255 255 255 / 0.12);
+    background: var(--on-ink-tint-2);
   }
   > span {
     display: grid;
@@ -114,7 +114,7 @@ ul {
   opacity: 0.75;
   cursor: default;
   &:hover {
-    background: rgb(255 255 255 / 0.06);
+    background: var(--on-ink-tint);
   }
 }
 .text {

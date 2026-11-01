@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
 import { AppButton, PillTabs } from '@/shared/ui'
 import { listExams } from '../api'
@@ -12,10 +12,15 @@ import { examState, type ExamState } from '../exam-state'
 const exams = ref<ExaminerExam[] | null>(null)
 const filter = ref<ExamState | 'all'>('all')
 const load = useAction()
-const now = Date.now()
+// Ticks, so a scheduled exam turns into the running one while the page stays open.
+const now = ref(Date.now())
+const clock = setInterval(() => (now.value = Date.now()), 30_000)
+onUnmounted(() => clearInterval(clock))
 onMounted(() => load.run(async () => (exams.value = await listExams())))
 
-const withState = computed(() => (exams.value ?? []).map((exam) => ({ exam, state: examState(exam, now) })))
+const withState = computed(() =>
+  (exams.value ?? []).map((exam) => ({ exam, state: examState(exam, now.value) })),
+)
 const count = (state: ExamState) => withState.value.filter((e) => e.state === state).length
 const hero = computed(() => withState.value.find((e) => e.state === 'running')?.exam ?? null)
 const cards = computed(() =>

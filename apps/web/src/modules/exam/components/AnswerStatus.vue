@@ -62,12 +62,4 @@ defineEmits<{ clear: [] }>()
     color: var(--text);
   }
 }
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity var(--dur-fast) var(--ease);
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>

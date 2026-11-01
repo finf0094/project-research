@@ -75,7 +75,7 @@ async function copyLink() {
     inset-inline-end: -20%;
     inline-size: 360px;
     aspect-ratio: 1;
-    border: 1px dashed rgb(255 255 255 / 0.14);
+    border: 1px dashed var(--on-ink-line);
     border-radius: 50%;
   }
 }
@@ -113,6 +113,6 @@ async function copyLink() {
   margin-top: var(--space-3);
 }
 .soft {
-  background: rgb(255 255 255 / 0.1);
+  background: var(--on-ink-tint);
 }
 </style>

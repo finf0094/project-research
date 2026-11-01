@@ -48,7 +48,7 @@ withDefaults(
   color: var(--ok);
 }
 .ink {
-  background: rgb(255 255 255 / 0.1);
+  background: var(--on-ink-tint);
   color: var(--on-ink);
 }
 </style>

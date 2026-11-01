@@ -31,7 +31,7 @@
   position: absolute;
   inset-block-start: 42%;
   inset-inline-start: 50%;
-  border: 1px dashed rgb(255 255 255 / 0.14);
+  border: 1px dashed var(--on-ink-line);
   border-radius: 50%;
   translate: -50% -50%;
   animation: turn 60s linear infinite;
@@ -59,7 +59,7 @@
     inset: auto 12% 8% auto;
     inline-size: 22px;
     block-size: 22px;
-    background: rgb(255 255 255 / 0.22);
+    background: var(--on-ink-tint-3);
   }
   &.accent {
     inset: -18px auto auto 60%;

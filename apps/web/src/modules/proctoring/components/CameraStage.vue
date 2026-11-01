@@ -100,7 +100,7 @@ video {
   block-size: 100%;
   ellipse {
     fill: none;
-    stroke: rgb(255 255 255 / 0.55);
+    stroke: var(--on-ink-edge);
     stroke-width: 2;
     stroke-dasharray: 6 6;
     transition: stroke var(--dur) var(--ease);

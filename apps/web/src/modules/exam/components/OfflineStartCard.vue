@@ -79,7 +79,7 @@ header {
   padding: var(--space-3) var(--space-4);
   border: 2px solid transparent;
   border-radius: var(--radius);
-  background: rgb(255 255 255 / 0.1);
+  background: var(--on-ink-tint);
   color: var(--on-ink);
   font-family: var(--font-display);
   font-size: var(--text-xl);

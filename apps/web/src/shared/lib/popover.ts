@@ -19,4 +19,6 @@ export function placeNextToOpener(event: Event) {
   const left = Math.min(Math.max(EDGE, button.right - width), innerWidth - width - EDGE)
   menu.style.top = `${Math.max(EDGE, top)}px`
   menu.style.left = `${left}px`
+  // Placed once: a resized window would leave it detached from its button, so it simply closes.
+  addEventListener('resize', () => menu.hidePopover(), { once: true })
 }

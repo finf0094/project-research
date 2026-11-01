@@ -11,10 +11,11 @@ import {
   type LocalAttempt,
 } from '@/modules/offline'
 import { useProctoringStore } from '@/modules/proctoring'
-import { isAnswered, useAnswers } from './answers'
+import { firstUnanswered, useAnswers } from './answers'
 import { createCommandInbox } from './commands'
 import { startExamSession, type ExamSession } from './exam-session'
 import { loadAttempt } from './local-attempt'
+import { proctoringOptions } from './proctoring-options'
 import { submitWhenDelivered } from './submit'
 import { acquireTabLock } from './tab-lock'
 
@@ -40,6 +41,9 @@ export const useExamStore = defineStore('exam', () => {
   let runtime: ExamSession | null = null
   /** Bumped by open/close so a slow open() that lost the race cleans up instead of starting a second session. */
   let generation = 0
+  // Set once `session.submitted` is in the log; `endedBy` comes earlier, to lock the answers at once.
+  // A submit before that event would close the attempt on the server with the last events never sent.
+  let sealed = false
   const inbox = createCommandInbox({
     warn: (message) => (warning.value = message),
     capture: (seconds) => !locked.value && proctoring.capture(seconds),
@@ -76,10 +80,9 @@ export const useExamStore = defineStore('exam', () => {
     deadline.value = local.deadline
     status.value = local.status
     endedBy.value = local.endedBy
-    current.value = Math.max(
-      0,
-      questions.value.findIndex((q) => !isAnswered(saved[q.id])),
-    )
+    // A stored `endedBy` is written in the same step as `session.submitted`.
+    sealed = local.endedBy !== null
+    current.value = firstUnanswered(questions.value, saved)
 
     // The chain records the session before anything else, including a possible auto-finish below.
     if (!locked.value) await log.append(local.head.seq === 0 ? 'session.started' : 'session.resumed', {})
@@ -93,17 +96,7 @@ export const useExamStore = defineStore('exam', () => {
     })
     tick()
 
-    if (!locked.value) {
-      void proctoring.start({
-        attemptId,
-        log,
-        recording: local.exam.profile.recording,
-        // In an oral exam the student talks the whole time: sound says nothing there.
-        listen: local.exam.profile.mode !== 'oral',
-        ignore: local.disabledSignals ?? [],
-        now: () => clock.now(),
-      })
-    }
+    if (!locked.value) void proctoring.start(proctoringOptions(local, log, clock))
   }
 
   /**
@@ -113,13 +106,16 @@ export const useExamStore = defineStore('exam', () => {
   async function finish(reason: EndReason = 'student') {
     const rt = runtime
     if (!rt || locked.value) return
+    const gen = generation
     endedBy.value = reason
     await flush()
     await proctoring.stop().catch((error) => console.error('proctoring did not stop cleanly', error))
     // Whatever was not pinned is no longer needed, even if proctoring never ran on this device.
     await clearRecording(rt.attemptId).catch(() => undefined)
     await rt.log.append('session.submitted', {}, () => updateAttempt(rt.attemptId, { endedBy: reason }))
-    rt.sync.wake()
+    if (gen !== generation) return
+    sealed = true
+    rt.sync.wake() // the sync this starts sees the closed log and submits it
   }
 
   function goTo(index: number) {
@@ -128,16 +124,18 @@ export const useExamStore = defineStore('exam', () => {
 
   function close() {
     generation++
-    if (runtime) {
-      void flush()
+    const rt = runtime
+    if (rt) {
+      // The tab lock stays held until the last typed text is in the log, so no other tab appends in between.
+      void flush().finally(() => rt.stop())
       void proctoring.stop()
-      runtime.stop()
     }
     reset()
     runtime = null
     attempt.value = null
     status.value = 'active'
     endedBy.value = null
+    sealed = false
     chainBroken.value = false
     warning.value = null
     openedElsewhere.value = false
@@ -153,17 +151,19 @@ export const useExamStore = defineStore('exam', () => {
 
   async function handleResponse(gen: number, response: SyncResponse) {
     const rt = runtime
-    if (!rt || gen !== generation) return
+    const stale = () => gen !== generation // another attempt was opened during an await: not about it
+    if (!rt || stale()) return
     deadline.value = response.deadline
     status.value = response.status
     chainBroken.value = response.chainBroken
     signedOut.value = false
 
     await inbox.receive(response.commands, rt.log)
-
+    if (stale()) return
     if (status.value === 'terminated') await finish('examiner')
-    if (!endedBy.value || finished.value) return
+    if (stale() || !sealed || finished.value) return
     const outcome = await submitWhenDelivered(rt, response)
+    if (stale()) return
     if (outcome === 'signed-out') signedOut.value = true
     else if (outcome !== 'waiting') status.value = outcome.status
   }

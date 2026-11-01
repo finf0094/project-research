@@ -65,7 +65,7 @@ const left = computed(() => countdownParts(props.exam.closesAt - props.now))
     inset-inline-end: -6%;
     inline-size: 460px;
     aspect-ratio: 1;
-    border: 1px dashed rgb(255 255 255 / 0.12);
+    border: 1px dashed var(--on-ink-tint-2);
     border-radius: 50%;
   }
   &::after {
@@ -128,7 +128,7 @@ h2 {
   li {
     padding: 6px var(--space-3);
     border-radius: var(--radius-pill);
-    background: rgb(255 255 255 / 0.08);
+    background: var(--on-ink-tint);
     color: var(--on-ink-2);
     font-size: var(--text-sm);
     &.offline {

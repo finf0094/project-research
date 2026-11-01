@@ -53,7 +53,7 @@ header {
 .tag {
   padding: 2px var(--space-2);
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 0.12);
+  background: var(--on-ink-tint-2);
   font-size: var(--text-xs);
   font-weight: 600;
 }
