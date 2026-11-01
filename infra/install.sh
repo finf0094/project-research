@@ -10,6 +10,8 @@ set -euo pipefail
 # The log holds the demo password: readable by root only.
 touch /var/log/exam-install.log && chmod 600 /var/log/exam-install.log
 exec > >(tee -a /var/log/exam-install.log) 2>&1
+# One run at a time (a manual run waits for the updater's); update.sh already holds the lock.
+if [ -z "${EXAM_LOCKED:-}" ]; then exec 9>/var/lock/exam-install.lock && flock 9; fi
 
 REPO=https://github.com/finf0094/project-research.git
 BRANCH=${BRANCH:-feat/exam-platform}
@@ -32,8 +34,39 @@ if ! command -v docker >/dev/null; then
   }
 fi
 
-if [ -d "$DIR/.git" ]; then git -C "$DIR" pull --ff-only; else git clone -b "$BRANCH" "$REPO" "$DIR"; fi
+if [ -d "$DIR/.git" ]; then
+  git -C "$DIR" fetch -q origin && git -C "$DIR" reset -q --hard '@{u}' # .env and ignored files stay
+else
+  git clone -b "$BRANCH" "$REPO" "$DIR"
+fi
 cd "$DIR/infra"
+
+# The result of the last run, at https://<site>/deploy-status.txt: how whoever pushed sees it without a
+# login to the server. On a failure, the end of the log (passwords left out).
+mkdir -p status
+COMMIT=$(git rev-parse --short HEAD)
+echo "deploying $COMMIT since $(date -u +%FT%TZ)" >status/deploy-status.txt
+trap 'code=$?; [ $code -eq 0 ] || { echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; tail -n 40 /var/log/exam-install.log | grep -iv password; } >status/deploy-status.txt' EXIT
+
+# Updates by themselves: the owner asked for every push to the branch to reach this server (infra/update.sh).
+cat >/etc/systemd/system/exam-update.service <<EOF
+[Unit]
+Description=Apply new commits of the exam platform
+[Service]
+Type=oneshot
+ExecStart=/bin/bash $DIR/infra/update.sh
+EOF
+cat >/etc/systemd/system/exam-update.timer <<EOF
+[Unit]
+Description=Check the exam platform's branch for new commits
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now exam-update.timer
 
 # Settings are made once and kept: a new MASTER_KEY would make every stored attempt key unreadable.
 if [ ! -f .env ]; then
@@ -63,6 +96,7 @@ if [ ! -f .seeded ]; then
   touch .seeded # reached only when the seed succeeded (set -e)
 fi
 
+echo "ok $COMMIT at $(date -u +%FT%TZ)" >status/deploy-status.txt
 echo "Ready: https://$(grep ^SITE_ADDRESS= .env | cut -d= -f2)"
 DEMO=$(grep ^DEMO_PASSWORD= .env | cut -d= -f2 || true)
 echo "Demo sign-in: teacher@example.edu / admin@example.edu, password ${DEMO:-password}"

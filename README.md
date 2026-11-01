@@ -96,8 +96,13 @@ It adds swap, installs Docker, clones the branch to `/opt/exam`, writes `infra/.
 and LiveKit secret), starts everything including LiveKit, migrates and seeds the demo accounts with a random
 password (`DEMO_PASSWORD` in `.env`, printed at the end of the log). The site comes
 up at `https://<server ip>.sslip.io` with a certificate from Caddy (set `SITE_ADDRESS` for your own domain).
-Open ports 80, 443, 7881/tcp and 7882/udp. Keep a copy of `/opt/exam/infra/.env`; run the script again to
-update. The log is `/var/log/exam-install.log`.
+Open ports 80, 443, 7881/tcp and 7882/udp. Keep a copy of `/opt/exam/infra/.env`. The log is
+`/var/log/exam-install.log`.
+
+The server then follows the branch by itself: a systemd timer (`exam-update.timer`, every 2 minutes) runs
+`infra/update.sh`, which rebuilds, migrates and restarts when the branch has a commit not yet deployed. So
+anyone who can push to the branch changes what runs on the server; stop it with
+`systemctl disable --now exam-update.timer`. The last run's result is public at `/deploy-status.txt`.
 
 ## Differences from the architecture document
 

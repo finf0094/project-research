@@ -8,3 +8,4 @@ test-results/
 playwright-report/
 
 infra/.seeded
+infra/status/
