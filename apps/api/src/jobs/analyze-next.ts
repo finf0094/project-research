@@ -33,7 +33,16 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
       // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
       () => renewClaim(deps, attempt.id),
     )
-    const calibration = await calibrationOf(deps, attempt.examId)
+    // The examiner's past decisions weigh the kinds (section 25.4); read before the row lock, not under it.
+    // They only refine the score, so a failed read scores with neutral factors instead of failing again.
+    const [owner] = await deps.db
+      .select({ id: exams.ownerId })
+      .from(exams)
+      .where(eq(exams.id, attempt.examId))
+    const calibration = await calibrationFactors(deps.db, owner!.id).catch((error: unknown) => {
+      console.error(`could not read the calibration of attempt ${attempt.id}; scoring without it`, error)
+      return {}
+    })
     await deps.db.transaction(async (tx) => {
       const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')
       if (current?.status !== 'submitted') return
@@ -48,26 +57,10 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
       }
     })
   } catch (error) {
-    // Only the database itself can fail here (analysis failures are handled above), so the claim lease
-    // retries later; returning true lets the worker go on with the other attempts meanwhile.
+    // Only the database can fail here; the claim lease retries later, and the worker goes on meanwhile.
     console.error(`could not analyze attempt ${attempt.id}; retrying after the lease`, error)
   }
   return true
-}
-
-/**
- * The examiner's past decisions weigh the kinds (section 25.4); read before the row lock, not under it.
- * Calibration only refines the score, so a failed read falls back to neutral factors instead of
- * failing the attempt again on every retry.
- */
-async function calibrationOf({ db }: Deps, examId: string): Promise<Partial<Record<MarkerKind, number>>> {
-  try {
-    const [owner] = await db.select({ id: exams.ownerId }).from(exams).where(eq(exams.id, examId))
-    return await calibrationFactors(db, owner!.id)
-  } catch (error) {
-    console.error(`could not read the calibration for exam ${examId}; scoring without it`, error)
-    return {}
-  }
 }
 
 async function claimNext({ db, config, now }: Deps) {
