@@ -77,22 +77,27 @@
   .skeleton {
     display: block;
     border-radius: var(--radius-lg);
-    background: linear-gradient(
-        100deg,
-        transparent 30%,
-        color-mix(in oklab, var(--surface) 70%, transparent) 50%,
-        transparent 70%
-      )
-      0 0 / 200% 100% no-repeat,
+    background:
+      linear-gradient(
+          100deg,
+          transparent 30%,
+          color-mix(in oklab, var(--surface) 70%, transparent) 50%,
+          transparent 70%
+        )
+        0 0 / 200% 100% no-repeat,
       var(--surface-2);
     animation: shimmer 1.2s linear infinite;
   }
   @keyframes shimmer {
     from {
-      background-position: 150% 0, 0 0;
+      background-position:
+        150% 0,
+        0 0;
     }
     to {
-      background-position: -50% 0, 0 0;
+      background-position:
+        -50% 0,
+        0 0;
     }
   }
 

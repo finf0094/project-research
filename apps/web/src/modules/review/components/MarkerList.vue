@@ -158,6 +158,9 @@ const origin = (m: Marker) =>
   gap: var(--space-2);
   button {
     min-block-size: 36px;
+    @media (pointer: coarse) {
+      min-block-size: var(--tap);
+    }
     padding: 0 var(--space-4);
     border: 0;
     border-radius: var(--radius-pill);

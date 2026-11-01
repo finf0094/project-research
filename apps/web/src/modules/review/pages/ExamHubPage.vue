@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { PageSkeleton } from '@/shared/ui'
 import HubHeader from '../components/HubHeader.vue'
 import { provideExamHub } from '../exam-hub'
 
@@ -23,6 +24,7 @@ const hub = provideExamHub(String(route.params.examId))
       :live="hub.live.value"
       :stale="hub.stale.value"
     />
+    <PageSkeleton v-else-if="!hub.missing.value" />
     <RouterView v-if="hub.exam.value" v-slot="{ Component }">
       <div :key="String(route.name)" class="section"><component :is="Component" /></div>
     </RouterView>

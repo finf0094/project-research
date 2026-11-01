@@ -50,10 +50,15 @@ const to = computed(() => {
   box-shadow: var(--shadow-1);
   transition:
     translate var(--dur) var(--ease),
+    scale var(--dur-fast) var(--ease),
     box-shadow var(--dur) var(--ease);
   &:hover {
     translate: 0 -3px;
     box-shadow: var(--shadow-2);
+  }
+  /* The whole card is the link: it gives way under the finger. */
+  &:active {
+    scale: 0.98;
   }
   &:focus-within {
     outline: 2px solid var(--accent);

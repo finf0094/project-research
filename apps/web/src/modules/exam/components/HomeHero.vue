@@ -157,4 +157,23 @@ h2 {
     font-size: 0.5em;
   }
 }
+/* Phones: a little less frame, and the one button spans the card, right under the thumb. */
+@media (width < 700px) {
+  .hero {
+    gap: var(--space-6);
+    padding: var(--space-6);
+  }
+  .body,
+  .side {
+    inline-size: 100%;
+  }
+  .side {
+    justify-items: stretch;
+  }
+  /* The accent square moves to the top corner, clear of the full-width button. */
+  .orb {
+    inset-block: -18px auto;
+    inset-inline-end: 40px;
+  }
+}
 </style>

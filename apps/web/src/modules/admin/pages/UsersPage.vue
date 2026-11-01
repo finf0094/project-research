@@ -20,7 +20,7 @@ const TONE = { student: 'off', examiner: 'accent', admin: 'warn' } as const
     <h1>{{ $t('admin.title') }}</h1>
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
     <div class="layout">
-      <AppCard>
+      <AppCard class="table-card">
         <!-- Explicit roles: older WebKit forgets table semantics once the phone layout changes `display`. -->
         <table role="table">
           <thead role="rowgroup">
@@ -31,6 +31,11 @@ const TONE = { student: 'off', examiner: 'accent', admin: 'warn' } as const
             </tr>
           </thead>
           <tbody role="rowgroup">
+            <template v-if="!users.length && load.busy.value">
+              <tr v-for="n in 6" :key="n" class="ghost" role="row" aria-hidden="true">
+                <td colspan="3"><span class="skeleton line" /></td>
+              </tr>
+            </template>
             <tr v-for="u in users" :key="u.id" role="row">
               <th scope="row" role="rowheader">{{ u.name }}</th>
               <td role="cell" data-label="Email">{{ u.email }}</td>
@@ -75,13 +80,23 @@ thead th {
 .error {
   color: var(--danger);
 }
+tbody tr.ghost td {
+  grid-area: 1 / 1 / 3 / -1;
+}
+.line {
+  block-size: 40px;
+  border-radius: var(--radius-sm);
+}
 @media (width < 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-/* Phones: the name on top, then the email and the role, each with its column name for the eye. */
+/* Phones: a native list — the name, the email under it in grey, the role on the right. */
 @media (width < 600px) {
+  .table-card {
+    padding: var(--space-2) var(--space-4);
+  }
   thead {
     position: absolute;
     inline-size: 1px;
@@ -96,30 +111,29 @@ thead th {
   tbody tr {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--space-2) var(--space-3);
+    align-items: center;
+    gap: 2px var(--space-3);
+    min-block-size: 64px;
     padding-block: var(--space-3);
     border-bottom: 1px solid var(--border);
+    &:last-child {
+      border-bottom: 0;
+    }
   }
   th,
   td {
     padding: 0;
     border: 0;
   }
-  th {
-    grid-column: 1 / -1;
-  }
-  td {
+  td:first-of-type {
+    grid-row: 2;
+    color: var(--text-2);
     font-size: var(--text-sm);
     overflow-wrap: anywhere;
-    &::before {
-      content: attr(data-label);
-      content: attr(data-label) / '';
-      display: block;
-      margin-block-end: var(--space-1);
-      color: var(--text-2);
-      font-size: var(--text-xs);
-      font-weight: 600;
-    }
+  }
+  td:last-of-type {
+    grid-row: 1 / span 2;
+    grid-column: 2;
   }
 }
 </style>

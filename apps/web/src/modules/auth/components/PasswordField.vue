@@ -36,8 +36,8 @@ const shown = ref(false)
 .toggle {
   display: grid;
   place-items: center;
-  inline-size: 40px;
-  block-size: 40px;
+  inline-size: var(--tap);
+  block-size: var(--tap);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;

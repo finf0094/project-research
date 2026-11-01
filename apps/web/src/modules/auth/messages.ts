@@ -9,7 +9,6 @@ export const authMessages = defineMessages({
       submit: 'Войти',
       badCredentials: 'Неверный email или пароль',
       tooMany: 'Слишком много попыток входа. Подождите минуту и попробуйте снова.',
-      offline: 'Нет связи с сервером. Попробуйте ещё раз.',
       showPassword: 'Показать пароль',
       help: 'Нужна помощь со входом?',
       helpText:
@@ -24,7 +23,6 @@ export const authMessages = defineMessages({
       submit: 'Кіру',
       badCredentials: 'Email немесе құпиясөз қате',
       tooMany: 'Кіру әрекеті тым көп. Бір минут күтіп, қайталап көріңіз.',
-      offline: 'Сервермен байланыс жоқ. Қайталап көріңіз.',
       showPassword: 'Құпиясөзді көрсету',
       help: 'Кіруге көмек керек пе?',
       helpText:
@@ -39,7 +37,6 @@ export const authMessages = defineMessages({
       submit: 'Sign in',
       badCredentials: 'Wrong email or password',
       tooMany: 'Too many sign-in attempts. Wait a minute and try again.',
-      offline: 'No connection to the server. Please try again.',
       showPassword: 'Show password',
       help: 'Need help signing in?',
       helpText:

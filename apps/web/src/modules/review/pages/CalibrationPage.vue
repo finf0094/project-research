@@ -2,7 +2,7 @@
 import { CALIBRATION_MIN_DECISIONS, type Calibration, type CalibrationRow } from '@exam/contracts'
 import { computed, onMounted, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
-import { IconTile } from '@/shared/ui'
+import { IconTile, PageSkeleton } from '@/shared/ui'
 import { getCalibration } from '../api'
 import { MARKER_ICON } from '../marker-look'
 
@@ -34,7 +34,7 @@ const missRate = computed(() => {
       <p class="muted lead">{{ $t('calibration.lead') }}</p>
     </header>
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
-    <p v-else-if="load.busy.value" class="muted">{{ $t('calibration.loading') }}</p>
+    <PageSkeleton v-else-if="load.busy.value" :head="false" :cards="4" />
     <p v-else-if="rows && !rows.length" class="empty">{{ $t('calibration.empty') }}</p>
     <ul v-else class="rows stagger">
       <li v-for="r in sorted" :key="r.kind" class="row">

@@ -59,6 +59,9 @@ const { sections, inSection, current } = useSections()
   color: var(--on-ink);
 }
 .home {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap);
   padding-inline: var(--space-2);
   color: inherit;
   text-decoration: none;

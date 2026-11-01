@@ -47,10 +47,10 @@ const TONE = { correct: 'ok', wrong: 'danger', unanswered: 'warn', examiner: 'ac
           <p class="text">{{ q.text }}</p>
           <span class="status" :class="TONE[q.status]">{{ $t(`student.result.status.${q.status}`) }}</span>
           <p v-if="q.status !== 'correct' && (q.answer || q.correct)" class="answer">
-            <template v-if="q.answer">{{ $t('student.result.yourAnswer', { answer: q.answer }) }}</template>
-            <template v-if="q.correct">
-              {{ $t('student.result.rightAnswer', { answer: q.correct }) }}</template
-            >
+            <span v-if="q.answer">{{ $t('student.result.yourAnswer', { answer: q.answer }) }}</span>
+            <span v-if="q.correct" class="right">{{
+              $t('student.result.rightAnswer', { answer: q.correct })
+            }}</span>
           </p>
         </div>
         <span class="points"
@@ -142,12 +142,28 @@ const TONE = { correct: 'ok', wrong: 'danger', unanswered: 'warn', examiner: 'ac
   font-weight: 700;
 }
 .answer {
+  display: grid;
+  gap: var(--space-1);
   inline-size: 100%;
   margin-top: var(--space-2);
   padding: var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--surface);
   font-size: var(--text-sm);
+}
+.right {
+  color: var(--ok);
+  font-weight: 600;
+}
+/* Phones: the number gives way to the text. */
+@media (width < 600px) {
+  .item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: var(--space-3);
+  }
+  .n {
+    display: none;
+  }
 }
 .points {
   padding-top: 4px;

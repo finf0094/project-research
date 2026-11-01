@@ -20,7 +20,10 @@ function onClick(event: MouseEvent) {
   const box = dialog.value?.getBoundingClientRect()
   if (!box || event.target !== dialog.value) return
   const inside =
-    event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom
+    event.clientX >= box.left &&
+    event.clientX <= box.right &&
+    event.clientY >= box.top &&
+    event.clientY <= box.bottom
   if (!inside) dialog.value?.close()
 }
 </script>

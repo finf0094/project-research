@@ -37,7 +37,7 @@ const model = defineModel<T>({ required: true })
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 40px;
+  min-height: var(--tap);
   padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-pill);

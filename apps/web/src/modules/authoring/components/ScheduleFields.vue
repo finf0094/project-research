@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDay } from '@/shared/lib/format'
 import type { ExamDefinition } from '@exam/contracts'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -56,8 +57,8 @@ const invalid = computed(() => model.value.closesAt <= model.value.opensAt)
 const fullTimeUntil = computed(() => model.value.closesAt - model.value.durationMin * MINUTE)
 const summary = computed(() => {
   const { opensAt: from, closesAt: to } = model.value
-  const day = new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'long' })
-  const until = `${daysBetween(from, fullTimeUntil.value) ? `${day.format(fullTimeUntil.value)}, ` : ''}${timeOf(fullTimeUntil.value)}`
+  void locale.value // recomputed when the language changes; formatDay follows it (and spells Kazakh months)
+  const until = `${daysBetween(from, fullTimeUntil.value) ? `${formatDay(fullTimeUntil.value)}, ` : ''}${timeOf(fullTimeUntil.value)}`
   if (fullTimeUntil.value < from) return t('authoring.schedule.tooShort')
   return t('authoring.schedule.summary', { days: Math.max(1, daysBetween(from, to)), until })
 })

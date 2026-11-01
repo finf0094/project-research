@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
+import { FolderPlus } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
 import { AppButton, PillTabs } from '@/shared/ui'
@@ -58,11 +59,21 @@ const filters = computed(() => [
         :items="filters.map((f) => ({ ...f, label: $t(f.label) }))"
       />
       <ExamHero v-if="hero && (filter === 'all' || filter === 'running')" :exam="hero" />
-      <p v-if="!exams.length" class="empty muted">{{ $t('hub.list.empty') }}</p>
+      <div v-if="!exams.length" class="empty-state">
+        <span class="empty-icon"><FolderPlus :size="28" aria-hidden="true" /></span>
+        <p>{{ $t('hub.list.empty') }}</p>
+      </div>
       <div class="grid stagger">
         <ExamTile v-for="{ exam, state } in cards" :key="exam.id" :exam="exam" :state="state" />
       </div>
     </template>
+    <div v-else-if="!load.error.value" class="loading" role="status" :aria-label="$t('common.loading')">
+      <span class="skeleton pills" />
+      <span class="skeleton hero" />
+      <div class="grid">
+        <span v-for="n in 3" :key="n" class="skeleton tile" />
+      </div>
+    </div>
   </main>
 </template>
 
@@ -83,11 +94,26 @@ const filters = computed(() => [
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-4);
 }
-.empty {
-  padding: var(--space-8);
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-lg);
-  text-align: center;
+.loading {
+  display: grid;
+  gap: var(--space-6);
+  .pills {
+    block-size: 52px;
+    max-inline-size: 520px;
+    border-radius: var(--radius-pill);
+  }
+  .hero {
+    block-size: 300px;
+  }
+  .tile {
+    block-size: 200px;
+  }
+}
+/* Phones: the main action spans the width, like an app's primary button. */
+@media (width < 700px) {
+  .head > :last-child {
+    inline-size: 100%;
+  }
 }
 .error {
   color: var(--danger);

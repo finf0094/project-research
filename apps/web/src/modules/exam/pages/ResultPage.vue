@@ -4,7 +4,7 @@ import { MessageSquareText, ShieldAlert, ShieldCheck } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAction } from '@/shared/lib/use-action'
-import { AppButton, Avatar, IconTile } from '@/shared/ui'
+import { AppButton, Avatar, IconTile, PageSkeleton } from '@/shared/ui'
 import { fetchResult } from '../api'
 import QuestionBreakdown from '../components/QuestionBreakdown.vue'
 import ScoreCard from '../components/ScoreCard.vue'
@@ -18,7 +18,11 @@ onMounted(() => load.run(async () => (result.value = await fetchResult(String(ro
 
 <template>
   <main class="page">
+    <nav class="crumbs" :aria-label="$t('app.nav.label')">
+      <RouterLink to="/results">{{ $t('app.nav.results') }}</RouterLink>
+    </nav>
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
+    <PageSkeleton v-if="!result && !load.error.value" />
     <div v-if="result" class="layout">
       <aside class="side stagger">
         <ScoreCard :result="result" />
@@ -98,6 +102,14 @@ onMounted(() => load.run(async () => (result.value = await fetchResult(String(ro
   svg {
     vertical-align: -2px;
     color: var(--text-2);
+  }
+}
+/* The way back: a native back link on phones (app.css); wide screens have the top bar instead. */
+.crumbs {
+  display: none;
+  @media (width < 700px) {
+    display: block;
+    margin-block-end: var(--space-3);
   }
 }
 .error {

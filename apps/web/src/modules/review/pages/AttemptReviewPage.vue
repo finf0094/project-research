@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { AppCard } from '@/shared/ui'
+import { AppCard, PageSkeleton } from '@/shared/ui'
 import AnswersList from '../components/AnswersList.vue'
 import AttemptHeader from '../components/AttemptHeader.vue'
 import DecisionForm from '../components/DecisionForm.vue'
@@ -91,6 +91,7 @@ const {
       </aside>
     </div>
   </main>
+  <PageSkeleton v-else-if="!action.error.value" />
 </template>
 
 <style scoped>

@@ -3,7 +3,7 @@ import { ExamDefinition } from '@exam/contracts'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { AppCard } from '@/shared/ui'
+import { AppCard, PageSkeleton } from '@/shared/ui'
 import EditorHeader from '../components/EditorHeader.vue'
 import ExamSettingsForm from '../components/ExamSettingsForm.vue'
 import ExceptionsEditor from '../components/ExceptionsEditor.vue'
@@ -95,6 +95,7 @@ async function send() {
     />
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
 
+    <PageSkeleton v-if="!draft && !load.error.value" :head="false" :cards="2" />
     <form v-if="draft" class="form" novalidate @submit.prevent="send">
       <p v-if="locked" class="notice" role="status">{{ $t('authoring.locked') }}</p>
       <Transition name="step" mode="out-in">
