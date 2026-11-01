@@ -49,6 +49,18 @@ describe('individual exceptions', () => {
     await saving
     expect(exceptions.value).toEqual([])
     expect(x.failed.value.size).toBe(0)
+    expect(x.saving.value.size).toBe(0)
+  })
+
+  it('does not restore the exception of a student removed while the save ran', async () => {
+    const exceptions = ref<SignalException[]>([])
+    const x = useExceptions(ref('exam'), exceptions)
+    const finish = pending()
+    const saving = x.toggle('a@x', 'noise', true)
+    x.keepOnly([])
+    finish(false)
+    await saving
+    expect(exceptions.value).toEqual([])
   })
 
   it('forgets removed students', () => {

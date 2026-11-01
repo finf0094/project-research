@@ -12,6 +12,8 @@ export function useExceptions(examId: Ref<string | null>, exceptions: Ref<Signal
   const saving = ref(new Set<string>())
   /** A refused save, per student: another student's save must not hide it. */
   const failed = ref(new Map<string, ErrorKey>())
+  /** Counts the exams the page loaded, so an answer from an earlier visit is recognised. */
+  let generation = 0
 
   const disabledFor = (email: string) =>
     exceptions.value.find((e) => e.email === email)?.disabledSignals ?? []
@@ -22,6 +24,7 @@ export function useExceptions(examId: Ref<string | null>, exceptions: Ref<Signal
   /** Shown at once and saved; a refused save puts the student's previous list back. */
   async function toggle(email: string, signal: SignalKind, on: boolean) {
     const id = examId.value
+    const loadedAt = generation
     if (!id) return
     const before = disabledFor(email)
     const next = on ? [...before, signal] : before.filter((s) => s !== signal)
@@ -33,8 +36,10 @@ export function useExceptions(examId: Ref<string | null>, exceptions: Ref<Signal
     } catch (error) {
       refused = errorKey(error)
     }
-    if (examId.value !== id) return
-    if (refused) put(email, before)
+    // The page left this exam (even if it came back to it since): the answer is about an old screen.
+    if (generation !== loadedAt) return
+    // A student removed meanwhile has no entry left: nothing to restore for them.
+    if (refused && exceptions.value.some((e) => e.email === email)) put(email, before)
     const errors = new Map(failed.value)
     if (refused) errors.set(email, refused)
     else errors.delete(email)
@@ -49,6 +54,7 @@ export function useExceptions(examId: Ref<string | null>, exceptions: Ref<Signal
   }
 
   watch(examId, () => {
+    generation++
     saving.value = new Set()
     failed.value = new Map()
   })
