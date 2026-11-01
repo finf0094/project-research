@@ -84,6 +84,19 @@ docker compose -f infra/docker-compose.yml run --rm api node src/db/migrate.ts
 
 Caddy serves the built SPA (with its service worker) and proxies `/api`; API and worker share one image.
 
+**A server in one step.** On a fresh Ubuntu server (4 GB RAM or more), as root, or in the provider's
+cloud-init field:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/finf0094/project-research/feat/exam-platform/infra/install.sh | bash
+```
+
+It adds swap, installs Docker, clones the branch to `/opt/exam`, writes `infra/.env` once (a new `MASTER_KEY`
+and LiveKit secret), starts everything including LiveKit, migrates and seeds the demo accounts. The site comes
+up at `https://<server ip>.sslip.io` with a certificate from Caddy (set `SITE_ADDRESS` for your own domain).
+Open ports 80, 443, 7881/tcp and 7882/udp. Keep a copy of `/opt/exam/infra/.env`; run the script again to
+update. The log is `/var/log/exam-install.log`.
+
 ## Differences from the architecture document
 
 Deliberate simplifications (KISS) and things not built yet — stated here so the code and the document never disagree silently.

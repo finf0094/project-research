@@ -6,6 +6,12 @@
 		}
 	}
 
+	# Video calls (oral exams): LiveKit's signalling under the site's own HTTPS address (wss://), so a page
+	# served over HTTPS may open it. Media itself goes straight to LiveKit's ports (7881 TCP, 7882 UDP).
+	handle /rtc* {
+		reverse_proxy livekit:7880
+	}
+
 	handle {
 		encode zstd gzip
 		root * /srv
