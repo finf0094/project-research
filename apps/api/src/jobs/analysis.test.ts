@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMarkers, riskScore, type StoredEvent } from './analysis.ts'
+import { buildMarkers, findingsFor, riskScore, type StoredEvent } from './analysis.ts'
 
 const ev = (seq: number, type: string, data: unknown, clientAt: number): StoredEvent => ({
   seq,
@@ -146,8 +146,8 @@ describe('reconciliation with server findings', () => {
   it('is no discrepancy where the device did not measure that kind or no control fragment covered it', () => {
     const finding = { kind: 'object_detected' as const, startAt: 2000, endAt: 62_000 }
     const opts = { endAt: 70_000, uploaded: new Set(['c']), chainBrokenAt: null, serverFindings: [finding] }
-    const lite = buildMarkers([ev(1, 'proctoring.mode', { tier: 'lite' }, 0), watched[1]!], opts)
-    expect(lite[0]).toMatchObject({ source: 'model', discrepancy: false })
+    const weak = buildMarkers([ev(1, 'proctoring.mode', { tier: 'slow' }, 0), watched[1]!], opts)
+    expect(weak[0]).toMatchObject({ source: 'model', discrepancy: false })
     const riskOnly = buildMarkers(
       [
         watched[0]!,
@@ -175,5 +175,16 @@ describe('reconciliation with server findings', () => {
       kind: 'face_missing',
       discrepancy: true,
     })
+  })
+})
+
+describe('findingsFor', () => {
+  it('drops server noise findings in an oral exam, where the student talks throughout', () => {
+    const findings = [
+      { kind: 'noise' as const, startAt: 0, endAt: 5000 },
+      { kind: 'face_missing' as const, startAt: 0, endAt: 9000 },
+    ]
+    expect(findingsFor(findings, 'oral')).toEqual([findings[1]])
+    expect(findingsFor(findings, 'written')).toEqual(findings)
   })
 })

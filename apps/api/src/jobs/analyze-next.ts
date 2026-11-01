@@ -8,7 +8,7 @@ import { attemptQuestions } from '../modules/exams/service.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
 import { analyzeRecordings, type RecordingsReport } from '../ml/recordings.ts'
-import { buildMarkers, riskScore } from './analysis.ts'
+import { buildMarkers, findingsFor, riskScore } from './analysis.ts'
 import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
 
 /** A claim older than this belongs to a worker that died; another worker may take the attempt. */
@@ -34,9 +34,10 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
     )
     // The examiner's past decisions weigh the kinds (25.4), read outside the lock; a failed read is neutral.
     const [owner] = await deps.db
-      .select({ id: exams.ownerId })
+      .select({ id: exams.ownerId, profile: exams.profile })
       .from(exams)
       .where(eq(exams.id, attempt.examId))
+    const findings = findingsFor(report.findings, owner!.profile.mode)
     const calibration = await calibrationFactors(deps.db, owner!.id).catch((error: unknown) => {
       console.error(`could not read the calibration of attempt ${attempt.id}; scoring without it`, error)
       return {}
@@ -45,7 +46,9 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
       const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')
       if (current?.status !== 'submitted') return
       try {
-        await tx.transaction((savepoint) => analyze(deps, savepoint, current, report, calibration))
+        await tx.transaction((savepoint) =>
+          analyze(deps, savepoint, current, { ...report, findings }, calibration),
+        )
       } catch (error) {
         console.error(`analysis of attempt ${attempt.id} failed; sending it to manual review`, error)
         await tx

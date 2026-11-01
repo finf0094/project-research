@@ -6,7 +6,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildMarkers, riskScore, type StoredEvent } from '../src/jobs/analysis.ts'
-import { FRAME_H, FRAME_W, extractFrames } from '../src/ml/media.ts'
+import { BYTES_PER_SECOND } from '../src/media/audio.ts'
+import { FRAME_H, FRAME_W, extractFrames, isDark, loudSeconds } from '../src/ml/media.ts'
+import { toIntervals } from '../src/ml/observations.ts'
 import { analyzeRecordings, loadModels } from '../src/ml/recordings.ts'
 import { blobKey, fsStorage } from '../src/shared/storage.ts'
 
@@ -59,6 +61,29 @@ describe('server-side models', () => {
 
   it('cuts a chunk that is longer than a recorded chunk can be', async () => {
     expect((await extractFrames(portraitVideo(30))).length).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('frames and sound', () => {
+  const frame = (level: number) => Buffer.alloc(FRAME_W * FRAME_H * 3, level)
+
+  it('tells a covered lens from a dark room', () => {
+    expect(isDark(frame(5))).toBe(false) // covered: a missing face counts
+    expect(isDark(frame(30))).toBe(true) // a dim room: it does not
+    expect(isDark(frame(120))).toBe(false)
+  })
+
+  it('marks loud seconds by their RMS and turns them into a noise finding', () => {
+    // A square wave at amplitude a has RMS a: 0.2 is loud, 0.02 is a quiet room.
+    const second = (rms: number) => {
+      const pcm = Buffer.alloc(BYTES_PER_SECOND)
+      for (let i = 0; i < pcm.length; i += 2) pcm.writeInt16LE((i % 4 ? -1 : 1) * Math.round(rms * 32767), i)
+      return pcm
+    }
+    const loud = loudSeconds(Buffer.concat([second(0.02), ...[0.2, 0.2, 0.2].map(second), second(0.02)]))
+    expect(loud).toEqual([false, true, true, true, false])
+    const observations = loud.map((l, i) => ({ at: i * 1000, faces: 1, object: false, dark: false, loud: l }))
+    expect(toIntervals(observations)).toEqual([{ kind: 'noise', startAt: 1000, endAt: 4000 }])
   })
 })
 

@@ -77,9 +77,9 @@ export const chunkObservations = pgTable(
       .notNull()
       .references(() => attempts.id, { onDelete: 'cascade' }),
     hash: text('hash').notNull(),
-    /** Empty when the chunk could not be decoded: it is not tried again. */
+    /** Empty when the chunk could not be decoded: it is not tried again. `loud` is missing in older rows. */
     observations: jsonb('observations')
-      .$type<{ at: number; faces: number; object: boolean; dark: boolean }[]>()
+      .$type<{ at: number; faces: number; object: boolean; dark: boolean; loud?: boolean }[]>()
       .notNull(),
   },
   (t) => [primaryKey({ columns: [t.attemptId, t.hash] })],

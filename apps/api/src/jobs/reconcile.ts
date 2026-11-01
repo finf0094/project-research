@@ -5,10 +5,12 @@ import type { MarkerDraft, StoredEvent } from './analysis.ts'
 
 /** What the device measures at each tier: silence about anything else is not a discrepancy. */
 const MEASURED: Record<DeviceTier, ReadonlySet<MarkerKind>> = {
-  full: new Set(['face_missing', 'multiple_faces', 'object_detected']),
-  lite: new Set(['face_missing', 'multiple_faces']),
+  // Noise only in written exams (an oral one does not listen), but oral noise findings are dropped before
+  // reconciliation (analysis.ts findingsFor), so listing it here is safe.
+  full: new Set(['face_missing', 'multiple_faces', 'object_detected', 'noise']),
+  lite: new Set(['object_detected', 'face_missing', 'multiple_faces', 'noise']),
   // Weak devices still check for a face, only less often (architecture 10.5).
-  slow: new Set(['face_missing', 'multiple_faces']),
+  slow: new Set(['face_missing', 'multiple_faces', 'noise']),
   minimal: new Set(), // older clients: no face check at all
   none: new Set(),
 }

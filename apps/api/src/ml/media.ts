@@ -1,3 +1,4 @@
+import { BYTES_PER_SECOND } from '../media/audio.ts'
 import { ffmpeg } from '../media/ffmpeg.ts'
 
 /** Decoded frame size: SSD sees phones better at this size; UltraFace gets a 2× downscale (`halve`). */
@@ -49,12 +50,40 @@ export function halve(rgb: Buffer): Buffer {
  * must not turn the device's honest silence into a discrepancy.
  */
 const DARK_BRIGHTNESS = 55
+/**
+ * Below this a frame is nearly black: not a dim room (that still shows some light) but a lens covered by a
+ * finger or tape. Such a frame is not "dark", so a missing face in it counts. The device does the same.
+ */
+const COVERED_BRIGHTNESS = 15
 
+/** Dark enough that a missing face says nothing; a covered lens is not dark, it hides the student. */
 export function isDark(rgb: Buffer): boolean {
+  const mean = brightness(rgb)
+  return mean >= COVERED_BRIGHTNESS && mean < DARK_BRIGHTNESS
+}
+
+function brightness(rgb: Buffer): number {
   let sum = 0
   let count = 0
   // Every 16th pixel is plenty for an average.
   for (let i = 0; i + 2 < rgb.length; i += 48, count++)
     sum += 0.299 * rgb[i]! + 0.587 * rgb[i + 1]! + 0.114 * rgb[i + 2]!
-  return sum / count < DARK_BRIGHTNESS
+  return sum / count
+}
+
+/**
+ * Loudness (RMS, 0..1) above which a second counts as noisy. The same as the device's threshold, so both
+ * sides call the same room noisy and a quiet device is not a discrepancy for a borderline sound.
+ */
+const LOUD_RMS = 0.08
+
+/** For each whole second of 16 kHz mono s16le sound (as from decodeAudio): was it loud? */
+export function loudSeconds(pcm: Buffer): boolean[] {
+  const loud: boolean[] = []
+  for (let start = 0; start + BYTES_PER_SECOND <= pcm.length; start += BYTES_PER_SECOND) {
+    let sum = 0
+    for (let i = start; i < start + BYTES_PER_SECOND; i += 2) sum += (pcm.readInt16LE(i) / 32768) ** 2
+    loud.push(Math.sqrt(sum / (BYTES_PER_SECOND / 2)) > LOUD_RMS)
+  }
+  return loud
 }

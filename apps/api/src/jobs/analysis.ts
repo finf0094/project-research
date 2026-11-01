@@ -1,4 +1,4 @@
-import type { MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
+import type { ExamMode, MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
 import type { Interval } from '../ml/observations.ts'
 import type { Fragment } from '../ml/recordings.ts'
 import { confirmedByDevice, overlaps, reconcile } from './reconcile.ts'
@@ -32,11 +32,18 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   camera_off: 15,
   looking_away: 10,
   off_center: 10,
+  copy: 15,
+  second_screen: 15,
+  mic_off: 15,
   object_detected: 30,
   noise: 10,
   chain_broken: 40,
   missing_fragment: 20,
 }
+
+/** The server's findings that mean something in this kind of exam: in an oral one the student talks throughout. */
+export const findingsFor = (findings: Interval[], mode: ExamMode) =>
+  mode === 'oral' ? findings.filter((f) => f.kind !== 'noise') : findings
 
 /** A control fragment counts as answering a request if it starts within this window after it. */
 const CONTROL_ANSWER_WINDOW_MS = 10 * 60_000

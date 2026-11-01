@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { Db, Tx } from '../db/client.ts'
 import { blobs, chunkObservations, events } from '../db/schema.ts'
+import type { Observation } from '../ml/observations.ts'
 import type { Fragment } from '../ml/recordings.ts'
 
 /** The recorded fragments the device announced in its log. */
@@ -23,5 +24,11 @@ export async function observationsOf(db: Db | Tx, attemptId: string) {
     .select({ hash: chunkObservations.hash, observations: chunkObservations.observations })
     .from(chunkObservations)
     .where(eq(chunkObservations.attemptId, attemptId))
-  return new Map(rows.map((row) => [row.hash, row.observations]))
+  // Rows cached before the server listened to the sound have no `loud`: they count as quiet.
+  return new Map(
+    rows.map((row) => [
+      row.hash,
+      row.observations.map((o): Observation => ({ ...o, loud: o.loud ?? false })),
+    ]),
+  )
 }

@@ -2,7 +2,8 @@ import type { EventData, ServerAnalysis } from '@exam/contracts'
 import type { BlobStorage } from '../shared/storage.ts'
 import { blobKey } from '../shared/storage.ts'
 import { loadFaceCounter } from './faces.ts'
-import { extractFrames, isDark } from './media.ts'
+import { decodeAudio } from '../media/audio.ts'
+import { extractFrames, isDark, loudSeconds } from './media.ts'
 import { MODELS, readModel } from './models.ts'
 import { loadObjectDetector } from './objects.ts'
 import { toIntervals, type Interval, type Observation } from './observations.ts'
@@ -42,7 +43,7 @@ export async function loadModels(): Promise<Models | null> {
 
 /**
  * Second opinion on the recorded fragments: the server's own models look at every uploaded chunk
- * (one frame per second) and report intervals with another person, no person, or a phone/book.
+ * (one frame per second) and report intervals with another person, no person, a phone/book, or noise.
  * Never throws: a broken analysis must not cost the attempt its other markers.
  */
 export async function analyzeRecordings(
@@ -101,6 +102,12 @@ export async function observeChunk(
       })
     : null
   if (!frames) return null
+  // A chunk whose sound cannot be read still counts for its pictures: it is just quiet.
+  const sound = await decodeAudio(video!).catch((error: unknown) => {
+    console.error(`could not decode the sound of chunk ${hash}`, error)
+    return null
+  })
+  const loud = sound ? loudSeconds(sound) : []
   const observations: Observation[] = []
   for (const [second, frame] of frames.entries()) {
     observations.push({
@@ -108,6 +115,7 @@ export async function observeChunk(
       faces: await models.faces(frame),
       object: await models.objects(frame),
       dark: isDark(frame),
+      loud: loud[second] ?? false,
     })
   }
   return observations

@@ -7,7 +7,7 @@ import { toIntervals } from '../ml/observations.ts'
 import { markLiveDue } from '../modules/attempts/live-due.ts'
 import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
-import { buildMarkers, riskScore } from './analysis.ts'
+import { buildMarkers, findingsFor, riskScore } from './analysis.ts'
 import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
 
 /** A burst of signals settles this long before the markers are rebuilt (one rebuild, not one per event). */
@@ -62,7 +62,12 @@ async function rebuild(deps: Deps, attempt: typeof attempts.$inferSelect) {
   const { db } = deps
   const fragments = await fragmentsOf(db, attempt.id)
   const uploaded = await uploadedOf(db, attempt.id)
-  const findings = toIntervals((await observeNewChunks(deps, attempt.id, fragments, uploaded)).flat())
+  const observed = (await observeNewChunks(deps, attempt.id, fragments, uploaded)).flat()
+  const [exam] = await db
+    .select({ ownerId: exams.ownerId, profile: exams.profile })
+    .from(exams)
+    .where(eq(exams.id, attempt.examId))
+  const findings = exam ? findingsFor(toIntervals(observed), exam.profile.mode) : toIntervals(observed)
   const log = await db
     .select({ seq: events.seq, type: events.type, data: events.data, clientAt: events.clientAt })
     .from(events)
@@ -77,7 +82,6 @@ async function rebuild(deps: Deps, attempt: typeof attempts.$inferSelect) {
   })
   const disabled = new Set<MarkerKind>(await disabledSignalsOf(db, attempt.examId, attempt.userId))
   const kept = drafts.filter((m) => !disabled.has(m.kind))
-  const [exam] = await db.select({ ownerId: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
   const calibration = exam ? await calibrationOf(deps, exam.ownerId) : {}
   // How much it was built from: events and uploads only ever grow, so a larger sum is a newer view.
   const builtFrom = (log.at(-1)?.seq ?? 0) + uploaded.size
