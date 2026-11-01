@@ -90,6 +90,8 @@ async function merge({ db, storage, now }: Deps, attemptId: string): Promise<str
       .update(attempts)
       .set({ audioClaimedAt: new Date(renewedAt) })
       .where(eq(attempts.id, attemptId))
+      // A missed renewal only risks a second worker later; the merge itself goes on.
+      .catch((error: unknown) => console.error('could not renew the audio claim', error))
   }
   const audio = await encodeOpus(async (append) => {
     let size = 0
