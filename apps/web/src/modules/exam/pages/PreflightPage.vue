@@ -77,6 +77,7 @@ const startLabel = computed(
         :state="probe.state.value"
         :stream="probe.stream.value"
         :faces="probe.faces.value"
+        :placed="probe.placed.value"
         :brightness="probe.brightness.value"
         @retry="probe.start"
       />

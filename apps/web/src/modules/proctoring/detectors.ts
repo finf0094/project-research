@@ -4,12 +4,14 @@ import { FaceLandmarker, ObjectDetector } from '@mediapipe/tasks-vision'
 import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_module_internal.js?url'
 import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_module_internal.wasm?url'
 import type { Pose } from './calibration'
-import { countFaces, headPose, isLookingAway } from './pose'
+import { countFaces, headPose, isInOval, isLookingAway } from './pose'
 
 /** What one analysed frame says. Fields are null when the tier does not measure them. */
 export interface FrameReport {
   faces: number | null
   lookingAway: boolean | null
+  /** The single face is inside the preflight oval (null when there is not exactly one face). */
+  inOval: boolean | null
   /** Raw head pose, used to calibrate the camera position at preflight. */
   pose: Pose | null
   object: boolean | null
@@ -57,6 +59,7 @@ export async function loadDetectors(tier: DeviceTier) {
       return {
         faces: seen,
         lookingAway: single ? isLookingAway(single, baseline) : null,
+        inOval: single ? isInOval(single.faceLandmarks[0]!) : null,
         pose: single ? headPose(single) : null,
         object,
         brightness: brightness(frame),

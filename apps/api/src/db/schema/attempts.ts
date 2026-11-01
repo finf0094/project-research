@@ -63,7 +63,7 @@ export const attempts = pgTable(
     audioTries: integer('audio_tries').notNull().default(0),
     /** New signals or recordings arrived during the exam: the worker rebuilds its markers live then. */
     liveDueAt: timestamp('live_due_at', { withTimezone: true }),
-    /** The last event the live markers were built from: an older rebuild never overwrites a newer one. */
+    /** How much the live markers were built from (events + uploads): an older rebuild never overwrites. */
     liveSeq: integer('live_seq').notNull().default(0),
   },
   (t) => [

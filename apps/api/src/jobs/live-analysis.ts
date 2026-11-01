@@ -79,7 +79,8 @@ async function rebuild(deps: Deps, attempt: typeof attempts.$inferSelect) {
   const kept = drafts.filter((m) => !disabled.has(m.kind))
   const [exam] = await db.select({ ownerId: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
   const calibration = exam ? await calibrationOf(deps, exam.ownerId) : {}
-  const builtFrom = log.at(-1)?.seq ?? 0
+  // How much it was built from: events and uploads only ever grow, so a larger sum is a newer view.
+  const builtFrom = (log.at(-1)?.seq ?? 0) + uploaded.size
 
   await db.transaction(async (tx) => {
     const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')

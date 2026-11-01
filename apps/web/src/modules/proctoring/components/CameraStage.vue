@@ -4,6 +4,7 @@ import { computed, ref, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AppButton } from '@/shared/ui'
 import type { ProbeState } from '../device-probe'
+import { OVAL } from '../pose'
 import LightMeter from './LightMeter.vue'
 
 /**
@@ -14,6 +15,8 @@ const props = defineProps<{
   state: ProbeState
   stream: MediaStream | null
   faces: number | null
+  /** The single face sits in the oval. */
+  placed?: boolean | null
   brightness: number | null
 }>()
 const { t } = useI18n()
@@ -24,10 +27,11 @@ watchEffect(() => {
   if (video.value) video.value.srcObject = props.stream
 })
 
-/** What the chip says: seen well, nobody, or too many people. */
-const seen = computed(() =>
-  props.faces === 1 ? 'good' : props.faces && props.faces > 1 ? 'many' : props.faces === 0 ? 'none' : null,
-)
+/** What the chip says: seen well, out of the oval, nobody, or too many people. */
+const seen = computed(() => {
+  if (props.faces === 1) return props.placed === false ? 'center' : 'good'
+  return props.faces && props.faces > 1 ? 'many' : props.faces === 0 ? 'none' : null
+})
 const OVERLAY = {
   idle: 'proctoring.camera.starting',
   starting: 'proctoring.camera.starting',
@@ -54,7 +58,13 @@ watch(seen, (now) => {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <ellipse cx="50" cy="46" rx="17" ry="33" vector-effect="non-scaling-stroke" />
+      <ellipse
+        :cx="OVAL.cx * 100"
+        :cy="OVAL.cy * 100"
+        :rx="OVAL.rx * 100"
+        :ry="OVAL.ry * 100"
+        vector-effect="non-scaling-stroke"
+      />
     </svg>
 
     <Transition name="pop" mode="out-in">

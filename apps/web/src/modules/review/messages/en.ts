@@ -12,6 +12,7 @@ export const en: typeof ru = {
       camera_off: 'Camera off',
       looking_away: 'Looking away',
       object_detected: 'Phone or book in view',
+      off_center: 'Face out of the oval',
       paste: 'Pasted text',
       chain_broken: 'Event log broken',
       missing_fragment: 'Recording fragment not uploaded',

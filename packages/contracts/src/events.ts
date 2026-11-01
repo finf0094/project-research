@@ -20,6 +20,8 @@ export const SignalKind = z.enum([
   'looking_away',
   /** A phone or a book in view (object detector). */
   'object_detected',
+  /** The face left the oval it was placed in at preflight (moved aside, or too far from the camera). */
+  'off_center',
 ])
 export type SignalKind = z.infer<typeof SignalKind>
 

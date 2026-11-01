@@ -31,6 +31,7 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   paste: 15,
   camera_off: 15,
   looking_away: 10,
+  off_center: 10,
   object_detected: 30,
   noise: 10,
   chain_broken: 40,

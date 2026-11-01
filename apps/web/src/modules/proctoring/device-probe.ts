@@ -26,6 +26,8 @@ export function useDeviceProbe() {
   const denied = ref(false)
   const stream = shallowRef<MediaStream | null>(null)
   const faces = ref<number | null>(null)
+  /** The single face sits in the oval (null without exactly one face). */
+  const placed = ref<boolean | null>(null)
   const brightness = ref<number | null>(null)
   const hasMic = ref(false)
   const faceSteady = ref(false)
@@ -43,11 +45,17 @@ export function useDeviceProbe() {
     return [
       { id: 'camera', ok: running, hint: 'camera' },
       { id: 'mic', ok: running && hasMic.value, hint: 'mic' },
-      { id: 'face', ok: faceSteady.value, hint: (faces.value ?? 0) > 1 ? 'faceMany' : 'faceNone' },
+      { id: 'face', ok: faceSteady.value, hint: faceHint() },
       { id: 'light', ok: lightSteady.value, hint: 'light' },
     ] as const
   })
   const ready = computed(() => checks.value.every((c) => c.ok))
+  const faceHint = () =>
+    (faces.value ?? 0) > 1
+      ? 'faceMany'
+      : faces.value === 1 && placed.value === false
+        ? 'faceCenter'
+        : 'faceNone'
 
   /** Bumped by every start: a slower earlier start that finishes late stops what it began. */
   let run = 0
@@ -124,8 +132,10 @@ export function useDeviceProbe() {
     if (frame.pose) poses.push(frame.pose)
     saveBaseline(poses.slice(-10))
     faces.value = frame.faces
+    placed.value = frame.inOval
     brightness.value = frame.brightness
-    faceStreak = frame.faces === 1 ? faceStreak + 1 : 0
+    // Seen well means one face, wholly in view and inside the oval: where the exam will expect it.
+    faceStreak = frame.faces === 1 && frame.inOval === true ? faceStreak + 1 : 0
     lightStreak = frame.brightness >= DARK_BRIGHTNESS ? lightStreak + 1 : 0
     if (faceStreak >= STEADY_FRAMES) faceSteady.value = true
     if (lightStreak >= STEADY_FRAMES) lightSteady.value = true
@@ -151,7 +161,7 @@ export function useDeviceProbe() {
     disposed = true
     release()
   })
-  return { state, denied, stream, faces, brightness, checks, ready, start }
+  return { state, denied, stream, faces, placed, brightness, checks, ready, start }
 }
 
 function median(values: number[]) {

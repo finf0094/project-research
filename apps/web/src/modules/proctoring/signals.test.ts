@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createSignalTracker, riskLevel } from './signals'
+import type { FrameReport } from './detectors'
+import { createSignalTracker, observeFrame, riskLevel, type ObservedKind } from './signals'
 
 describe('signal tracker', () => {
   it('ignores a short glance away and fires after the condition persists', () => {
@@ -30,5 +31,37 @@ describe('riskLevel', () => {
   })
   it('is medium when signals keep repeating', () => {
     expect(riskLevel(new Set(), 3)).toBe('medium')
+  })
+})
+
+describe('observeFrame', () => {
+  const frame = (over: Partial<FrameReport>): FrameReport => ({
+    faces: 1,
+    lookingAway: false,
+    inOval: true,
+    pose: null,
+    object: null,
+    brightness: 120,
+    ms: 10,
+    ...over,
+  })
+  const seen = (f: FrameReport, tier: 'full' | 'slow' = 'full') => {
+    const present = new Map<ObservedKind, boolean>()
+    observeFrame(f, tier, (kind, on) => present.set(kind, on))
+    return present
+  }
+
+  it('turns each case of the student into its observation', () => {
+    expect(seen(frame({})).get('face_missing')).toBe(false)
+    expect(seen(frame({ faces: 0, inOval: null })).get('face_missing')).toBe(true)
+    expect(seen(frame({ faces: 2, inOval: null })).get('multiple_faces')).toBe(true)
+    expect(seen(frame({ inOval: false })).get('off_center')).toBe(true)
+    expect(seen(frame({ lookingAway: true })).get('looking_away')).toBe(true)
+    expect(seen(frame({ object: true })).get('object_detected')).toBe(true)
+  })
+
+  it('does not blame the student for a dark room or a weak device', () => {
+    expect(seen(frame({ faces: 0, brightness: 10 })).get('face_missing')).toBe(false)
+    expect(seen(frame({ lookingAway: true }), 'slow').get('looking_away')).toBe(false)
   })
 })

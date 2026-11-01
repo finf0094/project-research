@@ -3,6 +3,7 @@ import {
   CameraOff,
   ClipboardPaste,
   EyeOff,
+  Focus,
   Moon,
   PanelTop,
   ScanFace,
@@ -25,6 +26,7 @@ const ICON: Partial<Record<SignalKind, typeof ScanFace>> = {
   camera_off: CameraOff,
   looking_away: EyeOff,
   object_detected: Smartphone,
+  off_center: Focus,
   paste: ClipboardPaste,
 }
 

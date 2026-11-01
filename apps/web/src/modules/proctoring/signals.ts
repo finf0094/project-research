@@ -1,8 +1,9 @@
-import type { RiskLevel, SignalKind } from '@exam/contracts'
+import type { DeviceTier, RiskLevel, SignalKind } from '@exam/contracts'
+import type { FrameReport } from './detectors'
 
 /** Signals measured continuously from camera and microphone; the rest are browser events. */
 export type ObservedKind =
-  'face_missing' | 'multiple_faces' | 'too_dark' | 'noise' | 'looking_away' | 'object_detected'
+  'face_missing' | 'multiple_faces' | 'too_dark' | 'noise' | 'looking_away' | 'object_detected' | 'off_center'
 
 interface Rule {
   /** The condition must hold this long before the signal turns on (a glance away is not a signal). */
@@ -19,6 +20,8 @@ const RULES: Record<ObservedKind, Rule> = {
   // Reading the question and thinking means glancing around; only a sustained look away counts.
   looking_away: { onAfterMs: 8000, offAfterMs: 2000 },
   object_detected: { onAfterMs: 2000, offAfterMs: 4000 },
+  // Shifting in the chair is normal; only staying out of the oval counts.
+  off_center: { onAfterMs: 4000, offAfterMs: 2000 },
 }
 
 export interface Transition {
@@ -108,4 +111,23 @@ export function watchBrowser(setSignal: (kind: SignalKind, on: boolean) => void)
     document.removeEventListener('visibilitychange', onVisibility)
     document.removeEventListener('paste', onPaste)
   }
+}
+
+/** One analysed frame as observations, by what the device's tier measures. */
+export function observeFrame(
+  frame: FrameReport,
+  tier: DeviceTier,
+  observe: (kind: ObservedKind, present: boolean) => void,
+) {
+  const dark = frame.brightness < DARK_BRIGHTNESS
+  observe('too_dark', dark)
+  if (frame.faces != null) {
+    // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.
+    observe('face_missing', frame.faces === 0 && !dark)
+    observe('multiple_faces', frame.faces >= 2)
+    // Position and gaze are measured on a single face; with none or several they cannot be off.
+    observe('off_center', frame.inOval === false)
+    observe('looking_away', tier !== 'slow' && frame.lookingAway === true)
+  }
+  if (frame.object != null) observe('object_detected', frame.object)
 }

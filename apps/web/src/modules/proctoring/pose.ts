@@ -64,6 +64,22 @@ export function isFramed(landmarks: { x: number; y: number }[]): boolean {
   })
 }
 
+/** The preflight oval in picture coordinates (CameraStage draws it from the same numbers). */
+export const OVAL = { cx: 0.5, cy: 0.46, rx: 0.17, ry: 0.33 }
+/** Room around the oval: a face drifting a little is still "in place". */
+const OVAL_SLACK = 1.35
+/** A face shorter than this share of the picture sits too far away to be seen well. */
+const MIN_FACE_HEIGHT = 0.22
+
+/** The face is where preflight placed it: its centre inside the oval and close enough to the camera. */
+export function isInOval(landmarks: { x: number; y: number }[]): boolean {
+  const [top, chin, left, right] = OUTLINE.map((i) => landmarks[i])
+  if (!top || !chin || !left || !right) return false
+  const dx = ((left.x + right.x) / 2 - OVAL.cx) / OVAL.rx
+  const dy = ((top.y + chin.y) / 2 - OVAL.cy) / OVAL.ry
+  return dx * dx + dy * dy <= OVAL_SLACK * OVAL_SLACK && chin.y - top.y >= MIN_FACE_HEIGHT
+}
+
 /**
  * How many people are seen: faces wholly in the picture; any second face, even cut off, still counts as
  * someone else being there.

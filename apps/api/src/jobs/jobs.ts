@@ -43,11 +43,12 @@ export async function removeExpiredRecordings({ db, storage, config, now }: Deps
       .limit(RETENTION_BATCH)
     for (const row of rows) {
       await storage.remove(blobKey(row.attemptId, row.hash))
-      await db.delete(blobs).where(and(eq(blobs.attemptId, row.attemptId), eq(blobs.hash, row.hash)))
-      // What the models saw in it is derived from the recording and goes with it.
+      // What the models saw in it is derived from the recording and goes with it (first: should the run
+      // stop between the two, the blob row is still there and the next run finishes the job).
       await db
         .delete(chunkObservations)
         .where(and(eq(chunkObservations.attemptId, row.attemptId), eq(chunkObservations.hash, row.hash)))
+      await db.delete(blobs).where(and(eq(blobs.attemptId, row.attemptId), eq(blobs.hash, row.hash)))
     }
     removed += rows.length
     // Deleted rows drop out of the query, so the next batch starts where this one ended.

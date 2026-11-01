@@ -12,6 +12,7 @@ export const kk: typeof ru = {
       camera_off: 'Камера өшірулі',
       looking_away: 'Жанына қарау',
       object_detected: 'Кадрда телефон немесе кітап',
+      off_center: 'Бет сопақтан тыс',
       paste: 'Мәтін кірістіру',
       chain_broken: 'Оқиғалар журналы бұзылған',
       missing_fragment: 'Жазба фрагменті жүктелмеген',

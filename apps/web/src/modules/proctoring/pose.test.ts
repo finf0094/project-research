@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countFaces, headPose, isFramed, isLookingAway } from './pose'
+import { countFaces, headPose, isFramed, isInOval, isLookingAway } from './pose'
 
 /** A face result with a head rotated by `yawDeg` around the vertical axis and eyes centred. */
 function face(yawDeg: number, irisShift = 0) {
@@ -57,5 +57,19 @@ describe('a face in the picture', () => {
 
   it('still counts a second person even when cut off', () => {
     expect(countFaces([outline(0.8), outline(1.25)])).toBe(2)
+  })
+
+  it('knows whether the face sits in the oval, close enough to the camera', () => {
+    const at = (cx: number, top: number, chin: number) => {
+      const points = Array.from({ length: 478 }, () => ({ x: 0.5, y: 0.5 }))
+      points[10] = { x: cx, y: top }
+      points[152] = { x: cx, y: chin }
+      points[234] = { x: cx - 0.12, y: (top + chin) / 2 }
+      points[454] = { x: cx + 0.12, y: (top + chin) / 2 }
+      return points
+    }
+    expect(isInOval(at(0.5, 0.2, 0.75))).toBe(true) // centred, near
+    expect(isInOval(at(0.85, 0.2, 0.75))).toBe(false) // moved to the side
+    expect(isInOval(at(0.5, 0.4, 0.55))).toBe(false) // sat far back: a small face
   })
 })

@@ -19,6 +19,8 @@ export interface StartOptions {
   /** Signals not watched for this student (an individual exception, section 25.3). */
   ignore: SignalKind[]
   now: () => number
+  /** A signal turned on: the log goes to the server now. */
+  onSignal?: () => void
 }
 
 interface Running {

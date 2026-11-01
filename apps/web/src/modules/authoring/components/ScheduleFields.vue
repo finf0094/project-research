@@ -47,7 +47,7 @@ const applyPreset = (preset: Preset) =>
 const activePreset = computed(() => {
   const window = model.value.closesAt - model.value.opensAt
   // As the server decides: a window up to the exam plus the slack is a sitting.
-  if (window > model.value.durationMin * MINUTE && window <= PRESETS.sitting()) return 'sitting'
+  if (window >= model.value.durationMin * MINUTE && window <= PRESETS.sitting()) return 'sitting'
   return (['day', 'week'] as const).find((preset) => window === PRESETS[preset]())
 })
 

@@ -96,7 +96,7 @@ export const useExamStore = defineStore('exam', () => {
     })
     tick()
 
-    if (!locked.value) void proctoring.start(proctoringOptions(local, log, clock))
+    if (!locked.value) void proctoring.start(proctoringOptions(local, log, clock, () => runtime?.sync.wake()))
   }
 
   /**

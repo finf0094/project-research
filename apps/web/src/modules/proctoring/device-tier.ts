@@ -36,8 +36,8 @@ export const UNMEASURED: Record<DeviceTier, ObservedKind[]> = {
   lite: ['object_detected'],
   // Weak devices keep the face check, at a slower pace; gaze and objects cost too much.
   slow: ['object_detected', 'looking_away'],
-  none: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'],
-  minimal: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'], // only older clients
+  none: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away', 'off_center'],
+  minimal: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away', 'off_center'], // only older clients
 }
 
 /** One step down when analysis gets too slow during the exam: the exam itself must stay smooth. */

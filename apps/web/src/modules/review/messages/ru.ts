@@ -10,6 +10,7 @@ export const ru = {
       camera_off: 'Камера выключена',
       looking_away: 'Взгляд в сторону',
       object_detected: 'Телефон или книга в кадре',
+      off_center: 'Лицо вне овала',
       paste: 'Вставка текста',
       chain_broken: 'Журнал событий нарушен',
       missing_fragment: 'Фрагмент записи не загружен',

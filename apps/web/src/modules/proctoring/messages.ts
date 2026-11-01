@@ -12,6 +12,7 @@ export const proctoringMessages = defineMessages({
         camera_off: 'Камера выключена. Включите её, чтобы продолжить под наблюдением.',
         looking_away: 'Пожалуйста, смотрите на экран.',
         object_detected: 'Уберите телефон и книги из поля зрения камеры.',
+        off_center: 'Вернитесь в центр кадра: лицо должно быть в овале.',
       },
       camera: {
         on: 'Камера включена',
@@ -26,6 +27,7 @@ export const proctoringMessages = defineMessages({
         good: 'Вас хорошо видно',
         none: 'Сядьте так, чтобы лицо было в овале',
         many: 'В кадре должны быть только вы',
+        center: 'Поместите лицо в овал',
         light: { dark: 'Темно', ok: 'Нормальное', good: 'Хорошее' },
       },
       check: {
@@ -48,6 +50,7 @@ export const proctoringMessages = defineMessages({
           mic: 'Разрешите доступ к микрофону: звук нужен для записи.',
           faceMany: 'В кадре должны быть только вы.',
           faceNone: 'Сядьте так, чтобы лицо было в кадре.',
+          faceCenter: 'Сядьте так, чтобы лицо было в овале, не слишком далеко от камеры.',
           light: 'Слишком темно: включите свет или повернитесь к окну.',
         },
       },
@@ -64,6 +67,7 @@ export const proctoringMessages = defineMessages({
         camera_off: 'Камера өшірулі. Бақылаумен жалғастыру үшін оны қосыңыз.',
         looking_away: 'Экранға қараңыз.',
         object_detected: 'Телефон мен кітаптарды камераның көру аймағынан алып тастаңыз.',
+        off_center: 'Кадрдың ортасына оралыңыз: бетіңіз сопақтың ішінде болсын.',
       },
       camera: {
         on: 'Камера қосулы',
@@ -78,6 +82,7 @@ export const proctoringMessages = defineMessages({
         good: 'Сіз жақсы көрінесіз',
         none: 'Бетіңіз сопақтың ішінде болатындай отырыңыз',
         many: 'Кадрда тек сіз болуыңыз керек',
+        center: 'Бетіңізді сопақтың ішіне орналастырыңыз',
         light: { dark: 'Қараңғы', ok: 'Қалыпты', good: 'Жақсы' },
       },
       check: {
@@ -99,6 +104,7 @@ export const proctoringMessages = defineMessages({
           mic: 'Микрофонға рұқсат беріңіз: дыбыс жазба үшін қажет.',
           faceMany: 'Кадрда тек сіз болуыңыз керек.',
           faceNone: 'Бетіңіз кадрда болатындай отырыңыз.',
+          faceCenter: 'Бетіңіз сопақтың ішінде, камерадан тым алыс емес болатындай отырыңыз.',
           light: 'Тым қараңғы: жарықты қосыңыз немесе терезеге қарай бұрылыңыз.',
         },
       },
@@ -115,6 +121,7 @@ export const proctoringMessages = defineMessages({
         camera_off: 'The camera is off. Turn it on to continue under supervision.',
         looking_away: 'Please look at the screen.',
         object_detected: 'Move phones and books out of the camera’s view.',
+        off_center: 'Move back to the centre: keep your face in the oval.',
       },
       camera: {
         on: 'Camera on',
@@ -129,6 +136,7 @@ export const proctoringMessages = defineMessages({
         good: 'You are clearly visible',
         none: 'Sit so that your face is inside the oval',
         many: 'Only you should be in view',
+        center: 'Place your face in the oval',
         light: { dark: 'Dark', ok: 'Fine', good: 'Good' },
       },
       check: {
@@ -150,6 +158,7 @@ export const proctoringMessages = defineMessages({
           mic: 'Allow microphone access: sound is part of the recording.',
           faceMany: 'Only you should be in view.',
           faceNone: 'Sit so that your face is in view.',
+          faceCenter: 'Sit so that your face is in the oval, not too far from the camera.',
           light: 'Too dark: turn on a light or face a window.',
         },
       },

@@ -1,7 +1,8 @@
 import type { EventLog, LocalAttempt, ServerClock } from '@/modules/offline'
 
 /** What proctoring needs to watch this attempt, taken from the attempt's exam profile. */
-export function proctoringOptions(local: LocalAttempt, log: EventLog, clock: ServerClock) {
+/** `send`: sends the log now, so a new signal reaches the server within seconds. */
+export function proctoringOptions(local: LocalAttempt, log: EventLog, clock: ServerClock, send: () => void) {
   return {
     attemptId: local.id,
     log,
@@ -10,5 +11,6 @@ export function proctoringOptions(local: LocalAttempt, log: EventLog, clock: Ser
     listen: local.exam.profile.mode !== 'oral',
     ignore: local.disabledSignals ?? [],
     now: () => clock.now(),
+    onSignal: send,
   }
 }

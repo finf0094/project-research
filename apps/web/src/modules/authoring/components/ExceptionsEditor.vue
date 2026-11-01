@@ -14,6 +14,7 @@ const SIGNALS: SignalKind[] = [
   'multiple_faces',
   'tab_hidden',
   'object_detected',
+  'off_center',
   'paste',
 ]
 </script>

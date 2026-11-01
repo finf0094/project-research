@@ -8,10 +8,10 @@ import { startRecorder, type Recorder } from './recorder'
 import { createSensors } from './sensors'
 import {
   ANALYSIS_FPS,
-  DARK_BRIGHTNESS,
   NOISE_RMS,
   OBJECTS_EVERY_MS,
   createSignalTracker,
+  observeFrame,
   riskLevel,
   watchBrowser,
   type ObservedKind,
@@ -32,6 +32,8 @@ export interface ProctorOptions {
   now: () => number
   onHint(kind: SignalKind | null): void
   onRisk(level: RiskLevel): void
+  /** A signal turned on: the caller sends the log now (the server marks it within seconds). */
+  onSignal?(): void
 }
 
 export interface Proctor {
@@ -101,6 +103,8 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     }
     if (kind === 'tab_hidden' && !on) hints.returned()
     void log.append('proctor.signal', { kind, active: on })
+    // A new signal goes to the server at once, not with the next periodic sync.
+    if (on) options.onSignal?.()
     showHint()
     updateRisk()
   }
@@ -141,16 +145,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       return
     }
     if (!frame) return
-    const dark = frame.brightness < DARK_BRIGHTNESS
-    observe('too_dark', dark)
-    if (frame.faces != null) {
-      // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.
-      observe('face_missing', frame.faces === 0 && !dark)
-      observe('multiple_faces', frame.faces >= 2)
-      // Gaze is measured only on a single face; with none or several it cannot be looking away.
-      observe('looking_away', tier !== 'slow' && frame.lookingAway === true)
-    }
-    if (frame.object != null) observe('object_detected', frame.object)
+    observeFrame(frame, tier, observe)
     // Keeps the exam smooth on weak computers: lowers the tier when analysis is consistently slow.
     if (tier === 'slow' || tier === 'none' || !tooSlow(frame.ms)) return
     sensors.lower(lowerTier(tier))
