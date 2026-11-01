@@ -11,6 +11,13 @@ import { attemptQuestions } from '../exams/service.ts'
 import { countsTowardGrade, isValidAnswer } from './projection.ts'
 
 const CONTROL_FRAGMENT_SECONDS = 20
+const LIVE_EVENTS: ReadonlySet<string> = new Set([
+  'proctor.signal',
+  'evidence.fragment',
+  'session.resumed',
+  'network.changed',
+  'proctoring.mode',
+])
 
 /**
  * Accepts a batch of sealed events. Already-accepted events are skipped (retries after a lost ack are safe),
@@ -67,8 +74,9 @@ export async function acceptEvents(
           now,
         })
         if (event.type === 'network.changed') connection = event.data.to
-        // A signal or a recorded fragment: the examiner should see it now, not after the exam.
-        if (event.type === 'proctor.signal' || event.type === 'evidence.fragment') liveWork = true
+        // Anything that changes the markers (a signal, a recording, a reload, a lost connection, the
+        // device's tier): the examiner should see it now, not after the exam.
+        if (LIVE_EVENTS.has(event.type)) liveWork = true
         // Once the student has finished, proctoring is off: never ask for a fragment that cannot come.
         if (event.type === 'session.submitted') nextCaptureAt = null
         head = { seq: event.seq, hash: event.hash }
@@ -89,7 +97,8 @@ export async function acceptEvents(
       })
       .where(eq(attempts.id, attemptId))
 
-    if (liveWork) await markLiveDue(tx, attemptId, now)
+    // A broken chain is the heaviest marker, and no later event will come to bring it.
+    if (liveWork || chainBrokenAt !== attempt.chainBrokenAt) await markLiveDue(tx, attemptId, now)
     if (attempt.status === 'active' && nextCaptureAt && now >= nextCaptureAt.getTime()) {
       await tx.insert(commands).values({
         attemptId,

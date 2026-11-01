@@ -74,14 +74,15 @@ async function rebuild(deps: Deps, attempt: typeof attempts.$inferSelect) {
     .from(events)
     .where(eq(events.attemptId, attempt.id))
     .orderBy(asc(events.seq))
+  const disabled = new Set<MarkerKind>(await disabledSignalsOf(db, attempt.examId, attempt.userId))
   const drafts = buildMarkers(log, {
     endAt: deps.now(),
     uploaded,
     chainBrokenAt: attempt.chainBrokenAt,
     serverFindings: findings,
     live: true,
+    disabled,
   })
-  const disabled = new Set<MarkerKind>(await disabledSignalsOf(db, attempt.examId, attempt.userId))
   const kept = drafts.filter((m) => !disabled.has(m.kind))
   const calibration = exam ? await calibrationOf(deps, exam.ownerId) : {}
   // How much it was built from: events and uploads only ever grow, so a larger sum is a newer view.
@@ -121,7 +122,7 @@ async function observeNewChunks(
     await db.insert(chunkObservations).values({ attemptId, hash, observations }).onConflictDoNothing()
     known.set(hash, observations)
   }
-  // Chunks left for the next run keep the attempt due.
-  if (fresh.length === CHUNKS_PER_RUN) await markLiveDue(db, attemptId, deps.now())
+  // Chunks left for the next run keep the attempt due (not without models: nothing would ever be left less).
+  if (models && fresh.length === CHUNKS_PER_RUN) await markLiveDue(db, attemptId, deps.now())
   return [...known.values()]
 }

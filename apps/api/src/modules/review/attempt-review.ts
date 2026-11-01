@@ -1,6 +1,6 @@
 import type { AttemptDetail, DecisionBody, ExaminerCommandBody, UpdateMarkerBody } from '@exam/contracts'
 import { isEmptyAnswer } from '@exam/contracts'
-import { and, asc, count, desc, eq } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
 import {
   answers,
@@ -52,11 +52,18 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
   // Recording chunks only (an oral exam's merged audio is a blob too, but no chunk of a fragment).
   const uploaded = await uploadedOf(db, attemptId)
   const chunks = new Set((await fragmentsOf(db, attemptId)).flatMap((f) => f.chunks))
-  const recorded = [...chunks].filter((hash) => uploaded.has(hash)).length
+  const recorded = [...chunks].filter((hash) => uploaded.has(hash))
+  // An empty row is a chunk the models could not decode (kept so the live analysis does not retry it).
   const [checked] = await db
     .select({ n: count() })
     .from(chunkObservations)
-    .where(eq(chunkObservations.attemptId, attemptId))
+    .where(
+      and(
+        eq(chunkObservations.attemptId, attemptId),
+        inArray(chunkObservations.hash, recorded.length ? recorded : ['']),
+        sql`jsonb_array_length(${chunkObservations.observations}) > 0`,
+      ),
+    )
   const flagged = markerRows.filter((m) => m.status !== 'context').length
 
   return {
@@ -81,7 +88,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       chunks: m.chunks,
     })),
     serverAnalysis: attempt.serverAnalysis,
-    serverCheck: { recorded, checked: Math.min(checked?.n ?? 0, recorded) },
+    serverCheck: { recorded: recorded.length, checked: checked?.n ?? 0 },
     ...(exam.profile.mode === 'oral'
       ? await oralRecordingOf(db, attempt, deps.now())
       : { call: [], audio: null }),

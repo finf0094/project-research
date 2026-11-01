@@ -60,6 +60,8 @@ export function buildMarkers(
     serverFindings?: Interval[] | null
     /** During the exam: uploads are still on their way, so a chunk not here yet is not "missing". */
     live?: boolean
+    /** Signals not watched for this student (section 25.3): ignored, so they shape no other marker either. */
+    disabled?: ReadonlySet<string>
   },
 ): MarkerDraft[] {
   const fragments = events.flatMap((e) => (e.type === 'evidence.fragment' ? [e.data as Fragment] : []))
@@ -127,6 +129,8 @@ export function buildMarkers(
     previousAt = e.clientAt
     if (e.type === 'proctor.signal') {
       const { kind, active } = e.data as { kind: SignalKind; active: boolean }
+      // E.g. an allowed tab switch must not turn a later reload into a page closed all that time.
+      if (opts.disabled?.has(kind)) continue
       const since = openSignals.get(kind)
       if (active && since === undefined) openSignals.set(kind, e.clientAt)
       if (!active && since !== undefined) close(kind, since, e.clientAt)

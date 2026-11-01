@@ -57,6 +57,16 @@ describe('the exam page closed or reloaded', () => {
     ])
   })
 
+  it('does not stretch over a tab switch the examiner allowed this student', () => {
+    const log = [
+      ev(1, 'session.started', {}, 0),
+      ev(2, 'proctor.signal', { kind: 'tab_hidden', active: true }, 10_000),
+      ev(3, 'session.resumed', {}, 250_000),
+    ]
+    const markers = buildMarkers(log, { ...opts, disabled: new Set(['tab_hidden']) })
+    expect(kinds(markers)).toEqual([['page_closed', 250_000, 250_000, 'pending']])
+  })
+
   it('shows headphones as context and scores a virtual camera', () => {
     const markers = buildMarkers(
       [

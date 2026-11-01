@@ -1,16 +1,7 @@
-import { and, asc, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, isNotNull } from 'drizzle-orm'
 import type { MarkerKind, ServerAnalysis } from '@exam/contracts'
 import type { Tx } from '../db/client.ts'
-import {
-  answers,
-  attempts,
-  blobs,
-  chunkObservations,
-  commands,
-  events,
-  exams,
-  markers,
-} from '../db/schema.ts'
+import { answers, attempts, chunkObservations, commands, events, exams, markers } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { attemptQuestions } from '../modules/exams/service.ts'
@@ -20,9 +11,8 @@ import { analyzeRecordings, type RecordingsReport } from '../ml/recordings.ts'
 import { buildMarkers, findingsFor } from './analysis.ts'
 import { riskScore } from './risk-score.ts'
 import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
+import { claimNext, renewClaim } from './analysis-claim.ts'
 
-/** A claim older than this belongs to a worker that died; another worker may take the attempt. */
-const CLAIM_LEASE_MS = 15 * 60_000
 /**
  * Analyzes one submitted attempt whose fragments have all arrived (or whose upload window is over): final
  * answers, markers, risk score. Claim it (SKIP LOCKED: workers side by side), run the models with no
@@ -82,50 +72,6 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
   }
   return true
 }
-
-async function claimNext({ db, config, now }: Deps) {
-  const uploadCutoff = new Date(now() - config.UPLOAD_WINDOW_HOURS * 3_600_000)
-  const leaseCutoff = new Date(now() - CLAIM_LEASE_MS)
-  // True when every chunk announced in the chain has been uploaded.
-  const allChunksUploaded = sql`not exists (
-    select 1 from ${events} e
-    cross join lateral jsonb_array_elements_text(e.data->'chunks') as chunk(hash)
-    where e.attempt_id = ${attempts.id} and e.type = 'evidence.fragment'
-      and not exists (select 1 from ${blobs} b where b.attempt_id = e.attempt_id and b.hash = chunk.hash))`
-
-  return db.transaction(async (tx) => {
-    const [attempt] = await tx
-      .select()
-      .from(attempts)
-      .where(
-        and(
-          eq(attempts.status, 'submitted'),
-          or(isNull(attempts.analysisClaimedAt), lt(attempts.analysisClaimedAt, leaseCutoff)),
-          or(lt(attempts.submittedAt, uploadCutoff), allChunksUploaded),
-        ),
-      )
-      .orderBy(asc(attempts.submittedAt))
-      .limit(1)
-      .for('update', { skipLocked: true })
-    if (!attempt) return null
-    await tx
-      .update(attempts)
-      .set({ analysisClaimedAt: new Date(now()) })
-      .where(eq(attempts.id, attempt.id))
-    return attempt
-  })
-}
-
-// A missed renewal only risks a second worker later: it must never throw away the findings so far.
-const renewClaim = ({ db, now }: Deps, attemptId: string) =>
-  db
-    .update(attempts)
-    .set({ analysisClaimedAt: new Date(now()) })
-    .where(eq(attempts.id, attemptId))
-    .then(
-      () => undefined,
-      (error: unknown) => console.error(`could not renew the analysis claim of ${attemptId}`, error),
-    )
 
 /** `partial` when some uploaded chunk was not looked at (undecodable, or uploaded while the models ran). */
 function analysisStatus(report: RecordingsReport, uploaded: ReadonlySet<string>): ServerAnalysis {
@@ -188,15 +134,16 @@ async function analyze(
   // Chunks that arrived while the models ran still count as uploaded.
   const uploadedSet = await uploadedOf(tx, attempt.id)
 
+  // An individual exception (section 25.3): no markers for the signals not watched for this student.
+  const disabled = new Set<string>(await disabledSignalsOf(tx, attempt.examId, attempt.userId))
   const drafts = buildMarkers(log, {
     endAt: Math.min(attempt.submittedAt?.getTime() ?? deps.now(), attempt.deadline.getTime()),
     uploaded: uploadedSet,
     chainBrokenAt: attempt.chainBrokenAt,
     captureRequests: captures.map((c) => c.at.getTime()).filter((at) => at < finishedAt),
     serverFindings: recordings.findings,
+    disabled,
   })
-  // An individual exception (section 25.3): no markers for the signals not watched for this student.
-  const disabled = new Set<string>(await disabledSignalsOf(tx, attempt.examId, attempt.userId))
   const kept = drafts.filter((m) => !disabled.has(m.kind))
   await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
   if (kept.length) await tx.insert(markers).values(kept.map((m) => ({ ...m, attemptId: attempt.id })))
