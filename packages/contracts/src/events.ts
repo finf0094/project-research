@@ -28,6 +28,10 @@ export const SignalKind = z.enum([
   'second_screen',
   /** The microphone was muted or disconnected. */
   'mic_off',
+  /** Headphones or a headset are in use (by the device's name): someone may be talking in the student's ear. */
+  'headphones',
+  /** The camera is a program (OBS, ManyCam…), which can show a recording instead of the student. */
+  'virtual_camera',
 ])
 export type SignalKind = z.infer<typeof SignalKind>
 

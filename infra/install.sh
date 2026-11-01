@@ -69,7 +69,7 @@ record() {
   tail -n 600 "$history" >"$history.tmp" && mv "$history.tmp" "$history"
 }
 # (The log is written through tee: a moment lets its last lines land before they are read.)
-trap 'code=$?; [ $code -eq 0 ] || { { sleep 1; echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; echo "$SUBJECT"; tail -n 40 $LOG | grep -iv password; } >status/deploy-status.txt; record FAILED; }' EXIT
+trap 'code=$?; [ $code -eq 0 ] || { { sleep 1; echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; echo "$SUBJECT"; tail -n 40 $LOG | grep -iv password || true; } >status/deploy-status.txt; record FAILED || true; }' EXIT
 
 # Updates by themselves: the owner asked for every push to the branch to reach this server (infra/update.sh).
 cat >/etc/systemd/system/exam-update.service <<EOF
@@ -120,7 +120,8 @@ if [ ! -f .seeded ]; then
 fi
 
 printf '%s\n%s\n' "ok $COMMIT at $(date -u +%FT%TZ)" "$SUBJECT" >status/deploy-status.txt
-record ok
+# The history is for people only: a failure to write it must not mark a working deployment as failed.
+record ok || echo "the deployment history was not written"
 echo "Ready: https://$(grep ^SITE_ADDRESS= .env | cut -d= -f2)"
 DEMO=$(grep ^DEMO_PASSWORD= .env | cut -d= -f2 || true)
 echo "Demo sign-in: teacher@example.edu / admin@example.edu, password ${DEMO:-password}"

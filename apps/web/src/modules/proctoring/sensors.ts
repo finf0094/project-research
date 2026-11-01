@@ -2,6 +2,7 @@ import type { DeviceTier } from '@exam/contracts'
 import type { Pose } from './calibration'
 import type { FrameReport } from './detectors'
 import type { WorkerRequest, WorkerResponse } from './detector.worker'
+import { createLoudnessMeter } from './loudness'
 
 /** Models are large; on a slow link they may take a while, but a fetch that stalls must not wait forever. */
 const READY_TIMEOUT_MS = 60_000
@@ -13,7 +14,7 @@ export interface Sensors {
   analyze(withObjects: boolean): Promise<FrameReport | null>
   /** Tells the worker to drop the models a lower tier does not use. */
   lower(tier: DeviceTier): void
-  /** Microphone level 0..1 (RMS). */
+  /** Microphone level 0..1 (RMS), steady over the last second (see loudness.ts). */
   loudness(): number
   /** True once the detector worker has died: no frame will be analysed again. */
   dead(): boolean
@@ -78,9 +79,9 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     window.addEventListener('keydown', resume, { once: true })
   }
   const analyser = audio.createAnalyser()
-  analyser.fftSize = 1024
+  analyser.fftSize = 2048 // ~43 ms at 48 kHz: sampled every 50 ms, the samples cover the whole second
   audio.createMediaStreamSource(stream).connect(analyser)
-  const samples = new Float32Array(analyser.fftSize)
+  const meter = createLoudnessMeter(analyser)
 
   return {
     async analyze(withObjects) {
@@ -93,16 +94,12 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
       return report
     },
     lower: (next) => post({ type: 'lower', tier: next }),
-    loudness() {
-      analyser.getFloatTimeDomainData(samples)
-      let sum = 0
-      for (const s of samples) sum += s * s
-      return Math.sqrt(sum / samples.length)
-    },
+    loudness: meter.level,
     dead: () => dead,
     dispose() {
       window.removeEventListener('pointerdown', resume)
       window.removeEventListener('keydown', resume)
+      meter.stop()
       dead = true
       settleAll()
       worker.terminate()

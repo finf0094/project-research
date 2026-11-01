@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {
+  Headphones,
+  VideoOff,
   CameraOff,
   ClipboardPaste,
   EyeOff,
@@ -31,6 +33,8 @@ const ICON: Partial<Record<SignalKind, typeof ScanFace>> = {
   off_center: Focus,
   second_screen: Monitor,
   mic_off: MicOff,
+  headphones: Headphones,
+  virtual_camera: VideoOff,
   paste: ClipboardPaste,
 }
 

@@ -4,7 +4,14 @@ import { AttemptStatus } from './attempts.ts'
 import { AnswerValue, NetState, SignalKind } from './events.ts'
 import { ExamMode, Question, RecordingMode } from './exams.ts'
 
-export const MarkerKind = z.enum([...SignalKind.options, 'chain_broken', 'missing_fragment', 'offline'])
+/** `page_closed`: the exam page was closed or reloaded and opened again (from the log, on the server). */
+export const MarkerKind = z.enum([
+  ...SignalKind.options,
+  'chain_broken',
+  'missing_fragment',
+  'offline',
+  'page_closed',
+])
 export type MarkerKind = z.infer<typeof MarkerKind>
 
 /** `context` markers explain the timeline (e.g. offline periods) and are never violations. */

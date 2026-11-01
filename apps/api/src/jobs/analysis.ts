@@ -22,10 +22,15 @@ export interface MarkerDraft {
 
 /**
  * Signals that describe the environment, not behaviour; they explain the timeline but are never scored.
- * A second screen or a muted microphone is left to the examiner: a monitor connected all exam would
- * otherwise outweigh everything else.
+ * A second screen, a muted microphone or headphones are left to the examiner: a monitor connected all
+ * exam would otherwise outweigh everything else, and headphones may be the student's hearing aid.
  */
-const CONTEXT_SIGNALS: ReadonlySet<SignalKind> = new Set(['too_dark', 'second_screen', 'mic_off'])
+const CONTEXT_SIGNALS: ReadonlySet<SignalKind> = new Set([
+  'too_dark',
+  'second_screen',
+  'mic_off',
+  'headphones',
+])
 
 /** Weight per minute of an open signal; the score only orders the review queue. */
 const WEIGHTS: Partial<Record<MarkerKind, number>> = {
@@ -38,6 +43,8 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   off_center: 10,
   copy: 15,
   object_detected: 30,
+  virtual_camera: 30,
+  page_closed: 15,
   noise: 10,
   chain_broken: 40,
   missing_fragment: 20,
@@ -46,6 +53,9 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
 /** The server's findings that mean something in this kind of exam: in an oral one the student talks throughout. */
 export const findingsFor = (findings: Interval[], mode: ExamMode) =>
   mode === 'oral' ? findings.filter((f) => f.kind !== 'noise') : findings
+
+/** A reopened page counts as closed only past this (a double start of the same page is not a reload). */
+const PAGE_CLOSED_MIN_MS = 2000
 
 /** A control fragment counts as answering a request if it starts within this window after it. */
 const CONTROL_ANSWER_WINDOW_MS = 10 * 60_000
@@ -105,16 +115,28 @@ export function buildMarkers(
     })
 
   const openSignals = new Map<SignalKind, number>()
+  const close = (kind: SignalKind, since: number, at: number) => {
+    add(kind, since, at, CONTEXT_SIGNALS.has(kind) ? 'context' : 'pending')
+    openSignals.delete(kind)
+  }
   let offlineSince: number | null = null
+  let previousAt: number | null = null
   for (const e of events) {
+    if (e.type === 'session.resumed' && previousAt !== null) {
+      // The page was closed or reloaded: from when it was left (the tab hidden, else its last event) until
+      // it came back. The reopened page starts its signals afresh, so the old ones end here.
+      const leftAt = Math.min(openSignals.get('tab_hidden') ?? previousAt, e.clientAt)
+      // Leaving the tab that closed the page is the page_closed marker itself, not a second one.
+      openSignals.delete('tab_hidden')
+      for (const [kind, since] of openSignals) close(kind, since, Math.max(since, leftAt))
+      if (e.clientAt - leftAt >= PAGE_CLOSED_MIN_MS) add('page_closed', leftAt, e.clientAt, 'pending')
+    }
+    previousAt = e.clientAt
     if (e.type === 'proctor.signal') {
       const { kind, active } = e.data as { kind: SignalKind; active: boolean }
       const since = openSignals.get(kind)
       if (active && since === undefined) openSignals.set(kind, e.clientAt)
-      if (!active && since !== undefined) {
-        add(kind, since, e.clientAt, CONTEXT_SIGNALS.has(kind) ? 'context' : 'pending')
-        openSignals.delete(kind)
-      }
+      if (!active && since !== undefined) close(kind, since, e.clientAt)
     }
     if (e.type === 'network.changed') {
       const { to } = e.data as { to: string }

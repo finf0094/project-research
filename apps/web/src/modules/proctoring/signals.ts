@@ -61,14 +61,26 @@ export const DARK_BRIGHTNESS = 45
 export const COVERED_BRIGHTNESS = 15
 /** The page may lose focus this long (the browser's own menus, a permission prompt) before it counts. */
 const BLUR_GRACE_MS = 2000
-/** Microphone RMS above which the room counts as noisy. */
-export const NOISE_RMS = 0.08
+/**
+ * When the room counts as noisy: well above its own quiet level from preflight, so a whisper next to the
+ * student shows in a quiet room, while a humming fan in another does not count. Never above a voice in a
+ * normal room, never so low that breathing counts; without a measured room, a quiet one is assumed.
+ */
+export function noiseThreshold(floor: number | null): number {
+  return Math.min(0.08, Math.max(0.008, (floor ?? 0.004) * 3))
+}
 
 /**
  * Problems of the environment or the device; they never raise the risk (and with the camera off
  * there is nothing to record anyway). The examiner still sees them on the timeline.
  */
-const ENVIRONMENT: ReadonlySet<SignalKind> = new Set(['too_dark', 'camera_off', 'mic_off', 'second_screen'])
+const ENVIRONMENT: ReadonlySet<SignalKind> = new Set([
+  'too_dark',
+  'camera_off',
+  'mic_off',
+  'second_screen',
+  'headphones',
+])
 
 /**
  * How much evidence to collect right now (review section 10.1). Risk never depends on the network.
@@ -96,6 +108,7 @@ export const ANALYSIS_FPS: Record<RiskLevel, number> = { low: 1, medium: 2, high
 export const HINTED: ReadonlySet<SignalKind> = new Set([
   'camera_off',
   'mic_off',
+  'virtual_camera',
   'multiple_faces',
   'face_missing',
   'object_detected',
@@ -105,6 +118,7 @@ export const HINTED: ReadonlySet<SignalKind> = new Set([
   'noise',
   'too_dark',
   'second_screen',
+  'headphones',
 ])
 
 /** Browser signals: leaving the tab and pasting. Returns a function that stops watching. */

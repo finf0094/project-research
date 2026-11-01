@@ -4,6 +4,9 @@ import {
   ClipboardPaste,
   EyeOff,
   FileWarning,
+  Headphones,
+  RefreshCw,
+  VideoOff,
   Copy,
   Focus,
   MicOff,
@@ -36,6 +39,9 @@ export const MARKER_ICON: Record<MarkerKind, typeof ScanFace> = {
   chain_broken: Link2Off,
   missing_fragment: FileWarning,
   offline: WifiOff,
+  headphones: Headphones,
+  virtual_camera: VideoOff,
+  page_closed: RefreshCw,
 }
 
 /** The tile colour follows the examiner's judgement, not the kind: what still needs a look stands out. */

@@ -31,3 +31,29 @@ export function saveBaseline(poses: Pose[]) {
     /* the neutral pose is used */
   }
 }
+
+const NOISE_KEY = 'exam.noiseFloor'
+
+/** The room's quiet level (microphone RMS) measured at preflight; null when it was not measured here. */
+export function savedNoiseFloor(): number | null {
+  try {
+    const value = Number(localStorage.getItem(NOISE_KEY))
+    return localStorage.getItem(NOISE_KEY) !== null && Number.isFinite(value) && value > 0 ? value : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The quietest quarter of the preflight's levels: the student may talk now and then during the check,
+ * the room's own hum is there throughout. Nothing is saved while the browser kept the sound off (all zeros).
+ */
+export function saveNoiseFloor(levels: number[]) {
+  const heard = levels.filter((l) => l > 0)
+  if (heard.length < 4) return
+  try {
+    localStorage.setItem(NOISE_KEY, String(heard.toSorted((a, b) => a - b)[Math.floor(heard.length / 4)]))
+  } catch {
+    /* the default threshold is used */
+  }
+}

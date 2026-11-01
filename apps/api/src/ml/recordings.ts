@@ -71,7 +71,11 @@ export async function analyzeRecordings(
       // An empty entry is a chunk that could not be decoded live: tried again here.
       const cached = known.get(hash)
       const seen = cached?.length ? cached : await observeChunk(models, storage, attemptId, hash, chunkStart)
-      if (seen && seen !== cached) await onObserved(hash, seen)
+      // Keeping it is a convenience: a failed write must not cost the analysis.
+      if (seen && seen !== cached)
+        await onObserved(hash, seen).catch((error: unknown) =>
+          console.error(`could not keep chunk ${hash}`, error),
+        )
       if (seen) {
         observations.push(...seen)
         checked.add(hash)

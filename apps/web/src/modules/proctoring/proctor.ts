@@ -3,13 +3,14 @@ import type { EventLog } from '@/modules/offline'
 import type { Pose } from './calibration'
 import { UNMEASURED, createTierWatch, lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
+import { watchDevices } from './devices'
 import { createHinter } from './hints'
 import { startRecorder, type Recorder } from './recorder'
 import { createSensors } from './sensors'
 import {
   ANALYSIS_FPS,
-  NOISE_RMS,
   createSignalTracker,
+  noiseThreshold,
   objectsEvery,
   observeFrame,
   riskLevel,
@@ -29,6 +30,8 @@ export interface ProctorOptions {
   tier: DeviceTier
   /** Neutral head pose from preflight calibration. */
   baseline: Pose
+  /** The room's quiet level from preflight (null: not measured on this device). */
+  noiseFloor: number | null
   /** Server-time clock of the attempt; signal and fragment times use it. */
   now: () => number
   onHint(kind: SignalKind | null): void
@@ -62,6 +65,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   let tier = options.tier
   const sensors = await createSensors(stream, tier, options.baseline)
   const tracker = createSignalTracker()
+  const noiseLevel = noiseThreshold(options.noiseFloor)
   const active = new Set<SignalKind>()
   let activations: number[] = []
   const hints = createHinter(log, now, options.onHint)
@@ -138,7 +142,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     if (withObjects) lastObjects = now()
     const frame = await sensors.analyze(withObjects)
     if (stopped) return
-    if (options.listen) observe('noise', sensors.loudness() > NOISE_RMS)
+    if (options.listen) observe('noise', sensors.loudness() > noiseLevel)
     if (sensors.dead()) {
       // A dead detector worker sees nothing more, brightness included: recorded as analysing nothing.
       if (!blind) dropTier('none', [...UNMEASURED.none, 'too_dark'])
@@ -180,6 +184,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
 
   const unwatchBrowser = watchBrowser(setSignal)
   const unwatchMicrophone = watchMicrophone(stream, setSignal)
+  const unwatchDevices = watchDevices(stream, setSignal)
   void tick()
 
   return {
@@ -190,6 +195,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       clearTimeout(timer)
       unwatchBrowser()
       unwatchMicrophone()
+      unwatchDevices()
       await recorder.stop()
       if (!discard) await evidence.finish()
       sensors.dispose()

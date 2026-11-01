@@ -20,6 +20,8 @@ const SIGNALS: SignalKind[] = [
   'copy',
   'second_screen',
   'mic_off',
+  'headphones',
+  'virtual_camera',
   'paste',
 ]
 

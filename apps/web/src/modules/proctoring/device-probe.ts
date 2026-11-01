@@ -1,7 +1,8 @@
 import { computed, onScopeDispose, ref, shallowRef } from 'vue'
 import { stopTracks } from '@/shared/lib/media'
-import { saveBaseline, type Pose } from './calibration'
+import { saveBaseline, saveNoiseFloor, type Pose } from './calibration'
 import { isFacing } from './pose'
+import { isVirtualCamera } from './devices'
 import { saveTier, tierFromTiming } from './device-tier'
 import { createSensors, requestCamera, type Sensors } from './sensors'
 import { DARK_BRIGHTNESS, OBJECTS_EVERY_MS } from './signals'
@@ -33,6 +34,7 @@ export function useDeviceProbe() {
   const facing = ref<boolean | null>(null)
   const brightness = ref<number | null>(null)
   const hasMic = ref(false)
+  const virtual = ref(false)
   const faceSteady = ref(false)
   const lightSteady = ref(false)
   let faceStreak = 0
@@ -42,11 +44,14 @@ export function useDeviceProbe() {
   let disposed = false
   const timings: number[] = []
   const poses: Pose[] = []
+  /** The microphone's level each tick: the room's quiet level for the exam's noise threshold. */
+  const levels: number[] = []
 
   const checks = computed(() => {
     const running = state.value === 'running'
     return [
-      { id: 'camera', ok: running, hint: 'camera' },
+      // A virtual camera (OBS, ManyCam…) may show anything: the student picks the real one first.
+      { id: 'camera', ok: running && !virtual.value, hint: virtual.value ? 'cameraVirtual' : 'camera' },
       { id: 'mic', ok: running && hasMic.value, hint: 'mic' },
       { id: 'face', ok: faceSteady.value, hint: faceHint() },
       { id: 'light', ok: lightSteady.value, hint: 'light' },
@@ -67,7 +72,7 @@ export function useDeviceProbe() {
   async function start() {
     const mine = ++run
     release()
-    timings.length = poses.length = 0 // a retry measures this camera position afresh
+    timings.length = poses.length = levels.length = 0 // a retry measures this camera position afresh
     state.value = 'starting'
     denied.value = false
     let media: MediaStream
@@ -82,6 +87,7 @@ export function useDeviceProbe() {
     if (disposed || mine !== run) return stopTracks(media)
     stream.value = media
     hasMic.value = media.getAudioTracks().length > 0
+    virtual.value = isVirtualCamera(media)
     // An unplugged device or a revoked permission ends its track: that check is no longer passed.
     for (const track of media.getVideoTracks()) track.addEventListener('ended', lost)
     for (const track of media.getAudioTracks()) track.addEventListener('ended', micLost)
@@ -133,6 +139,8 @@ export function useDeviceProbe() {
     if (sensors?.dead() && state.value === 'running') return void ((state.value = 'failed'), release())
     if (!frame || disposed || state.value !== 'running') return
     timings.push(frame.ms)
+    levels.push(sensors?.loudness() ?? 0)
+    saveNoiseFloor(levels.slice(-40))
     if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))
     faces.value = frame.faces
     placed.value = frame.inOval

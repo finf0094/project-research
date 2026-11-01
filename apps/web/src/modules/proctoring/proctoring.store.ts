@@ -3,8 +3,9 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import type { EventLog } from '@/modules/offline'
 import { cameraProblem, stopTracks, type CameraProblem } from '@/shared/lib/media'
-import { savedBaseline } from './calibration'
+import { savedBaseline, savedNoiseFloor } from './calibration'
 import { savedTier } from './device-tier'
+import { abortable, silencedOnAbort } from './abortable'
 import { startProctor, type Proctor } from './proctor'
 import { requestCamera } from './sensors'
 
@@ -52,6 +53,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
   /** Whether the chain currently says the camera is off (per attempt), so changes are recorded once. */
   let cameraOff = false
   let lastAutoRestart = -Infinity
+  let stops = 0 // bumped by stop(): a restart queued before it must not open the camera again
 
   const enqueue = (operation: () => Promise<void>) =>
     (lifecycle = lifecycle.then(operation).catch((error) => console.error('proctoring', error)))
@@ -86,6 +88,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
           log: silencedOnAbort(opts.log, abort.signal),
           tier: savedTier(),
           baseline: savedBaseline(),
+          noiseFloor: savedNoiseFloor(),
           onHint: (kind) => (hint.value = kind),
           onRisk: (level) => (risk.value = level),
         }),
@@ -99,17 +102,19 @@ export const useProctoringStore = defineStore('proctoring', () => {
       // A camera that dies mid-exam (unplugged, taken by another app) is recorded and shown at once.
       // A phone may end it for a moment (a call, another app): it is asked for again once by itself.
       for (const track of media.getTracks()) {
-        track.addEventListener('ended', () =>
-          enqueue(async () => {
+        track.addEventListener('ended', () => {
+          const stopsBefore = stops
+          return enqueue(async () => {
             if (running?.proctor !== proctor) return
             await shutdown()
             await cameraLost(opts)
-            if (document.visibilityState === 'visible' && Date.now() - lastAutoRestart > AUTO_RESTART_MS) {
+            const due = Date.now() - lastAutoRestart > AUTO_RESTART_MS && stops === stopsBefore
+            if (due && document.visibilityState === 'visible') {
               lastAutoRestart = Date.now()
               await launch(opts)
             }
-          }),
-        )
+          })
+        })
       }
     } catch (error) {
       console.error('proctoring could not start', error)
@@ -166,36 +171,10 @@ export const useProctoringStore = defineStore('proctoring', () => {
 
   /** Stops recording and saves the last evidence. Resolves after every earlier start/stop has finished. */
   function stop(): Promise<void> {
+    stops++
     launching?.abort()
     return enqueue(shutdown)
   }
 
   return { stream, camera, problem, hint, risk, recording, start, retry, capture, stop }
 })
-
-/** The log as seen by one start: once that start is aborted, its events are dropped. */
-function silencedOnAbort(log: EventLog, signal: AbortSignal): EventLog {
-  return {
-    append: (type, data, onWrite) => (signal.aborted ? Promise.resolve() : log.append(type, data, onWrite)),
-    head: () => log.head(),
-  }
-}
-
-/** Resolves with the value, or with null if aborted first; a value arriving after the abort is cleaned up. */
-function abortable<T>(
-  promise: Promise<T>,
-  signal: AbortSignal,
-  cleanup: (value: T) => void,
-): Promise<T | null> {
-  if (signal.aborted) {
-    void promise.then(cleanup, () => undefined)
-    return Promise.resolve(null)
-  }
-  return new Promise((resolve, reject) => {
-    signal.addEventListener('abort', () => resolve(null), { once: true })
-    promise.then(
-      (value) => (signal.aborted ? cleanup(value) : resolve(value)),
-      (error) => (signal.aborted ? undefined : reject(error)),
-    )
-  })
-}

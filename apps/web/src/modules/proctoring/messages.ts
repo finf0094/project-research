@@ -14,6 +14,8 @@ export const proctoringMessages = defineMessages({
         object_detected: 'Уберите телефон и книги из поля зрения камеры.',
         off_center: 'Вернитесь в центр кадра: лицо должно быть в овале.',
         second_screen: 'Отключите второй монитор на время экзамена.',
+        headphones: 'Снимите наушники: во время экзамена звук должен идти из динамиков.',
+        virtual_camera: 'Выбрана виртуальная камера. Включите настоящую камеру устройства.',
         mic_off: 'Микрофон выключен. Включите его, чтобы продолжить под наблюдением.',
       },
       camera: {
@@ -57,6 +59,8 @@ export const proctoringMessages = defineMessages({
         again: 'Проверить снова',
         hint: {
           camera: 'Разрешите доступ к камере и микрофону в браузере.',
+          cameraVirtual:
+            'Выбрана виртуальная камера (OBS, ManyCam и т. п.). Выберите настоящую камеру в настройках браузера (значок камеры в адресной строке) и нажмите «Проверить снова».',
           mic: 'Разрешите доступ к микрофону: звук нужен для записи.',
           faceMany: 'В кадре должны быть только вы.',
           faceNone: 'Сядьте так, чтобы лицо было в кадре.',
@@ -80,6 +84,8 @@ export const proctoringMessages = defineMessages({
         object_detected: 'Телефон мен кітаптарды камераның көру аймағынан алып тастаңыз.',
         off_center: 'Кадрдың ортасына оралыңыз: бетіңіз сопақтың ішінде болсын.',
         second_screen: 'Емтихан кезінде екінші мониторды ажыратыңыз.',
+        headphones: 'Құлаққапты шешіңіз: емтихан кезінде дыбыс динамиктен шығуы керек.',
+        virtual_camera: 'Виртуалды камера таңдалған. Құрылғының нақты камерасын қосыңыз.',
         mic_off: 'Микрофон өшірулі. Бақылаумен жалғастыру үшін оны қосыңыз.',
       },
       camera: {
@@ -122,6 +128,8 @@ export const proctoringMessages = defineMessages({
         again: 'Қайта тексеру',
         hint: {
           camera: 'Браузерде камера мен микрофонға рұқсат беріңіз.',
+          cameraVirtual:
+            'Виртуалды камера таңдалған (OBS, ManyCam т. б.). Браузер параметрлерінде (мекенжай жолындағы камера белгісі) нақты камераны таңдап, «Қайта тексеру» түймесін басыңыз.',
           mic: 'Микрофонға рұқсат беріңіз: дыбыс жазба үшін қажет.',
           faceMany: 'Кадрда тек сіз болуыңыз керек.',
           faceNone: 'Бетіңіз кадрда болатындай отырыңыз.',
@@ -145,6 +153,8 @@ export const proctoringMessages = defineMessages({
         object_detected: 'Move phones and books out of the camera’s view.',
         off_center: 'Move back to the centre: keep your face in the oval.',
         second_screen: 'Disconnect the second screen for the exam.',
+        headphones: 'Take off your headphones: during the exam, sound should come from the speakers.',
+        virtual_camera: 'A virtual camera is selected. Turn on the real camera of your device.',
         mic_off: 'Your microphone is off. Turn it on to continue under supervision.',
       },
       camera: {
@@ -160,7 +170,7 @@ export const proctoringMessages = defineMessages({
             'The browser blocked access. On iPhone: "aA" in the address bar → Website Settings → Camera and Microphone → Allow. In Chrome: the icon left of the address → Camera and Microphone.',
           busy: 'Another app or tab is using the camera. Close it and press "Turn on the camera".',
           missing: 'No camera or microphone found. Connect them and press "Turn on the camera".',
-          other: 'The camera did not start. Press "Turn on camera" or reload the page.',
+          other: 'The camera did not start. Press "Turn on the camera" or reload the page.',
         },
       },
       stage: {
@@ -187,6 +197,8 @@ export const proctoringMessages = defineMessages({
         again: 'Check again',
         hint: {
           camera: 'Allow camera and microphone access in your browser.',
+          cameraVirtual:
+            'A virtual camera is selected (OBS, ManyCam and the like). Choose your real camera in the browser settings (the camera icon in the address bar) and press "Check again".',
           mic: 'Allow microphone access: sound is part of the recording.',
           faceMany: 'Only you should be in view.',
           faceNone: 'Sit so that your face is in view.',
