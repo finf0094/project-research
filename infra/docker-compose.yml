@@ -14,6 +14,7 @@ x-api-env: &api-env
 services:
   postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: exam
       POSTGRES_PASSWORD: exam
@@ -25,12 +26,14 @@ services:
 
   api:
     build: { context: .., dockerfile: infra/Dockerfile.api }
+    restart: unless-stopped
     environment: *api-env
     volumes: [recordings:/data/recordings]
     depends_on: { postgres: { condition: service_healthy } }
 
   worker:
     build: { context: .., dockerfile: infra/Dockerfile.api }
+    restart: unless-stopped
     command: ['node', 'src/worker.ts']
     # Lets the worker finish the attempt it is analysing on shutdown instead of being killed after 10 s.
     stop_grace_period: 60s
@@ -42,19 +45,25 @@ services:
     build: { context: .., dockerfile: infra/Dockerfile.web }
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    restart: unless-stopped
     ports: ['80:80', '443:443']
+    # Caddy's certificates and account survive rebuilds (certificate authorities limit new ones per week).
+    volumes: [caddy_data:/data]
     depends_on: [api]
 
   # Video calls for oral exams; started only with `--profile oral`.
   livekit:
     image: livekit/livekit-server:v1.9
     profiles: [oral]
+    restart: unless-stopped
     # node-ip: the address browsers send media to (the server's public IP); signalling goes through Caddy.
     command: ['--dev', '--bind', '0.0.0.0', '--node-ip', '${LIVEKIT_NODE_IP:-127.0.0.1}']
     environment:
       LIVEKIT_KEYS: '${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}'
-    ports: ['7880:7880', '7881:7881', '7882:7882/udp']
+    # Signalling only on this machine (browsers reach it through Caddy at /rtc); media from anywhere.
+    ports: ['127.0.0.1:7880:7880', '7881:7881', '7882:7882/udp']
 
 volumes:
   pgdata:
   recordings:
+  caddy_data:

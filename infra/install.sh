@@ -3,7 +3,8 @@
 # Meant for the provider's cloud-init field, or by hand: sudo bash install.sh. Safe to run again (it updates).
 #
 #   SITE_ADDRESS  the site's domain; default <server ip>.sslip.io, a free name that points at this server,
-#                 so Caddy can get an HTTPS certificate (browsers allow the camera only over HTTPS)
+#                 so Caddy can get an HTTPS certificate (browsers allow the camera only over HTTPS).
+#                 Given on a later run, it replaces the one in .env (point the domain at the server first).
 #   BRANCH        which branch to run (default feat/exam-platform)
 set -euo pipefail
 exec > >(tee -a /var/log/exam-install.log) 2>&1
@@ -36,13 +37,23 @@ LIVEKIT_URL=wss://$SITE
 LIVEKIT_API_KEY=exam
 LIVEKIT_API_SECRET=$(openssl rand -hex 32)
 LIVEKIT_NODE_IP=$IP
+DEMO_PASSWORD=$(openssl rand -hex 6)
 EOF
   chmod 600 .env
+elif [ -n "${SITE_ADDRESS:-}" ]; then
+  sed -i "s|^SITE_ADDRESS=.*|SITE_ADDRESS=$SITE_ADDRESS|; s|^LIVEKIT_URL=.*|LIVEKIT_URL=wss://$SITE_ADDRESS|" .env
 fi
 
 docker compose --profile oral up -d --build
-docker compose run --rm api node src/db/migrate.ts
-# Demo accounts once, for trying it out (change their passwords, or skip this, for real exams).
-if [ ! -f .seeded ]; then docker compose run --rm api node scripts/seed.ts && touch .seeded; fi
+# -T and </dev/null: when this script is piped into bash, a container must not read the rest of it as input.
+docker compose run -T --rm api node src/db/migrate.ts </dev/null
+# Demo accounts once, for trying it out, with the random password from .env (not for real exams).
+if [ ! -f .seeded ]; then
+  docker compose run -T --rm -e DEMO_PASSWORD="$(grep ^DEMO_PASSWORD= .env | cut -d= -f2)" api \
+    node scripts/seed.ts </dev/null && touch .seeded
+fi
 
-echo "Ready: https://$(grep ^SITE_ADDRESS= .env | cut -d= -f2)  (keep a copy of $DIR/infra/.env: it holds MASTER_KEY)"
+echo "Ready: https://$(grep ^SITE_ADDRESS= .env | cut -d= -f2)"
+echo "Demo sign-in: teacher@example.edu / admin@example.edu, password $(grep ^DEMO_PASSWORD= .env | cut -d= -f2)"
+echo "Keep a copy of $DIR/infra/.env: it holds MASTER_KEY."
+

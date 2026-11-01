@@ -6,7 +6,8 @@ import { examParticipants, exams, questions, users } from '../src/db/schema.ts'
 import { hashPassword } from '../src/modules/auth/service.ts'
 import { seedDemoClass } from './demo.ts'
 
-const PASSWORD = 'password'
+// A public server sets its own (install.sh makes a random one); locally the easy default.
+const PASSWORD = process.env.DEMO_PASSWORD || 'password'
 const { db, close } = createDb(loadConfig().DATABASE_URL)
 
 const passwordHash = await hashPassword(PASSWORD)
