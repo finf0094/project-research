@@ -22,7 +22,8 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
   const app = Fastify({
     logger,
     bodyLimit: 1024 * 1024,
-    trustProxy: deps.config.TRUST_PROXY,
+    // The nearest TRUST_PROXY hops are our proxies; what a client wrote further back is not believed.
+    trustProxy: (_address: string, hop: number) => hop < deps.config.TRUST_PROXY,
   }).withTypeProvider<ZodTypeProvider>()
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)

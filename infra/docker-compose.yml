@@ -4,7 +4,7 @@ x-api-env: &api-env
   DATABASE_URL: postgres://exam:exam@postgres:5432/exam
   MASTER_KEY: ${MASTER_KEY:?set MASTER_KEY to 32 random bytes in base64}
   STORAGE_DIR: /data/recordings
-  TRUST_PROXY: 'true'
+  TRUST_PROXY: '1' # Caddy
   COOKIE_SECURE: ${COOKIE_SECURE:-true}
   # Oral exams: the public URL browsers use to reach LiveKit, and the key pair it was started with.
   LIVEKIT_URL: ${LIVEKIT_URL:-}

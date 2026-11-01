@@ -7,8 +7,11 @@ const Env = z.object({
   MASTER_KEY: z.base64().refine((v) => Buffer.from(v, 'base64').length === 32, 'MASTER_KEY must be 32 bytes'),
   STORAGE_DIR: z.string().default('./storage'),
   COOKIE_SECURE: z.stringbool().default(true),
-  /** Behind a reverse proxy (Caddy), trust X-Forwarded-For so rate limits apply per client, not per proxy. */
-  TRUST_PROXY: z.stringbool().default(false),
+  /**
+   * How many proxies in front of the API may set the client address (X-Forwarded-For): 1 behind Caddy. A
+   * count, not "trust all", so a client cannot pick its own address and slip past the sign-in limits.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(12),
   /** Events written before the deadline are accepted if they arrive within this window after it. */
   OFFLINE_WINDOW_MIN: z.coerce.number().int().nonnegative().default(15),

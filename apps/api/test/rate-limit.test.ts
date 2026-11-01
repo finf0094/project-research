@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { loginAttempts } from '../src/modules/auth/login-attempts.ts'
 import { PASSWORD, createTestContext, seedExam, type TestContext } from './helpers.ts'
 
 let ctx: TestContext
@@ -19,5 +20,22 @@ describe('sign-in limits', () => {
     // A classmate behind the same address still signs in, and the student from their own device too.
     expect((await login('teacher@test.edu', PASSWORD)).statusCode).toBe(200)
     expect((await login('student@test.edu', PASSWORD, '10.0.0.2')).statusCode).toBe(200)
+  })
+})
+
+describe('sign-in attempts counter', () => {
+  it('counts attempts from their start, clears on success and stays bounded', () => {
+    const clock = { now: 0 }
+    const attempts = loginAttempts(() => clock.now, 3, 60_000, 4)
+    // A burst sent at once: the fourth waits although none has failed yet.
+    expect([1, 2, 3, 4].map(() => attempts.begin('ip', 'A@x'))).toEqual([true, true, true, false])
+    attempts.succeeded('ip', 'a@x')
+    expect(attempts.begin('ip', 'a@x')).toBe(true)
+    clock.now = 61_000
+    for (let i = 0; i < 3; i++) attempts.begin('ip', 'b@x')
+    expect(attempts.begin('ip', 'b@x')).toBe(false)
+    // Many pairs: the oldest are dropped, memory stays bounded.
+    for (let i = 0; i < 100; i++) attempts.begin(`ip${i}`, 'c@x')
+    expect(attempts.begin('ip', 'b@x')).toBe(true)
   })
 })

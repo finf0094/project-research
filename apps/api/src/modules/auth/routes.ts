@@ -2,13 +2,13 @@ import { LoginBody, User } from '@exam/contracts'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type { ModuleOptions } from '../../deps.ts'
 import { HttpError, unauthorized } from '../../shared/errors.ts'
-import { failedLogins } from './failed-logins.ts'
+import { loginAttempts } from './login-attempts.ts'
 import { SESSION_COOKIE, currentUser } from './guard.ts'
 import { login, logout } from './service.ts'
 
 export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { deps }) => {
   const { db, config, now } = deps
-  const failures = failedLogins(now)
+  const attempts = loginAttempts(now)
 
   app.post(
     '/auth/login',
@@ -19,8 +19,7 @@ export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
     },
     async (request, reply) => {
       const { email } = request.body
-      if (failures.blocked(request.ip, email))
-        throw new HttpError(429, 'Too many failed sign-ins, wait a minute')
+      if (!attempts.begin(request.ip, email)) throw new HttpError(429, 'Too many sign-ins, wait a minute')
       const result = await login(
         db,
         request.body.email,
@@ -28,10 +27,8 @@ export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
         config.SESSION_TTL_HOURS,
         now(),
       )
-      if (!result) {
-        failures.record(request.ip, email)
-        throw unauthorized()
-      }
+      if (!result) throw unauthorized()
+      attempts.succeeded(request.ip, email)
       reply.setCookie(SESSION_COOKIE, result.token, {
         httpOnly: true,
         secure: config.COOKIE_SECURE,

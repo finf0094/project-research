@@ -77,14 +77,27 @@ async function claimNext({ db, now }: Deps) {
   })
 }
 
-async function merge({ db, storage }: Deps, attemptId: string): Promise<string | null> {
+/** A long merge renews its claim this often, so no other worker takes it over while it runs. */
+const RENEW_EVERY_MS = 5 * 60_000
+
+async function merge({ db, storage, now }: Deps, attemptId: string): Promise<string | null> {
   const chunks = await chunksInOrder(db, attemptId)
+  let renewedAt = now()
+  const renew = async () => {
+    if (now() - renewedAt < RENEW_EVERY_MS) return
+    renewedAt = now()
+    await db
+      .update(attempts)
+      .set({ audioClaimedAt: new Date(renewedAt) })
+      .where(eq(attempts.id, attemptId))
+  }
   const audio = await encodeOpus(async (append) => {
     let size = 0
     let endsAt: number | null = null // when the sound so far ends, on the recording's clock
     const room = () => Math.max(0, MAX_AUDIO_BYTES - size)
     for (const { hash, start } of chunks) {
       if (!room()) break
+      await renew()
       const chunk = await storage.get(blobKey(attemptId, hash))
       const sound = chunk ? await decodeAudio(chunk) : null
       if (!sound?.length) continue
@@ -96,6 +109,8 @@ async function merge({ db, storage }: Deps, attemptId: string): Promise<string |
       size += piece.length
       endsAt = start + (sound.length / BYTES_PER_SECOND) * 1000
     }
+    renewedAt = 0 // the encode (bounded well below the lease) starts on a fresh claim
+    await renew()
   })
   if (!audio) return null
   const hash = createHash('sha256').update(audio).digest('hex')
