@@ -44,35 +44,31 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     pending.clear()
   }
   let markReady = () => {}
-  let timeout: ReturnType<typeof setTimeout> | undefined
-  const ready = new Promise<void>((resolve, reject) => {
-    markReady = resolve
-    timeout = setTimeout(() => reject(new Error('detectors did not load in time')), READY_TIMEOUT_MS)
-  })
+  const ready = new Promise<void>((resolve) => (markReady = resolve))
   worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
     if (data.type === 'ready') return markReady()
     pending.get(data.id)?.(data.report)
     pending.delete(data.id)
   }
-  // A worker that cannot load (e.g. a stale chunk after a deploy) analyses nothing; the exam goes on with
-  // signals that read "not measured" instead of waiting forever.
-  worker.onerror = (event) => {
-    console.error('detector worker failed', event.message)
+  // A worker that cannot load (e.g. a stale chunk after a deploy) or loads too slowly (a phone on a weak
+  // network) analyses nothing; the exam goes on, still recorded, with signals that read "not measured".
+  const giveUp = () => {
     dead = true
     settleAll()
     markReady()
   }
-  post({ type: 'init', tier })
-  // A stall becomes an error, which callers already treat as "analysis could not start".
-  try {
-    await ready
-  } catch (error) {
-    worker.terminate()
-    video.srcObject = null
-    throw error
-  } finally {
-    clearTimeout(timeout)
+  worker.onerror = (event) => {
+    console.error('detector worker failed', event.message)
+    giveUp()
   }
+  const timeout = setTimeout(() => {
+    console.error('detectors did not load in time; analysing nothing on this device')
+    worker.terminate()
+    giveUp()
+  }, READY_TIMEOUT_MS)
+  post({ type: 'init', tier })
+  await ready
+  clearTimeout(timeout)
 
   const audio = new AudioContext()
   // Without a user gesture (e.g. after a reload) the context starts suspended and hears nothing.

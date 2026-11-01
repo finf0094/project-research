@@ -6,9 +6,18 @@
 		}
 	}
 
-	# The last deployment's result (infra/install.sh writes it): ok, in progress, or failed with the log's end.
-	handle /deploy-status.txt {
+	# The last deployment's result (infra/install.sh writes it): ok, in progress, or failed with the log's end;
+	# and the history of deployments with the changes each one brought.
+	@deploy path /deploy-status.txt /deploy-history.txt
+	handle @deploy {
 		root * /status
+		header Cache-Control "no-store"
+		file_server
+	}
+	# The same, readable: a page that reads the file above and shows it in Almaty time.
+	handle /deploy {
+		root * /status-page
+		rewrite * /index.html
 		file_server
 	}
 

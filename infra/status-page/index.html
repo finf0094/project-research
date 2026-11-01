@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Статус обновления</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: light-dark(#f2f3f8, #0f1020);
+        --card: light-dark(#ffffff, #1b1c33);
+        --text: light-dark(#14152b, #f1f2fa);
+        --muted: light-dark(#5d6079, #a4a7c4);
+        --ok: light-dark(#1f7a4d, #7be3a8);
+        --ok-tint: light-dark(#e3f5ea, #163528);
+        --busy: light-dark(#3d43d8, #9ea3ff);
+        --busy-tint: light-dark(#e6e7fd, #23264d);
+        --bad: light-dark(#b42318, #ff9b8f);
+        --bad-tint: light-dark(#fde7e4, #3d1d1b);
+        --code: light-dark(#f4f5fa, #121326);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px 16px;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+      }
+      main {
+        display: grid;
+        gap: 16px;
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .card {
+        padding: 20px;
+        border-radius: 20px;
+        background: var(--card);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+      }
+      .state {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .badge {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        font-size: 28px;
+        font-weight: 700;
+      }
+      .ok .badge {
+        background: var(--ok-tint);
+        color: var(--ok);
+      }
+      .busy .badge {
+        background: var(--busy-tint);
+        color: var(--busy);
+      }
+      .bad .badge {
+        background: var(--bad-tint);
+        color: var(--bad);
+      }
+      .busy .badge span {
+        animation: spin 1.2s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+      }
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 8px 16px;
+        margin: 0;
+      }
+      dt {
+        color: var(--muted);
+      }
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      pre {
+        max-height: 50vh;
+        margin: 0;
+        overflow: auto;
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--code);
+        font-size: 12px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .foot {
+        color: var(--muted);
+        font-size: 14px;
+        text-align: center;
+      }
+      a {
+        color: var(--busy);
+      }
+      h2 {
+        margin: 8px 0 0;
+        font-size: 18px;
+      }
+      .deploy {
+        padding: 0;
+        overflow: hidden;
+      }
+      .deploy > summary {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 16px 20px;
+        cursor: pointer;
+        list-style: none;
+      }
+      .deploy > summary::-webkit-details-marker {
+        display: none;
+      }
+      .deploy > summary::after {
+        content: '›';
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 22px;
+        transition: transform 0.15s;
+      }
+      .deploy[open] > summary::after {
+        transform: rotate(90deg);
+      }
+      .dot {
+        flex: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--ok);
+      }
+      .deploy.bad .dot {
+        background: var(--bad);
+      }
+      .when {
+        font-weight: 700;
+      }
+      .count {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .changes {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0 20px 20px;
+        list-style: none;
+      }
+      .change {
+        display: grid;
+        gap: 4px;
+        padding-top: 12px;
+        border-top: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
+      }
+      .tag {
+        justify-self: start;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .tag.feat {
+        background: var(--busy-tint);
+        color: var(--busy);
+      }
+      .tag.fix {
+        background: var(--ok-tint);
+        color: var(--ok);
+      }
+      .tag.other {
+        background: var(--code);
+        color: var(--muted);
+      }
+      .change ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .change details summary {
+        color: var(--busy);
+        font-size: 14px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Обновление сервера</h1>
+      <section id="state" class="card state busy" aria-live="polite">
+        <div class="badge"><span id="icon">↻</span></div>
+        <div>
+          <p class="title" id="title">Загружаем статус…</p>
+          <p class="sub" id="sub"></p>
+        </div>
+      </section>
+      <section class="card">
+        <dl>
+          <dt>Изменение</dt>
+          <dd id="subject">—</dd>
+          <dt>Версия</dt>
+          <dd><code id="commit">—</code></dd>
+          <dt id="when-label">Время</dt>
+          <dd id="when">—</dd>
+        </dl>
+      </section>
+      <section id="log-card" class="card" hidden>
+        <p class="title" style="font-size: 16px; margin-bottom: 8px">Конец журнала</p>
+        <pre id="log"></pre>
+      </section>
+      <h2>История обновлений</h2>
+      <div id="history"><p class="sub">Загружаем…</p></div>
+      <p class="foot">
+        Время — Алматы. Страница обновляется сама каждые 10 секунд.
+        <a href="/">Открыть сайт</a>
+      </p>
+    </main>
+    <script>
+      const TZ = 'Asia/Almaty'
+      const full = new Intl.DateTimeFormat('ru-RU', {
+        timeZone: TZ,
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+      const $ = (id) => document.getElementById(id)
+
+      function ago(ms) {
+        const s = Math.max(0, Math.round((Date.now() - ms) / 1000))
+        if (s < 60) return 'только что'
+        const m = Math.round(s / 60)
+        if (m < 60) return `${m} мин назад`
+        const h = Math.floor(m / 60)
+        if (h < 24) return `${h} ч ${m % 60} мин назад`
+        return `${Math.floor(h / 24)} дн назад`
+      }
+
+      const LOOK = {
+        ok: { cls: 'ok', icon: '✓', title: 'Новая версия работает', label: 'Обновлено' },
+        deploying: { cls: 'busy', icon: '↻', title: 'Идёт обновление…', label: 'Началось' },
+        FAILED: { cls: 'bad', icon: '!', title: 'Обновление не удалось', label: 'Ошибка в' },
+      }
+
+      async function load() {
+        let text
+        try {
+          const res = await fetch('/deploy-status.txt', { cache: 'no-store' })
+          if (!res.ok) throw new Error(res.status)
+          text = await res.text()
+        } catch {
+          $('title').textContent = 'Сервер не отвечает'
+          $('sub').textContent = 'Возможно, он сейчас перезапускается. Попробуем снова.'
+          $('state').className = 'card state bad'
+          $('icon').textContent = '!'
+          return
+        }
+        const lines = text.trimEnd().split('\n')
+        const head = /^(ok|deploying|FAILED) (\S+) (?:at|since) (\S+?)(?:,|$)/.exec(lines[0] ?? '')
+        const look = LOOK[head?.[1]] ?? LOOK.deploying
+        const at = head ? Date.parse(head[3]) : NaN
+        const rest = lines.slice(1)
+        const subject = rest[0]?.startsWith('commit: ') ? rest.shift().slice(8) : '—'
+
+        $('state').className = `card state ${look.cls}`
+        $('icon').textContent = look.icon
+        $('title').textContent = look.title
+        $('sub').textContent = Number.isFinite(at) ? ago(at) : ''
+        $('subject').textContent = subject.replace(/^\w+(\([^)]*\))?!?:\s*/, '')
+        $('commit').textContent = head?.[2] ?? '—'
+        $('when-label').textContent = look.label
+        $('when').textContent = Number.isFinite(at) ? full.format(at) : '—'
+        const failed = head?.[1] === 'FAILED'
+        $('log-card').hidden = !failed || !rest.length
+        $('log').textContent = failed ? rest.join('\n') : ''
+        document.title = `${look.icon} ${look.title}`
+      }
+
+      const day = new Intl.DateTimeFormat('ru-RU', {
+        timeZone: TZ,
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      const KIND = {
+        feat: ['feat', 'Новое'],
+        fix: ['fix', 'Исправление'],
+        perf: ['fix', 'Ускорение'],
+        refactor: ['other', 'Улучшение кода'],
+        docs: ['other', 'Описание'],
+        test: ['other', 'Тесты'],
+        chore: ['other', 'Служебное'],
+        wip: ['other', 'Промежуточное'],
+      }
+      const changes = (n) =>
+        n % 10 === 1 && n % 100 !== 11
+          ? `${n} изменение`
+          : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)
+            ? `${n} изменения`
+            : `${n} изменений`
+      const el = (tag, props = {}, ...children) => {
+        const node = Object.assign(document.createElement(tag), props)
+        node.append(...children.filter((c) => c !== null && c !== undefined))
+        return node
+      }
+
+      /** deploy\t<at>\t<ok|FAILED>\t<sha>, then commit\t<sha>\t<at>\t<subject>\t<points joined by \x1f>. */
+      function parseHistory(text) {
+        const deploys = []
+        for (const line of text.split('\n')) {
+          const f = line.split('\t')
+          if (f[0] === 'deploy')
+            deploys.push({ at: Date.parse(f[1]), ok: f[2] === 'ok', sha: f[3], commits: [] })
+          else if (f[0] === 'commit' && deploys.length)
+            deploys.at(-1).commits.push({
+              sha: f[1],
+              subject: f[3] ?? '',
+              points: (f[4] ?? '').split('\x1f').filter(Boolean),
+            })
+        }
+        return deploys.reverse()
+      }
+
+      function renderChange(c) {
+        const m = /^(\w+)(?:\([^)]*\))?!?:\s*(.*)$/.exec(c.subject)
+        const [cls, label] = KIND[m?.[1]] ?? ['other', 'Изменение']
+        const text = m ? m[2] : c.subject
+        const more = c.points.length
+          ? el(
+              'details',
+              {},
+              el('summary', { textContent: 'Подробнее' }),
+              el('ul', {}, ...c.points.map((p) => el('li', { textContent: p }))),
+            )
+          : null
+        return el(
+          'li',
+          { className: 'change' },
+          el('span', { className: `tag ${cls}`, textContent: label }),
+          el('span', { textContent: text.charAt(0).toUpperCase() + text.slice(1) }),
+          more,
+        )
+      }
+
+      async function loadHistory() {
+        const box = $('history')
+        const res = await fetch('/deploy-history.txt', { cache: 'no-store' }).catch(() => null)
+        if (!res?.ok) {
+          box.replaceChildren(
+            el('p', { className: 'sub', textContent: 'История появится после следующего обновления.' }),
+          )
+          return
+        }
+        const opened = new Set([...box.querySelectorAll('details.deploy[open]')].map((d) => d.dataset.key))
+        const deploys = parseHistory(await res.text())
+        box.replaceChildren(
+          ...deploys.map((d, i) => {
+            const key = `${d.sha}@${d.at}`
+            const card = el(
+              'details',
+              {
+                className: `card deploy ${d.ok ? 'ok' : 'bad'}`,
+                open: opened.size ? opened.has(key) : i === 0,
+              },
+              el(
+                'summary',
+                {},
+                el('span', { className: 'dot' }),
+                el(
+                  'span',
+                  {},
+                  el('span', { className: 'when', textContent: day.format(d.at) }),
+                  el('br'),
+                  el('span', {
+                    className: 'count',
+                    textContent: `${d.ok ? 'Установлено' : 'Не удалось'} · ${d.commits.length ? changes(d.commits.length) : 'без новых изменений'}`,
+                  }),
+                ),
+              ),
+              d.commits.length ? el('ul', { className: 'changes' }, ...d.commits.map(renderChange)) : null,
+            )
+            card.dataset.key = key
+            return card
+          }),
+        )
+        if (!deploys.length) box.replaceChildren(el('p', { className: 'sub', textContent: 'Пока пусто.' }))
+      }
+
+      const refresh = () => (load(), loadHistory())
+      refresh()
+      setInterval(refresh, 10_000)
+    </script>
+  </body>
+</html>

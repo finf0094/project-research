@@ -22,7 +22,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         navigateFallback: '/index.html',
         // The API and the server's deploy status are the server's, never the app shell.
-        navigateFallbackDenylist: [/^\/api\//, /^\/deploy-status\.txt$/],
+        navigateFallbackDenylist: [/^\/api\//, /^\/deploy(-status\.txt|-history\.txt)?$/],
       },
     }),
   ],

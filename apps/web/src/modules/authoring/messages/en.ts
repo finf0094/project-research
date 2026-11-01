@@ -79,6 +79,9 @@ export const en: typeof ru = {
       none: 'Add participants first.',
       count: 'not watched: {n}',
       for: 'Signals not watched for {email}',
+      add: 'Set up for a student',
+      pick: 'Choose a student',
+      empty: 'No special arrangements yet: every signal is watched for everyone.',
     },
     participants: {
       title: 'Participants',

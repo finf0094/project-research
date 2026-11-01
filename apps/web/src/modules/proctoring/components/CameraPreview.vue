@@ -28,7 +28,7 @@ watchEffect(() => {
       </template>
       <template v-else-if="proctoring.camera === 'blocked'">
         <p class="title">{{ $t('proctoring.camera.off') }}</p>
-        <p class="muted">{{ $t('proctoring.camera.allow') }}</p>
+        <p class="muted">{{ $t(`proctoring.camera.why.${proctoring.problem ?? 'other'}`) }}</p>
         <AppButton variant="ink" @click="proctoring.retry">{{ $t('proctoring.camera.enable') }}</AppButton>
       </template>
       <p v-else class="muted">{{ $t('proctoring.camera.starting') }}</p>

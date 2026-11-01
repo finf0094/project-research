@@ -48,9 +48,28 @@ cd "$DIR/infra"
 # login to the server. On a failure, the end of the log (passwords left out).
 mkdir -p status
 COMMIT=$(git rev-parse --short HEAD)
-echo "deploying $COMMIT since $(date -u +%FT%TZ)" >status/deploy-status.txt
+# The second line names the change, for the status page (https://<site>/deploy).
+SUBJECT="commit: $(git log -1 --format=%s | head -c 200)"
+printf '%s\n%s\n' "deploying $COMMIT since $(date -u +%FT%TZ)" "$SUBJECT" >status/deploy-status.txt
+# The history for the status page: one line per deployment, then one per change it brought (since the last
+# working one): its subject and the "- " points of its message, joined by \x1f. The newest 600 lines are kept.
+record() {
+  local history=status/deploy-history.txt since range
+  since=$(awk -F'\t' '$1 == "deploy" && $3 == "ok" { sha = $4 } END { print sha }' "$history" 2>/dev/null || true)
+  range="-n 20 HEAD"
+  if [ -n "$since" ] && git merge-base --is-ancestor "$since" HEAD 2>/dev/null; then range="$since..HEAD"; fi
+  {
+    printf 'deploy\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$1" "$COMMIT"
+    # shellcheck disable=SC2086 # the range is two words on purpose when there is no last deployment
+    git log --format=%h $range | while read -r sha; do
+      points=$(git log -1 --format=%b "$sha" | awk '/^- /{if(p)print p; p=substr($0,3); next} /^  +[^ ]/{if(p){sub(/^ +/,"");p=p" "$0}; next} {if(p)print p; p=""} END{if(p)print p}' | tr '\n' '\037')
+      printf 'commit\t%s\t%s\t%s\t%s\n' "$sha" "$(git log -1 --format=%cI "$sha")" "$(git log -1 --format=%s "$sha")" "$points"
+    done
+  } >>"$history"
+  tail -n 600 "$history" >"$history.tmp" && mv "$history.tmp" "$history"
+}
 # (The log is written through tee: a moment lets its last lines land before they are read.)
-trap 'code=$?; [ $code -eq 0 ] || { sleep 1; echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; tail -n 40 $LOG | grep -iv password; } >status/deploy-status.txt' EXIT
+trap 'code=$?; [ $code -eq 0 ] || { { sleep 1; echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; echo "$SUBJECT"; tail -n 40 $LOG | grep -iv password; } >status/deploy-status.txt; record FAILED; }' EXIT
 
 # Updates by themselves: the owner asked for every push to the branch to reach this server (infra/update.sh).
 cat >/etc/systemd/system/exam-update.service <<EOF
@@ -100,7 +119,8 @@ if [ ! -f .seeded ]; then
   touch .seeded # reached only when the seed succeeded (set -e)
 fi
 
-echo "ok $COMMIT at $(date -u +%FT%TZ)" >status/deploy-status.txt
+printf '%s\n%s\n' "ok $COMMIT at $(date -u +%FT%TZ)" "$SUBJECT" >status/deploy-status.txt
+record ok
 echo "Ready: https://$(grep ^SITE_ADDRESS= .env | cut -d= -f2)"
 DEMO=$(grep ^DEMO_PASSWORD= .env | cut -d= -f2 || true)
 echo "Demo sign-in: teacher@example.edu / admin@example.edu, password ${DEMO:-password}"

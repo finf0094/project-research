@@ -1,5 +1,5 @@
 import { onScopeDispose, ref } from 'vue'
-import { stopTracks } from '@/shared/lib/media'
+import { cameraProblem, stopTracks, type CameraProblem } from '@/shared/lib/media'
 
 /**
  * The examiner's own camera and microphone for the call. A dead or missing one is asked for again, and
@@ -7,6 +7,7 @@ import { stopTracks } from '@/shared/lib/media'
  */
 export function useOwnCamera() {
   const missing = ref(false)
+  const problem = ref<CameraProblem>('other')
   let stream: MediaStream | null = null
   let disposed = false
 
@@ -20,7 +21,9 @@ export function useOwnCamera() {
       }
       stream = media
       missing.value = false
-    } catch {
+    } catch (error) {
+      console.error('own camera', error)
+      problem.value = cameraProblem(error)
       missing.value = true
     }
     return stream
@@ -35,5 +38,5 @@ export function useOwnCamera() {
     disposed = true
     stop()
   })
-  return { missing, ensure, stop }
+  return { missing, problem, ensure, stop }
 }

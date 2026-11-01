@@ -19,9 +19,12 @@ const ending = ref(false)
 
 const running = computed(() => detail.value?.summary.status === 'active')
 
-async function join() {
+async function turnOnCamera() {
   local.value = await camera.ensure()
   call.setLocal(local.value)
+}
+async function join() {
+  await turnOnCamera()
   await call.join(() => examinerRoomAccess(attemptId))
 }
 
@@ -64,7 +67,11 @@ function end() {
       <h1>{{ detail?.summary.student.name ?? $t('review.room.title') }}</h1>
     </header>
     <p v-if="action.error.value" class="error" role="alert">{{ $t(action.error.value) }}</p>
-    <p v-if="camera.missing.value" class="error" role="alert">{{ $t('review.room.noCamera') }}</p>
+    <div v-if="camera.missing.value" class="camera-off" role="alert">
+      <p class="error">{{ $t('review.room.noCamera') }}</p>
+      <p class="muted">{{ $t(`proctoring.camera.why.${camera.problem.value}`) }}</p>
+      <AppButton variant="secondary" @click="turnOnCamera">{{ $t('proctoring.camera.enable') }}</AppButton>
+    </div>
     <div class="layout">
       <RoomVideo
         v-if="running"
@@ -146,6 +153,14 @@ function end() {
 }
 .error {
   color: var(--danger);
+}
+.camera-off {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  p {
+    margin: 0;
+  }
 }
 @media (width < 1000px) {
   .layout {

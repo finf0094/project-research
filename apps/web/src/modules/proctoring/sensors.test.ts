@@ -73,13 +73,13 @@ describe('createSensors', () => {
     expect(await (await sensors).analyze(true)).toBeNull()
   })
 
-  it('fails instead of waiting forever when the models do not load', async () => {
+  it('goes on without analysis instead of waiting forever when the models do not load', async () => {
     vi.useFakeTimers()
     try {
       const sensors = createSensors(stream, 'full', baseline)
-      const failed = expect(sensors).rejects.toThrow()
       await vi.advanceTimersByTimeAsync(60_000)
-      await failed
+      const started = await sensors
+      expect(started.dead()).toBe(true)
       expect(FakeWorker.last.terminated).toBe(true)
     } finally {
       vi.useRealTimers()

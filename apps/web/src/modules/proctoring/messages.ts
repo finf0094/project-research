@@ -24,6 +24,13 @@ export const proctoringMessages = defineMessages({
         enable: 'Включить камеру',
         recordedFull: 'Экзамен записывается полностью',
         recordedLocally: 'Запись хранится на устройстве',
+        why: {
+          denied:
+            'Браузер запретил доступ. На iPhone: «аА» в адресной строке → «Настройки веб-сайта» → Камера и Микрофон → «Разрешить». В Chrome: значок слева от адреса → Камера и Микрофон.',
+          busy: 'Камера занята другим приложением или вкладкой. Закройте их и нажмите «Включить камеру».',
+          missing: 'Камера или микрофон не найдены. Подключите их и нажмите «Включить камеру».',
+          other: 'Камера не запустилась. Нажмите «Включить камеру» или обновите страницу.',
+        },
       },
       stage: {
         good: 'Вас хорошо видно',
@@ -83,6 +90,13 @@ export const proctoringMessages = defineMessages({
         enable: 'Камераны қосу',
         recordedFull: 'Емтихан толығымен жазылады',
         recordedLocally: 'Жазба құрылғыда сақталады',
+        why: {
+          denied:
+            'Браузер рұқсат бермеді. iPhone-да: мекенжай жолындағы «аА» → «Веб-сайт параметрлері» → Камера мен Микрофон → «Рұқсат ету». Chrome-да: мекенжайдың сол жағындағы белгі → Камера мен Микрофон.',
+          busy: 'Камераны басқа қолданба немесе қойынды пайдаланып тұр. Оларды жауып, «Камераны қосу» түймесін басыңыз.',
+          missing: 'Камера немесе микрофон табылмады. Оларды қосып, «Камераны қосу» түймесін басыңыз.',
+          other: 'Камера іске қосылмады. «Камераны қосу» түймесін басыңыз немесе бетті жаңартыңыз.',
+        },
       },
       stage: {
         good: 'Сіз жақсы көрінесіз',
@@ -141,6 +155,13 @@ export const proctoringMessages = defineMessages({
         enable: 'Turn on the camera',
         recordedFull: 'The whole exam is recorded',
         recordedLocally: 'The recording stays on your device',
+        why: {
+          denied:
+            'The browser blocked access. On iPhone: "aA" in the address bar → Website Settings → Camera and Microphone → Allow. In Chrome: the icon left of the address → Camera and Microphone.',
+          busy: 'Another app or tab is using the camera. Close it and press "Turn on the camera".',
+          missing: 'No camera or microphone found. Connect them and press "Turn on the camera".',
+          other: 'The camera did not start. Press "Turn on camera" or reload the page.',
+        },
       },
       stage: {
         good: 'You are clearly visible',

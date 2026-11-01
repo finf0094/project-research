@@ -90,7 +90,7 @@ describe('proctoring store lifecycle', () => {
     expect(store.camera).toBe('on')
   })
 
-  it('records a lost camera once, and its return', async () => {
+  it('records a lost camera once, asks for it again by itself, and records its return', async () => {
     const store = useProctoringStore()
     const { log, appended } = fakeLog()
     const started = store.start({
@@ -106,17 +106,17 @@ describe('proctoring store lifecycle', () => {
     camera.requests[0]!.resolve(media)
     await started
     track.dispatchEvent(new Event('ended'))
-    await vi.waitFor(() => expect(store.camera).toBe('blocked'))
+    await vi.waitFor(() => expect(camera.requests).toHaveLength(2))
     expect(appended).toEqual([{ kind: 'camera_off', active: true }])
 
-    const retried = store.retry()
-    await vi.waitFor(() => expect(camera.requests).toHaveLength(2))
     camera.requests[1]!.resolve(fakeMedia().media)
-    await retried
-    expect(appended).toEqual([
-      { kind: 'camera_off', active: true },
-      { kind: 'camera_off', active: false },
-    ])
+    await vi.waitFor(() => expect(store.camera).toBe('on'))
+    await vi.waitFor(() =>
+      expect(appended).toEqual([
+        { kind: 'camera_off', active: true },
+        { kind: 'camera_off', active: false },
+      ]),
+    )
   })
 
   it('releases the camera when proctoring fails to start, so a retry does not open a second one', async () => {

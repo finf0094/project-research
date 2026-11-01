@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { SignalKind } from '@exam/contracts'
+import { computed, ref } from 'vue'
+import { AppButton } from '@/shared/ui'
 import type { useExceptions } from '../use-exceptions'
 
 /**
  * Section 25.3, individual exceptions: for a student with special needs, signals that are not watched (the
  * device raises no hint, the server sets no marker). Saved as soon as a box is ticked.
  */
-defineProps<{ participants: string[]; exceptions: ReturnType<typeof useExceptions> }>()
+const props = defineProps<{ participants: string[]; exceptions: ReturnType<typeof useExceptions> }>()
 const SIGNALS: SignalKind[] = [
   'face_missing',
   'looking_away',
@@ -20,6 +22,18 @@ const SIGNALS: SignalKind[] = [
   'mic_off',
   'paste',
 ]
+
+// Only students given arrangements are listed (plus one just picked): everyone else is watched in full.
+const added = ref<string[]>([])
+const listed = computed(() =>
+  props.participants.filter((e) => added.value.includes(e) || props.exceptions.disabledFor(e).length),
+)
+const others = computed(() => props.participants.filter((e) => !listed.value.includes(e)))
+const pick = ref('')
+function add() {
+  if (pick.value) added.value = [...added.value, pick.value]
+  pick.value = ''
+}
 </script>
 
 <template>
@@ -27,7 +41,8 @@ const SIGNALS: SignalKind[] = [
     <h3>{{ $t('authoring.exceptions.title') }}</h3>
     <p class="muted">{{ $t('authoring.exceptions.hint') }}</p>
     <p v-if="!participants.length" class="muted">{{ $t('authoring.exceptions.none') }}</p>
-    <details v-for="email in participants" :key="email" class="student">
+    <p v-else-if="!listed.length" class="muted">{{ $t('authoring.exceptions.empty') }}</p>
+    <details v-for="email in listed" :key="email" class="student" :open="added.includes(email)">
       <summary>
         {{ email }}
         <span v-if="exceptions.disabledFor(email).length" class="count">{{
@@ -49,6 +64,15 @@ const SIGNALS: SignalKind[] = [
         {{ $t(exceptions.failed.value.get(email)!) }}
       </p>
     </details>
+    <div v-if="others.length" class="add">
+      <select v-model="pick" :aria-label="$t('authoring.exceptions.pick')">
+        <option value="" disabled>{{ $t('authoring.exceptions.pick') }}</option>
+        <option v-for="email in others" :key="email" :value="email">{{ email }}</option>
+      </select>
+      <AppButton variant="secondary" :disabled="!pick" @click="add">{{
+        $t('authoring.exceptions.add')
+      }}</AppButton>
+    </div>
   </section>
 </template>
 
@@ -101,5 +125,13 @@ fieldset {
 }
 .error {
   color: var(--danger);
+}
+.add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  select {
+    flex: 1 1 220px;
+  }
 }
 </style>

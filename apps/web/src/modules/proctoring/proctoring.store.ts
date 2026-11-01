@@ -2,13 +2,15 @@ import type { RecordingMode, RiskLevel, SignalKind } from '@exam/contracts'
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import type { EventLog } from '@/modules/offline'
-import { stopTracks } from '@/shared/lib/media'
+import { cameraProblem, stopTracks, type CameraProblem } from '@/shared/lib/media'
 import { savedBaseline } from './calibration'
 import { savedTier } from './device-tier'
 import { startProctor, type Proctor } from './proctor'
 import { requestCamera } from './sensors'
 
 export type CameraState = 'off' | 'starting' | 'on' | 'blocked'
+/** A camera ended by the system is asked for again by itself at most this often (no loop on a broken one). */
+const AUTO_RESTART_MS = 30_000
 
 export interface StartOptions {
   attemptId: string
@@ -37,6 +39,8 @@ interface Running {
 export const useProctoringStore = defineStore('proctoring', () => {
   const stream = shallowRef<MediaStream | null>(null)
   const camera = ref<CameraState>('off')
+  /** Why the camera is off, for the advice next to "Turn on the camera". */
+  const problem = ref<CameraProblem | null>(null)
   const hint = ref<SignalKind | null>(null)
   const risk = ref<RiskLevel>('low')
   const recording = ref<RecordingMode>('adaptive')
@@ -47,6 +51,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
   let options: StartOptions | null = null
   /** Whether the chain currently says the camera is off (per attempt), so changes are recorded once. */
   let cameraOff = false
+  let lastAutoRestart = -Infinity
 
   const enqueue = (operation: () => Promise<void>) =>
     (lifecycle = lifecycle.then(operation).catch((error) => console.error('proctoring', error)))
@@ -66,6 +71,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
     const abort = new AbortController()
     launching = abort
     camera.value = 'starting'
+    problem.value = null
     let media: MediaStream | null = null
     try {
       media = await abortable(requestCamera(), abort.signal, (m) => stopTracks(m))
@@ -91,17 +97,23 @@ export const useProctoringStore = defineStore('proctoring', () => {
       running = { attemptId: opts.attemptId, proctor, media }
       if (cameraOff) await recordCamera(opts, false)
       // A camera that dies mid-exam (unplugged, taken by another app) is recorded and shown at once.
+      // A phone may end it for a moment (a call, another app): it is asked for again once by itself.
       for (const track of media.getTracks()) {
         track.addEventListener('ended', () =>
           enqueue(async () => {
             if (running?.proctor !== proctor) return
             await shutdown()
             await cameraLost(opts)
+            if (document.visibilityState === 'visible' && Date.now() - lastAutoRestart > AUTO_RESTART_MS) {
+              lastAutoRestart = Date.now()
+              await launch(opts)
+            }
           }),
         )
       }
     } catch (error) {
       console.error('proctoring could not start', error)
+      problem.value = cameraProblem(error)
       // Whatever was acquired is released, so the camera light goes off and a retry does not open a second one.
       if (running?.media !== media) release(media)
       if (!abort.signal.aborted) await cameraLost(opts)
@@ -158,7 +170,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
     return enqueue(shutdown)
   }
 
-  return { stream, camera, hint, risk, recording, start, retry, capture, stop }
+  return { stream, camera, problem, hint, risk, recording, start, retry, capture, stop }
 })
 
 /** The log as seen by one start: once that start is aborted, its events are dropped. */
