@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, useId, watch } from 'vue'
+import { useSheetDrag } from '@/shared/lib/sheet-drag'
 
 const props = defineProps<{ open: boolean; title: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -14,6 +15,9 @@ function sync(open: boolean) {
 // Mounted already open (a message waiting when the page appears): the element exists only from here.
 onMounted(() => sync(props.open))
 watch(() => props.open, sync, { flush: 'post' })
+
+// On phones it is a bottom sheet: dragging it down closes it.
+useSheetDrag(dialog, () => dialog.value?.close())
 
 // A tap on the dimmed backdrop dismisses it, as a sheet does (the dialog's own padding is not the backdrop).
 function onClick(event: MouseEvent) {
