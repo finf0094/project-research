@@ -11,7 +11,8 @@
     "seed": "node --env-file=.env scripts/seed.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "models": "node scripts/fetch-models.ts"
+    "models": "node scripts/fetch-models.ts",
+    "hub": "node --env-file=.env src/hub/main.ts"
   },
   "dependencies": {
     "@exam/contracts": "workspace:*",

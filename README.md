@@ -145,6 +145,13 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   people who ask for reduced motion.
 - Runtime: Node.js 22.18+ (type stripping) instead of 24; no reka-ui (native `<dialog>` and inputs suffice).
 
-**Beyond this version**
+**Section 25 (directions for development), in a first version**
 
-- The room hub for classrooms (section 25.1, "directions for development").
+- 25.1 Classroom hub: `pnpm --filter @exam/api hub` on a room's mini-PC (`HUB_UPSTREAM`, `HUB_TOKEN`, the same
+  token as the cloud's `HUB_TOKEN`; Caddy on the hub serves the SPA and sends `/api` to it). The hub passes every
+  request to the cloud. When the building loses the internet it answers the devices' event syncs itself: the
+  sealed events are kept on its disk (one file per attempt, replaced atomically) and acknowledged, and a
+  forwarder delivers them as soon as the cloud answers. Only the session that last synced an attempt through the
+  cloud may add to it, and the cloud verifies every relayed event with keys the hub never holds, so a hub cannot
+  alter anything; the hub's receipt times are believed only between the event's own time and the cloud's now.
+  Starting an exam needs the cloud (or a downloaded package, see offline start); uploads of recordings wait.

@@ -21,6 +21,8 @@ const Env = z.object({
   LIVEKIT_URL: z.string().optional(),
   LIVEKIT_API_KEY: z.string().optional(),
   LIVEKIT_API_SECRET: z.string().optional(),
+  /** Classroom hubs relay events with this shared secret; without it the relay endpoint is off. */
+  HUB_TOKEN: z.string().min(32).optional(),
 })
 
 export type Config = z.infer<typeof Env>

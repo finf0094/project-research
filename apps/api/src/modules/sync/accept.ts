@@ -4,6 +4,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
 import { answers, attempts, commands, events, questions } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
+import { notFound } from '../../shared/errors.ts'
 import { OPEN_STATUSES, attemptKey, nextCaptureTime, ownAttempt } from '../attempts/service.ts'
 import { attemptQuestions } from '../exams/service.ts'
 import { countsTowardGrade, isValidAnswer } from './projection.ts'
@@ -14,15 +15,21 @@ const CONTROL_FRAGMENT_SECONDS = 20
  * Accepts a batch of sealed events. Already-accepted events are skipped (retries after a lost ack are safe),
  * a gap stops the batch until the missing events arrive, and a broken link marks the attempt for review.
  * The attempt row is locked, so concurrent requests from one client cannot interleave.
+ *
+ * `relayedAt`: the events come from a classroom hub (userId null) that received them earlier, at these
+ * times (by seq). The hub holds no keys, so it cannot alter an event; its times are believed only between
+ * the event's own time and now.
  */
 export async function acceptEvents(
   deps: Deps,
-  userId: string,
+  userId: string | null,
   attemptId: string,
   batch: Event[],
+  relayedAt?: ReadonlyMap<number, number>,
 ): Promise<SyncResponse> {
   return deps.db.transaction(async (tx) => {
-    const attempt = await ownAttempt(tx, userId, attemptId, true)
+    const attempt =
+      userId === null ? await attemptById(tx, attemptId) : await ownAttempt(tx, userId, attemptId, true)
     const now = deps.now()
     const open = OPEN_STATUSES.includes(attempt.status)
     let head: ChainHead = { seq: attempt.lastSeq, hash: attempt.lastHash }
@@ -40,20 +47,21 @@ export async function acceptEvents(
           chainBrokenAt = event.seq
           break
         }
+        const receivedAt = Math.min(now, Math.max(event.at, relayedAt?.get(event.seq) ?? now))
         await tx.insert(events).values({
           attemptId,
           seq: event.seq,
           type: event.type,
           data: event.data,
           clientAt: event.at,
-          receivedAt: new Date(now),
+          receivedAt: new Date(receivedAt),
           prevHash: event.prevHash,
           hash: event.hash,
           mac: event.mac,
         })
         await applyEvent(tx, attemptId, event, {
           question: event.type === 'answer' ? byId.get(event.data.questionId) : undefined,
-          counts: countsTowardGrade(event.at, now, attempt.deadline.getTime(), offlineWindowMs),
+          counts: countsTowardGrade(event.at, receivedAt, attempt.deadline.getTime(), offlineWindowMs),
           now,
         })
         if (event.type === 'network.changed') connection = event.data.to
@@ -66,7 +74,14 @@ export async function acceptEvents(
     // Updated even when nothing is accepted, so the examiner never sees a connected student as offline.
     await tx
       .update(attempts)
-      .set({ lastSeq: head.seq, lastHash: head.hash, lastSeenAt: new Date(now), connection, chainBrokenAt })
+      .set({
+        lastSeq: head.seq,
+        lastHash: head.hash,
+        // A hub's delivery says nothing about whether the student is online now.
+        lastSeenAt: relayedAt ? attempt.lastSeenAt : new Date(now),
+        connection,
+        chainBrokenAt,
+      })
       .where(eq(attempts.id, attemptId))
 
     if (attempt.status === 'active' && nextCaptureAt && now >= nextCaptureAt.getTime()) {
@@ -138,4 +153,10 @@ async function pendingCommands(tx: Tx, attemptId: string): Promise<Command[]> {
       ? { id: c.id, type: 'warn', message: c.payload.message ?? '' }
       : { id: c.id, type: 'capture', seconds: c.payload.seconds ?? CONTROL_FRAGMENT_SECONDS },
   )
+}
+
+async function attemptById(tx: Tx, attemptId: string) {
+  const [row] = await tx.select().from(attempts).where(eq(attempts.id, attemptId)).for('update')
+  if (!row) throw notFound('Attempt not found')
+  return row
 }
