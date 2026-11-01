@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
 import { CircleDot, ListChecks, TextCursorInput } from 'lucide-vue-next'
-import { formatDay, formatClock } from '@/shared/lib/format'
+import { formatDay, formatClock, formatClockOrDate } from '@/shared/lib/format'
 
 /** The exam at a glance: when, how long, what is asked, who takes it. */
 defineProps<{ exam: ExaminerExam }>()
@@ -12,7 +12,9 @@ defineProps<{ exam: ExaminerExam }>()
     <div class="fact sky">
       <p class="label">{{ $t('hub.overview.date') }}</p>
       <p class="value">{{ formatDay(exam.opensAt) }}</p>
-      <p class="note">{{ formatClock(exam.opensAt) }} — {{ formatClock(exam.closesAt) }}</p>
+      <p class="note">
+        {{ formatClock(exam.opensAt) }} — {{ formatClockOrDate(exam.closesAt, exam.opensAt) }}
+      </p>
     </div>
     <div class="fact peach">
       <p class="label">{{ $t('hub.overview.duration') }}</p>

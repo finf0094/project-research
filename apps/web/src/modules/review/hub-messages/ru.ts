@@ -135,6 +135,8 @@ export const ru = {
       bandLabel: '{from}–{to}%: {n}',
       openAttempt: 'Открыть работу: {name}',
       checkedCount: 'проверено: {n}',
+      writing: 'Ещё пишет',
+      chartEmpty: 'Распределение появится после первой проверенной попытки.',
       fail: 'Не зачтено',
       pass: 'Зачтено',
       publishTitle: 'Когда всё проверено — опубликуйте',

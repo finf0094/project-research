@@ -42,7 +42,9 @@ const pending = computed(() => sync.status.pendingEvents + sync.status.pendingCh
           <IconTile :icon="FileCheck2" tone="ok" />
           <div>
             <p class="title">{{ $t('student.done.answers') }}</p>
-            <p class="muted note">{{ $t('student.done.answersNote', { n: exam.answeredCount }) }}</p>
+            <p class="muted note">
+              {{ $t('student.done.answersNote', { n: exam.answeredCount, total: exam.questions.length }) }}
+            </p>
           </div>
           <span class="tick done" aria-hidden="true">✓</span>
         </li>

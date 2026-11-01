@@ -58,7 +58,7 @@ export const studentMessages = defineMessages({
       },
       done: {
         answers: 'Ответы на месте',
-        answersNote: 'Сохранено на устройстве: {n}',
+        answersNote: 'Отвечено вопросов: {n} из {total}',
         sending: 'Отправляем запись',
         sendingNote: 'Осталось фрагментов: {n}',
         sent: 'Всё отправлено',
@@ -119,7 +119,7 @@ export const studentMessages = defineMessages({
       },
       done: {
         answers: 'Жауаптар орнында',
-        answersNote: 'Құрылғыда сақталды: {n}',
+        answersNote: 'Жауап берілген сұрақтар: {n} / {total}',
         sending: 'Жазба жіберілуде',
         sendingNote: 'Қалған фрагменттер: {n}',
         sent: 'Барлығы жіберілді',
@@ -185,7 +185,7 @@ export const studentMessages = defineMessages({
       },
       done: {
         answers: 'Answers are safe',
-        answersNote: 'Saved on this device: {n}',
+        answersNote: 'Questions answered: {n} of {total}',
         sending: 'Sending the recording',
         sendingNote: 'Fragments left: {n}',
         sent: 'Everything is sent',

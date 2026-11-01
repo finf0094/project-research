@@ -6,11 +6,10 @@ import { useFullscreen } from '@/shared/lib/use-fullscreen'
 import { AppButton, AppLogo } from '@/shared/ui'
 import ExamTimer from './ExamTimer.vue'
 
-/** The exam's bar: what and where, whether everything is saved, focus mode, time left and submitting. */
+/** The exam's bar: what and where, save state (an icon per state), focus mode, time left and submitting. */
 defineProps<{ title: string; step: string; remainingMs: number; finishing: boolean }>()
 defineEmits<{ finish: [] }>()
 const focus = useFullscreen()
-/* The pinned bar's short save status: icon plus a word, so it never relies on colour alone. */
 const sync = useSyncStore()
 const short = computed(() => {
   const { connection, pendingEvents } = sync.status
@@ -74,7 +73,6 @@ const short = computed(() => {
   min-width: 0;
 }
 .name {
-  /* The page's heading, styled as plain header text. */
   font-family: var(--font-sans);
   font-size: var(--text-md);
   font-weight: 600;

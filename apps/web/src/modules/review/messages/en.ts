@@ -147,7 +147,7 @@ export const en: typeof ru = {
       clean: 'No violation found',
       violation: 'Violation confirmed',
       needs_review: 'Needs further review',
-      score: 'Score (0–100)',
+      score: 'Final score, % (0–100)',
       comment: 'Comment',
       commentPlaceholder: 'What went well and what to revise',
       commentNote: 'The student sees this comment with the result.',

@@ -104,7 +104,8 @@ export const useProctoringStore = defineStore('proctoring', () => {
       if (cameraOff) await recordCamera(opts, false)
       // A camera that dies mid-exam (unplugged, taken by another app) is recorded and shown at once.
       // A phone may end it for a moment (a call, another app): it is asked for again once by itself.
-      for (const track of media.getTracks()) {
+      // Only the camera's track: a microphone that ends is `mic_off` (devices.ts), not "camera off".
+      for (const track of media.getVideoTracks()) {
         track.addEventListener('ended', () => {
           const stopsBefore = stops
           return enqueue(async () => {

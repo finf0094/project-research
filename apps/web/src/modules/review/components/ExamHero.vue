@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ExaminerExam } from '@exam/contracts'
-import { formatClock } from '@/shared/lib/format'
+import { formatClockOrDate } from '@/shared/lib/format'
 import { AppButton } from '@/shared/ui'
 
 /** The exam running right now, large and dark, with the two places a proctor goes: monitoring and review. */
@@ -12,7 +12,7 @@ defineProps<{ exam: ExaminerExam }>()
     <div class="body">
       <span class="badge"
         ><span class="dot live" />{{ $t('hub.state.running') }} ·
-        {{ $t('hub.list.until', { at: formatClock(exam.closesAt) }) }}</span
+        {{ $t('hub.list.until', { at: formatClockOrDate(exam.closesAt) }) }}</span
       >
       <h2>{{ exam.title }}</h2>
       <ul class="facts">

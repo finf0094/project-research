@@ -132,6 +132,8 @@ export const en: typeof ru = {
       bandLabel: '{from}–{to}%: {n}',
       openAttempt: 'Open the attempt of {name}',
       checkedCount: 'reviewed: {n}',
+      writing: 'Still writing',
+      chartEmpty: 'The distribution appears once the first attempt is reviewed.',
       fail: 'Failed',
       pass: 'Passed',
       publishTitle: 'When everything is reviewed — publish',

@@ -132,6 +132,8 @@ export const kk: typeof ru = {
       bandLabel: '{from}–{to}%: {n}',
       openAttempt: 'Жұмысты ашу: {name}',
       checkedCount: 'тексерілді: {n}',
+      writing: 'Әлі жазып жатыр',
+      chartEmpty: 'Үлестірім алғашқы тексерілген әрекеттен кейін пайда болады.',
       fail: 'Өтпеді',
       pass: 'Өтті',
       publishTitle: 'Бәрі тексерілгенде — жариялаңыз',

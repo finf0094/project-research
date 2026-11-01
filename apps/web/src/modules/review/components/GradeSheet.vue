@@ -74,7 +74,9 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
               <span v-else class="muted">{{ $t('hub.results.afterReview') }}</span>
             </td>
             <td role="cell" :data-label="$t('hub.results.columns.record')">
-              <StatusPill :tone="RECORD_TONE[a.result?.verdict ?? 'pending']">{{
+              <!-- An attempt still in progress has nothing to review yet: say so instead of "awaiting review". -->
+              <span v-if="a.status === 'active'" class="muted">{{ $t('hub.results.writing') }}</span>
+              <StatusPill v-else :tone="RECORD_TONE[a.result?.verdict ?? 'pending']">{{
                 $t(`hub.results.record.${a.result?.verdict ?? 'pending'}`)
               }}</StatusPill>
             </td>
@@ -84,7 +86,9 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
               :class="outcome(a)"
               :data-label="$t('hub.results.columns.result')"
             >
-              {{ $t(`hub.results.verdict.${outcome(a)}`) }}
+              {{
+                a.status === 'active' ? $t('hub.results.writing') : $t(`hub.results.verdict.${outcome(a)}`)
+              }}
             </td>
             <td role="cell" class="actions">
               <RouterLink

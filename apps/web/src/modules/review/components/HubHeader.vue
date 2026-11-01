@@ -2,7 +2,7 @@
 import type { ExaminerExam } from '@exam/contracts'
 import { BarChart3, Eye, LayoutGrid, ShieldCheck } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { formatDay, formatDateTime, formatClock } from '@/shared/lib/format'
+import { formatDay, formatDateTime, formatClockOrDate } from '@/shared/lib/format'
 import { examState, STATE_TONE } from '../exam-state'
 
 /**
@@ -37,7 +37,7 @@ const TABS = [
           state === 'scheduled'
             ? $t('hub.list.startsAt', { at: formatDateTime(exam.opensAt) })
             : state === 'running'
-              ? $t('hub.list.until', { at: formatClock(exam.closesAt) })
+              ? $t('hub.list.until', { at: formatClockOrDate(exam.closesAt) })
               : $t('hub.list.closedAt', { at: formatDay(exam.closesAt) })
         }}
       </span>

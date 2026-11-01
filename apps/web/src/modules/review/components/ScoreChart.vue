@@ -14,7 +14,8 @@ const max = computed(() => Math.max(1, ...props.counts))
       <h2>{{ $t('hub.results.distribution') }}</h2>
       <span class="muted note">{{ $t('hub.results.checkedCount', { n: total }) }}</span>
     </header>
-    <ol class="bars">
+    <p v-if="!total" class="empty muted">{{ $t('hub.results.chartEmpty') }}</p>
+    <ol v-else class="bars">
       <li
         v-for="(n, i) in counts"
         :key="i"
@@ -26,7 +27,7 @@ const max = computed(() => Math.max(1, ...props.counts))
         <span class="band" aria-hidden="true">{{ BANDS[i]![0] }}–{{ BANDS[i]![1] }}</span>
       </li>
     </ol>
-    <p class="legend muted" aria-hidden="true">
+    <p v-if="total" class="legend muted" aria-hidden="true">
       <span class="key fail" />{{ $t('hub.results.fail') }} <span class="key" />{{ $t('hub.results.pass') }}
     </p>
   </section>
@@ -51,6 +52,13 @@ header {
 }
 .note {
   font-size: var(--text-sm);
+}
+.empty {
+  display: grid;
+  place-items: center;
+  min-block-size: 200px;
+  font-size: var(--text-sm);
+  text-align: center;
 }
 .bars {
   display: grid;

@@ -54,6 +54,12 @@ export const formatTime = (ts: number) => timeFormat.format(ts)
 /** "14:30": hours and minutes, for schedules. */
 export const formatClock = (ts: number) => clockFormat.format(ts)
 
+/** "14:30" when `ts` falls on the same day as `from` (now by default), "8 ноября, 14:30" otherwise:
+ * a bare time for a moment days away reads as today. */
+export function formatClockOrDate(ts: number, from = Date.now()): string {
+  return new Date(ts).toDateString() === new Date(from).toDateString() ? formatClock(ts) : formatDateTime(ts)
+}
+
 export function formatDateTime(ts: number): string {
   if (locale !== 'kk') return dateFormat.format(ts)
   const d = new Date(ts)
