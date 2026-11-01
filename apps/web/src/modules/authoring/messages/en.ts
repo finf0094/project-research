@@ -45,7 +45,7 @@ export const en: typeof ru = {
         'Everyone writes at the same time. Such an exam can even start without internet, with the examiner’s code.',
       minutes: '{n} min',
       customDuration: 'Custom length, minutes',
-      summary: 'Window {days} d · full time for those who start by {until}',
+      summary: 'Open for {days} d · full time for anyone who starts by {until}',
       tooShort: 'The window is shorter than the exam: nobody gets the full time. Move the close.',
       closesBeforeOpens: 'The exam closes before it opens. Fix the dates.',
     },

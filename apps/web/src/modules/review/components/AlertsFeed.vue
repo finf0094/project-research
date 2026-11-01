@@ -72,6 +72,7 @@ const LOOK = {
 }
 header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2);
 }

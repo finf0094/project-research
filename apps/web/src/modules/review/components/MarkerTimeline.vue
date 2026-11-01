@@ -103,6 +103,8 @@ svg {
   span {
     position: absolute;
     translate: -50% 0;
+    /* "12:32:14 PM": an absolute box at the edge would otherwise wrap the English "PM" onto a new line. */
+    white-space: nowrap;
     &:first-child {
       translate: 0 0;
     }

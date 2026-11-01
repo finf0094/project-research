@@ -71,8 +71,13 @@
     --radius: 16px;
     --radius-lg: 24px;
     --radius-pill: 999px;
-    --shadow-1: 0 1px 2px rgb(21 20 43 / 0.05), 0 2px 6px rgb(21 20 43 / 0.05);
-    --shadow-2: 0 14px 34px -12px rgb(21 20 43 / 0.22), 0 4px 10px rgb(21 20 43 / 0.05);
+    /* A navy tint is invisible on the dark background: there the shadows turn black and stronger. */
+    --shadow-1:
+      0 1px 2px light-dark(rgb(21 20 43 / 0.05), rgb(0 0 0 / 0.3)),
+      0 2px 6px light-dark(rgb(21 20 43 / 0.05), rgb(0 0 0 / 0.2));
+    --shadow-2:
+      0 14px 34px -12px light-dark(rgb(21 20 43 / 0.22), rgb(0 0 0 / 0.6)),
+      0 4px 10px light-dark(rgb(21 20 43 / 0.05), rgb(0 0 0 / 0.3));
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     /* The phone's tab bar (TabBar.vue) without the home indicator below it: pages leave this room. */

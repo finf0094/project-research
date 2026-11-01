@@ -147,5 +147,9 @@ const decisionCard = useTemplateRef<HTMLElement>('decision')
   .side {
     position: static;
   }
+  /* Room under the decision for the floating "To the decision" button, so it never covers the last line. */
+  .page {
+    padding-block-end: calc(var(--tap) + var(--space-6));
+  }
 }
 </style>

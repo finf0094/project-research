@@ -88,7 +88,6 @@ defineProps<{ attempt: AttemptSummary }>()
   color: var(--on-peach);
   font-size: var(--text-xs);
   font-weight: 600;
-  white-space: nowrap;
 }
 .points {
   display: grid;

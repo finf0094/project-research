@@ -54,7 +54,13 @@ const TONE = { student: 'off', examiner: 'accent', admin: 'warn' } as const
 <style scoped>
 .page {
   display: grid;
+  /* Zero minimum: "Пайдаланушылар" breaks instead of widening the phone page. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
+}
+/* One long Kazakh word ("Пайдаланушылар"): a step smaller on phones so it fits whole. */
+h1 {
+  font-size: clamp(var(--text-xl), 7vw, var(--text-3xl));
 }
 .layout {
   display: grid;

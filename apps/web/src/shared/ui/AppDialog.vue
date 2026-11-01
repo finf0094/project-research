@@ -80,6 +80,8 @@ function onClick(event: MouseEvent) {
     margin: auto 0 0;
     padding: var(--space-6) var(--space-5) max(var(--space-5), env(safe-area-inset-bottom));
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    /* Its edge stays visible on a dark backdrop. */
+    border-block-start: 1px solid var(--border);
     overflow-y: auto;
     overscroll-behavior: contain;
     &::before {
@@ -89,7 +91,7 @@ function onClick(event: MouseEvent) {
       block-size: 5px;
       margin: calc(-1 * var(--space-3)) auto var(--space-4);
       border-radius: var(--radius-pill);
-      background: var(--border);
+      background: color-mix(in oklab, var(--text-2) 45%, transparent);
     }
     &[open] {
       animation: sheet var(--dur) var(--ease);
