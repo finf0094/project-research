@@ -1,6 +1,5 @@
 .wrap {
   position: relative;
-  container-type: inline-size;
   overflow-x: auto;
 }
 table {
@@ -68,7 +67,6 @@ tbody tr {
   text-align: end;
 }
 .link {
-  min-block-size: 40px;
   border: 0;
   background: none;
   color: var(--accent-ink);
@@ -77,8 +75,8 @@ tbody tr {
 .open {
   display: inline-grid;
   place-items: center;
-  inline-size: 40px;
-  block-size: 40px;
+  inline-size: 32px;
+  block-size: 32px;
   border: 0;
   border-radius: 50%;
   background: var(--surface-2);
@@ -88,44 +86,13 @@ tbody tr {
   }
 }
 
-/* Narrow: every attempt becomes a small card, the column names move next to the values. */
-@container (width < 560px) {
-  thead {
-    display: none;
+/* Phones: thumb-sized targets. */
+@media (width < 600px) {
+  .link {
+    min-block-size: var(--tap);
   }
-  table,
-  tbody {
-    display: block;
-  }
-  tbody tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-2) var(--space-3);
-    padding-block: var(--space-3);
-  }
-  th,
-  td {
-    padding: 0;
-    white-space: normal;
-  }
-  th[scope='row'] {
-    grid-row: 1;
-    grid-column: 1;
-  }
-  .actions {
-    grid-row: 1;
-    grid-column: 2;
-    align-self: center;
-  }
-  td[data-label] {
-    text-align: start;
-    &::before {
-      content: attr(data-label);
-      display: block;
-      margin-block-end: 2px;
-      color: var(--text-2);
-      font-size: var(--text-xs);
-      font-weight: 600;
-    }
+  .open {
+    inline-size: var(--tap);
+    block-size: var(--tap);
   }
 }

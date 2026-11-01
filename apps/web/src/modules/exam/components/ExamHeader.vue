@@ -12,7 +12,7 @@ const focus = useFullscreen()
 </script>
 
 <template>
-  <header class="header">
+  <header class="header exam-bar">
     <div class="title">
       <AppLogo :wordmark="false" />
       <div>
@@ -20,7 +20,7 @@ const focus = useFullscreen()
         <p class="muted step">{{ step }}</p>
       </div>
     </div>
-    <SyncStatusBadge />
+    <SyncStatusBadge class="badge" />
     <div class="actions">
       <button
         v-if="focus.supported"
@@ -33,7 +33,9 @@ const focus = useFullscreen()
         <span class="focus-label">{{ $t('exam.header.focus') }}</span>
       </button>
       <ExamTimer :remaining-ms="remainingMs" />
-      <AppButton :loading="finishing" @click="$emit('finish')">{{ $t('exam.header.submit') }}</AppButton>
+      <AppButton class="submit" :loading="finishing" @click="$emit('finish')">{{
+        $t('exam.header.submit')
+      }}</AppButton>
     </div>
   </header>
 </template>
@@ -95,13 +97,60 @@ const focus = useFullscreen()
   align-items: center;
   gap: var(--space-3);
 }
-/* Phones: the timer and the submit button stay in reach while the question scrolls. */
-@media (width < 900px) {
+/* Phones held upright: one compact pinned row (title, timer, submit) stays in reach while the question
+   scrolls. Not in landscape, where it would eat a third of the screen. base.css keeps focus clear of it. */
+@media (max-width: 900px) and (min-height: 600px) {
   .header {
     position: sticky;
     inset-block-start: var(--space-2);
     z-index: 2;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    padding: var(--space-3);
     box-shadow: var(--shadow-2);
+  }
+  .title {
+    flex: 1;
+    > div {
+      min-width: 0;
+    }
+    :deep(.logo) {
+      display: none;
+    }
+  }
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .step,
+  .badge {
+    /* The text stays for screen readers; the badge keeps its coloured dot. */
+    font-size: 0;
+  }
+  .step {
+    position: absolute;
+    clip-path: inset(50%);
+  }
+  .badge {
+    gap: 0;
+    padding: var(--space-2);
+  }
+  .actions {
+    gap: var(--space-2);
+  }
+  /* Room for the title: phone browsers barely offer fullscreen; wider screens keep the button. */
+  .focus {
+    display: none;
+  }
+  .actions .submit {
+    min-height: var(--tap);
+    padding: 0 var(--space-4);
+  }
+  .actions :deep(.timer) {
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    font-size: var(--text-md);
   }
 }
 </style>

@@ -47,6 +47,7 @@ const exam = useExamStore()
 <style scoped>
 .exam {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   min-height: 100dvh;
   padding: var(--space-4);

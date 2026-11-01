@@ -38,7 +38,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 4px var(--space-3);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-pill);
   background: var(--accent-tint);
   color: var(--accent-ink);
@@ -149,15 +149,15 @@
     position: relative;
     flex-direction: column;
     justify-content: center;
-    gap: 2px;
+    gap: var(--space-1);
     min-block-size: 52px;
-    padding: var(--space-1) 2px;
+    padding: var(--space-1);
     border-radius: var(--radius-sm);
     font-size: var(--text-xs);
   }
   .count {
     position: absolute;
-    inset-block-start: 2px;
-    inset-inline-end: 4px;
+    inset-block-start: 0;
+    inset-inline-end: var(--space-1);
   }
 }

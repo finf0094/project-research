@@ -20,22 +20,22 @@ const DONE = ['ready_for_review', 'decided']
 
 <template>
   <div class="wrap">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">{{ $t('review.table.student') }}</th>
-          <th scope="col">{{ $t('review.table.status') }}</th>
-          <th scope="col">{{ $t('review.table.network') }}</th>
-          <th scope="col" class="num">{{ $t('review.table.markers') }}</th>
-          <th scope="col">{{ $t('review.table.risk') }}</th>
-          <th scope="col">
+    <table role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          <th scope="col" role="columnheader">{{ $t('review.table.student') }}</th>
+          <th scope="col" role="columnheader">{{ $t('review.table.status') }}</th>
+          <th scope="col" role="columnheader">{{ $t('review.table.network') }}</th>
+          <th scope="col" role="columnheader" class="num">{{ $t('review.table.markers') }}</th>
+          <th scope="col" role="columnheader">{{ $t('review.table.risk') }}</th>
+          <th scope="col" role="columnheader">
             <span class="visually-hidden">{{ $t('review.table.actions') }}</span>
           </th>
         </tr>
       </thead>
-      <TransitionGroup tag="tbody" name="list">
-        <tr v-for="a in attempts" :key="a.id">
-          <th scope="row">
+      <TransitionGroup tag="tbody" name="list" role="rowgroup">
+        <tr v-for="a in attempts" :key="a.id" role="row">
+          <th scope="row" role="rowheader">
             <span class="who">
               <Avatar :name="a.student.name" :size="36" />
               <span>
@@ -44,21 +44,21 @@ const DONE = ['ready_for_review', 'decided']
               </span>
             </span>
           </th>
-          <td :data-label="$t('review.table.status')">
+          <td role="cell" :data-label="$t('review.table.status')">
             <StatusPill :tone="STATUS_TONE[a.status]">{{ $t(`review.status.${a.status}`) }}</StatusPill>
           </td>
-          <td :data-label="$t('review.table.network')">
+          <td role="cell" :data-label="$t('review.table.network')">
             <span v-if="a.connection" class="net" :class="CONNECTION_TONE[a.connection]">
               <span class="dot" :class="{ live: a.connection === 'online' }" aria-hidden="true" />
               {{ $t(`review.connection.${a.connection}`) }}
             </span>
             <span v-else class="muted">—</span>
           </td>
-          <td class="num" :data-label="$t('review.table.markers')">{{ a.markerCount }}</td>
-          <td :data-label="$t('review.table.risk')">
+          <td role="cell" class="num" :data-label="$t('review.table.markers')">{{ a.markerCount }}</td>
+          <td role="cell" :data-label="$t('review.table.risk')">
             <RiskBar :risk="a.riskScore" />
           </td>
-          <td class="actions">
+          <td role="cell" class="actions">
             <button
               v-if="oral && a.status === 'active'"
               type="button"
@@ -94,3 +94,4 @@ const DONE = ['ready_for_review', 'decided']
 </template>
 
 <style scoped src="./attempts-table.css"></style>
+<style scoped src="@/shared/ui/card-table.css"></style>

@@ -1,0 +1,61 @@
+/*
+ * A data table that turns into one small card per row when its wrapper is phone-narrow. Use it as a second
+ * scoped style after the component's own: `<style scoped src="@/shared/ui/card-table.css"></style>`.
+ * The wrapper is `.wrap`; value cells carry `data-label`, the row's header is `th[scope='row']` and the
+ * buttons sit in `.actions`. Give the table explicit roles: older WebKit drops table semantics on `display`.
+ */
+.wrap {
+  position: relative;
+  container-type: inline-size;
+}
+/* Only on phones: a narrow widget on a desktop keeps its table (and scrolls sideways if it must). */
+@media (width < 600px) {
+  @container (width < 480px) {
+    /* Hidden for the eye only: screen readers still pair every cell with its column. */
+    thead {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    table,
+    tbody {
+      display: block;
+    }
+    tbody tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-2) var(--space-3);
+      padding-block: var(--space-3);
+    }
+    th,
+    td {
+      padding: 0;
+      white-space: normal;
+    }
+    th[scope='row'] {
+      grid-row: 1;
+      grid-column: 1;
+    }
+    .actions {
+      grid-row: 1;
+      grid-column: 2;
+      align-self: center;
+      justify-self: end;
+    }
+    td[data-label] {
+      text-align: start;
+      /* The label is for the eye; screen readers already have the column header. */
+      &::before {
+        content: attr(data-label);
+        content: attr(data-label) / '';
+        display: block;
+        margin-block-end: var(--space-1);
+        color: var(--text-2);
+        font-size: var(--text-xs);
+        font-weight: 600;
+      }
+    }
+  }
+}

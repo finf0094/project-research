@@ -63,6 +63,8 @@
     --space-6: 24px;
     --space-8: 32px;
     --space-12: 48px;
+    /* The smallest comfortable touch target on phones. */
+    --tap: 40px;
     --radius-sm: 12px;
     --radius: 16px;
     --radius-lg: 24px;

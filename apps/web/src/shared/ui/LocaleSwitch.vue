@@ -70,7 +70,7 @@ function choose(code: Locale, menu?: HTMLElement | null) {
 }
 .pill {
   min-inline-size: 40px;
-  min-block-size: 40px;
+  min-block-size: 32px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -85,6 +85,11 @@ function choose(code: Locale, menu?: HTMLElement | null) {
     background: var(--bg);
     color: var(--text);
     box-shadow: var(--shadow-1);
+  }
+}
+@media (width < 600px) {
+  .pill {
+    min-block-size: var(--tap);
   }
 }
 .compact {

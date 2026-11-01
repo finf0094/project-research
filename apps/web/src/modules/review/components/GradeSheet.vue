@@ -43,25 +43,25 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
       />
     </header>
     <div class="wrap">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">{{ $t('hub.results.columns.student') }}</th>
-            <th scope="col">{{ $t('hub.results.columns.auto') }}</th>
-            <th scope="col">{{ $t('hub.results.columns.score') }}</th>
-            <th scope="col">{{ $t('hub.results.columns.record') }}</th>
-            <th scope="col">{{ $t('hub.results.columns.result') }}</th>
-            <th scope="col">
+      <table role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">{{ $t('hub.results.columns.student') }}</th>
+            <th scope="col" role="columnheader">{{ $t('hub.results.columns.auto') }}</th>
+            <th scope="col" role="columnheader">{{ $t('hub.results.columns.score') }}</th>
+            <th scope="col" role="columnheader">{{ $t('hub.results.columns.record') }}</th>
+            <th scope="col" role="columnheader">{{ $t('hub.results.columns.result') }}</th>
+            <th scope="col" role="columnheader">
               <span class="visually-hidden">{{ $t('review.table.actions') }}</span>
             </th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for="a in shown" :key="a.id">
-            <th scope="row">
+        <tbody role="rowgroup">
+          <tr v-for="a in shown" :key="a.id" role="row">
+            <th scope="row" role="rowheader">
               <span class="who"><Avatar :name="a.student.name" :size="32" />{{ a.student.name }}</span>
             </th>
-            <td class="num" :data-label="$t('hub.results.columns.auto')">
+            <td role="cell" class="num" :data-label="$t('hub.results.columns.auto')">
               <span v-if="!a.points" class="muted">—</span>
               <template v-else>{{ a.points.auto }}/{{ a.points.max }}</template
               ><span v-if="a.points?.open" class="muted" :title="$t('hub.queue.open')"
@@ -69,19 +69,24 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
                 ><span class="visually-hidden">{{ $t('hub.queue.open') }}</span></span
               >
             </td>
-            <td :data-label="$t('hub.results.columns.score')">
+            <td role="cell" :data-label="$t('hub.results.columns.score')">
               <span v-if="finalScore(a) !== null" class="score">{{ finalScore(a) }}</span>
               <span v-else class="muted">{{ $t('hub.results.afterReview') }}</span>
             </td>
-            <td :data-label="$t('hub.results.columns.record')">
+            <td role="cell" :data-label="$t('hub.results.columns.record')">
               <StatusPill :tone="RECORD_TONE[a.result?.verdict ?? 'pending']">{{
                 $t(`hub.results.record.${a.result?.verdict ?? 'pending'}`)
               }}</StatusPill>
             </td>
-            <td class="outcome" :class="outcome(a)" :data-label="$t('hub.results.columns.result')">
+            <td
+              role="cell"
+              class="outcome"
+              :class="outcome(a)"
+              :data-label="$t('hub.results.columns.result')"
+            >
               {{ $t(`hub.results.verdict.${outcome(a)}`) }}
             </td>
-            <td class="actions">
+            <td role="cell" class="actions">
               <RouterLink
                 :to="`/examiner/attempts/${a.id}`"
                 class="open"
@@ -98,3 +103,4 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
 </template>
 
 <style scoped src="./grade-sheet.css"></style>
+<style scoped src="@/shared/ui/card-table.css"></style>

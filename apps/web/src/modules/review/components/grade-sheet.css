@@ -16,13 +16,11 @@
     font-size: var(--text-lg);
   }
   input {
-    flex: 1 1 200px;
-    min-inline-size: 0;
+    min-inline-size: 200px;
     border-radius: var(--radius-pill);
   }
 }
 .wrap {
-  container-type: inline-size;
   overflow-x: auto;
 }
 table {
@@ -78,8 +76,8 @@ tbody tr {
 .open {
   display: inline-grid;
   place-items: center;
-  inline-size: 40px;
-  block-size: 40px;
+  inline-size: 32px;
+  block-size: 32px;
   border-radius: 50%;
   color: var(--text-2);
   &:hover {
@@ -90,45 +88,12 @@ tbody tr {
   .sheet {
     padding: var(--space-4);
   }
-}
-/* Narrow: each student becomes a small card, the column names move next to the values. */
-@container (width < 560px) {
-  thead {
-    display: none;
+  .head input {
+    flex: 1 1 200px;
+    min-inline-size: 0;
   }
-  table,
-  tbody {
-    display: block;
-  }
-  tbody tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-3);
-    padding-block: var(--space-3);
-  }
-  th,
-  td {
-    padding: 0;
-    white-space: normal;
-  }
-  th[scope='row'] {
-    grid-row: 1;
-    grid-column: 1;
-  }
-  .actions {
-    grid-row: 1;
-    grid-column: 2;
-    justify-self: end;
-  }
-  td[data-label] {
-    text-align: start;
-    &::before {
-      content: attr(data-label);
-      display: block;
-      margin-block-end: 2px;
-      color: var(--text-2);
-      font-size: var(--text-xs);
-      font-weight: 600;
-    }
+  .open {
+    inline-size: var(--tap);
+    block-size: var(--tap);
   }
 }

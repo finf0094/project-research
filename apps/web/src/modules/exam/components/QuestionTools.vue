@@ -44,7 +44,7 @@ const name = useId()
 .flag {
   display: flex;
   align-items: center;
-  block-size: 48px;
+  block-size: 40px;
   border-radius: var(--radius-pill);
   background: var(--surface-2);
 }
@@ -55,8 +55,8 @@ const name = useId()
   label {
     display: grid;
     place-items: center;
-    inline-size: 40px;
-    block-size: 40px;
+    inline-size: 32px;
+    block-size: 32px;
     border-radius: 50%;
     cursor: pointer;
     color: var(--text-2);
@@ -101,6 +101,17 @@ const name = useId()
       fill: currentColor;
       animation: wave var(--dur-slow) var(--ease-spring);
     }
+  }
+}
+/* Phones: thumb-sized targets. */
+@media (width < 600px) {
+  .sizes,
+  .flag {
+    block-size: calc(var(--tap) + var(--space-2));
+  }
+  .sizes label {
+    inline-size: var(--tap);
+    block-size: var(--tap);
   }
 }
 @keyframes wave {

@@ -138,7 +138,7 @@ nav {
   }
   .item {
     flex: none;
-    min-block-size: 40px;
+    min-block-size: var(--tap);
     border-radius: var(--radius-pill);
     font-size: var(--text-sm);
     white-space: nowrap;

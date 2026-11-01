@@ -21,19 +21,20 @@ const TONE = { student: 'off', examiner: 'accent', admin: 'warn' } as const
     <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
     <div class="layout">
       <AppCard>
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">{{ $t('admin.name') }}</th>
-              <th scope="col">Email</th>
-              <th scope="col">{{ $t('admin.role') }}</th>
+        <!-- Explicit roles: older WebKit forgets table semantics once the phone layout changes `display`. -->
+        <table role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">{{ $t('admin.name') }}</th>
+              <th scope="col" role="columnheader">Email</th>
+              <th scope="col" role="columnheader">{{ $t('admin.role') }}</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="u in users" :key="u.id">
-              <th scope="row">{{ u.name }}</th>
-              <td class="email">{{ u.email }}</td>
-              <td>
+          <tbody role="rowgroup">
+            <tr v-for="u in users" :key="u.id" role="row">
+              <th scope="row" role="rowheader">{{ u.name }}</th>
+              <td role="cell" data-label="Email">{{ u.email }}</td>
+              <td role="cell" :data-label="$t('admin.role')">
                 <StatusPill :tone="TONE[u.role]">{{ $t(`admin.roles.${u.role}`) }}</StatusPill>
               </td>
             </tr>
@@ -79,10 +80,14 @@ thead th {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-/* Phones: name and role on one line, the email under them. */
+/* Phones: the name on top, then the email and the role, each with its column name for the eye. */
 @media (width < 600px) {
   thead {
-    display: none;
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
   table,
   tbody {
@@ -91,7 +96,7 @@ thead th {
   tbody tr {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--space-1) var(--space-3);
+    gap: var(--space-2) var(--space-3);
     padding-block: var(--space-3);
     border-bottom: 1px solid var(--border);
   }
@@ -100,12 +105,21 @@ thead th {
     padding: 0;
     border: 0;
   }
-  .email {
-    grid-row: 2;
+  th {
     grid-column: 1 / -1;
-    color: var(--text-2);
+  }
+  td {
     font-size: var(--text-sm);
     overflow-wrap: anywhere;
+    &::before {
+      content: attr(data-label);
+      content: attr(data-label) / '';
+      display: block;
+      margin-block-end: var(--space-1);
+      color: var(--text-2);
+      font-size: var(--text-xs);
+      font-weight: 600;
+    }
   }
 }
 </style>
