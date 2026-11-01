@@ -3,7 +3,7 @@ import type { EventLog } from '@/modules/offline'
 import type { Pose } from './calibration'
 import { UNMEASURED, createTierWatch, lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
-import { watchDevices, watchMicrophone } from './devices'
+import { watchAll } from './watchers'
 import { createHinter } from './hints'
 import { startRecorder, type Recorder } from './recorder'
 import { createSensors } from './sensors'
@@ -14,7 +14,6 @@ import {
   objectsEvery,
   observeFrame,
   riskLevel,
-  watchBrowser,
   type ObservedKind,
 } from './signals'
 
@@ -179,7 +178,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     void evidence.request('control', now(), now() + seconds * 1000)
   }
 
-  const stops = [watchBrowser(setSignal), watchMicrophone(stream, setSignal), watchDevices(stream, setSignal)]
+  const unwatch = watchAll(stream, setSignal)
   void tick()
 
   return {
@@ -188,7 +187,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       stopped = true
       discarded = discard
       clearTimeout(timer)
-      for (const unwatch of stops) unwatch()
+      unwatch()
       await recorder.stop()
       if (discard) return sensors.dispose()
       // What was on ends here: a restarted camera starts afresh, nothing stays open to the exam's end.

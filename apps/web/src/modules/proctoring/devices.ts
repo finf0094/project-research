@@ -18,23 +18,26 @@ export const isVirtualCamera = (stream: MediaStream) => VIRTUAL.test(stream.getV
  * proof. Returns a function that stops watching.
  */
 export function watchDevices(stream: MediaStream, setSignal: SetSignal) {
-  const media = navigator.mediaDevices
+  // Missing in some embedded browsers: then only the names of the tracks in use are checked.
+  const media = navigator.mediaDevices as MediaDevices | undefined
   let stopped = false
   const check = async () => {
     const microphone = stream.getAudioTracks()[0]?.label ?? ''
     // The sound goes to the system's default output; its name says whether that is a headset. Chromium
     // lists it as 'default'; elsewhere the default comes first (Safari lists no outputs at all).
-    const outputs = (await media.enumerateDevices().catch(() => [])).filter((d) => d.kind === 'audiooutput')
+    const outputs = ((await media?.enumerateDevices().catch(() => [])) ?? []).filter(
+      (d) => d.kind === 'audiooutput',
+    )
     const output = (outputs.find((d) => d.deviceId === 'default') ?? outputs[0])?.label ?? ''
     if (stopped) return
     setSignal('virtual_camera', isVirtualCamera(stream))
     setSignal('headphones', isHeadset(microphone) || isHeadset(output))
   }
   void check()
-  media.addEventListener('devicechange', check)
+  media?.addEventListener('devicechange', check)
   return () => {
     stopped = true
-    media.removeEventListener('devicechange', check)
+    media?.removeEventListener('devicechange', check)
   }
 }
 

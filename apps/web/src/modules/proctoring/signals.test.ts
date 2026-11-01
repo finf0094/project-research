@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FrameReport } from './detectors'
-import { createSignalTracker, observeFrame, riskLevel, watchBrowser, type ObservedKind } from './signals'
+import { watchBrowser } from './watchers'
+import { createSignalTracker, observeFrame, riskLevel, type ObservedKind } from './signals'
 
 describe('signal tracker', () => {
   it('ignores a short glance away and fires after the condition persists', () => {
