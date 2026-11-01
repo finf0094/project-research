@@ -15,7 +15,8 @@ export const proctoringMessages = defineMessages({
         off_center: 'Вернитесь в центр кадра: лицо должно быть в овале.',
         second_screen: 'Отключите второй монитор на время экзамена.',
         headphones: 'Отключите наушники: во время экзамена звук должен идти из динамиков.',
-        virtual_camera: 'Выбрана виртуальная камера. Выберите настоящую (значок камеры в адресной строке) и обновите страницу.',
+        virtual_camera:
+          'Выбрана виртуальная камера. Выберите настоящую (значок камеры в адресной строке) и обновите страницу.',
         mic_off: 'Микрофон выключен. Включите его, чтобы продолжить под наблюдением.',
       },
       camera: {
@@ -85,7 +86,8 @@ export const proctoringMessages = defineMessages({
         off_center: 'Кадрдың ортасына оралыңыз: бетіңіз сопақтың ішінде болсын.',
         second_screen: 'Емтихан кезінде екінші мониторды ажыратыңыз.',
         headphones: 'Құлаққапты ажыратыңыз: емтихан кезінде дыбыс динамиктен шығуы керек.',
-        virtual_camera: 'Виртуалды камера таңдалған. Нақты камераны таңдап (мекенжай жолындағы камера белгісі), бетті жаңартыңыз.',
+        virtual_camera:
+          'Виртуалды камера таңдалған. Нақты камераны таңдап (мекенжай жолындағы камера белгісі), бетті жаңартыңыз.',
         mic_off: 'Микрофон өшірулі. Бақылаумен жалғастыру үшін оны қосыңыз.',
       },
       camera: {
@@ -154,7 +156,8 @@ export const proctoringMessages = defineMessages({
         off_center: 'Move back to the centre: keep your face in the oval.',
         second_screen: 'Disconnect the second screen for the exam.',
         headphones: 'Disconnect your headphones: during the exam, sound should come from the speakers.',
-        virtual_camera: 'A virtual camera is selected. Choose your real one (the camera icon in the address bar) and reload the page.',
+        virtual_camera:
+          'A virtual camera is selected. Choose your real one (the camera icon in the address bar) and reload the page.',
         mic_off: 'Your microphone is off. Turn it on to continue under supervision.',
       },
       camera: {

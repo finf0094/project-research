@@ -122,7 +122,8 @@ export const useProctoringStore = defineStore('proctoring', () => {
     } catch (error) {
       console.error('proctoring could not start', error)
       problem.value = cameraProblem(error)
-      problemDetail.value = error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 160) : String(error)
+      problemDetail.value =
+        error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 160) : String(error)
       // Whatever was acquired is released, so the camera light goes off and a retry does not open a second one.
       if (running?.media !== media) release(media)
       if (!abort.signal.aborted) await cameraLost(opts)
