@@ -44,6 +44,17 @@ export function atTime(ms: number, time: string): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime()
 }
 
+/**
+ * A typed time of day as "HH:MM" (24-hour, whatever the browser's language): "9:5" is not one, "930" is
+ * 09:30, "16.30" is 16:30. Null when it is no time.
+ */
+export function parseTime(text: string): string | null {
+  const m = /^(\d{1,2})[:.\s]?(\d{2})$/.exec(text.trim())
+  if (!m) return null
+  const [h, min] = [Number(m[1]), Number(m[2])]
+  return h < 24 && min < 60 ? `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}` : null
+}
+
 /** Whole days between two moments, by the calendar (not by 24-hour spans). */
 export const daysBetween = (from: number, to: number) =>
   Math.round((startOfDay(to) - startOfDay(from)) / DAY_MS)

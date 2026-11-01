@@ -7,6 +7,7 @@ import {
   monthGrid,
   monthTitle as titleOf,
   onDay,
+  parseTime,
   sameDay,
   startOfDay,
   timeOf,
@@ -52,6 +53,12 @@ const outside = (day: number) => new Date(day).getMonth() !== view.value.month
 
 const pickDay = (day: number) => (model.value = onDay(day, model.value))
 const pickTime = (time: string) => time && (model.value = atTime(model.value, time))
+/** A typed time is taken when it reads as one; otherwise the field shows the current time again. */
+function typeTime(input: HTMLInputElement) {
+  const time = parseTime(input.value)
+  if (time) pickTime(time)
+  input.value = timeOf(model.value)
+}
 const close = (event: Event) =>
   (event.currentTarget as HTMLElement).closest<HTMLElement>('[popover]')?.hidePopover()
 </script>
@@ -104,13 +111,16 @@ const close = (event: Event) =>
           >
             {{ time }}
           </button>
+          <!-- Typed, not the browser's time field: that one shows "04:00 PM" by the browser's language. -->
           <input
             class="custom"
-            type="time"
-            step="300"
+            type="text"
+            inputmode="numeric"
+            maxlength="5"
+            placeholder="16:30"
             :value="timeOf(model)"
             :aria-label="t('common.picker.exactTime')"
-            @change="pickTime(($event.target as HTMLInputElement).value)"
+            @change="typeTime($event.target as HTMLInputElement)"
           />
         </div>
       </div>

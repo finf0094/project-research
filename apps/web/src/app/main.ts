@@ -25,4 +25,12 @@ watch(
     if (!user && route.meta.shell) void router.replace({ path: '/login', query: { next: route.fullPath } })
   },
 )
+// A new version (the service worker updates in the background after a deploy) is put to use at once on
+// ordinary pages; exam pages keep running the version they started with and switch on their next load.
+// Not on the first visit: then the worker takes control without anything to switch from.
+if (navigator.serviceWorker?.controller) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (router.currentRoute.value.meta.shell) location.reload()
+  })
+}
 app.use(router).mount('#app')

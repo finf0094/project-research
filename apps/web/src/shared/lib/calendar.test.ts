@@ -47,3 +47,14 @@ describe('calendar', () => {
     expect(weekdayDate('kk', sunday, 'long')).toBe('1 қараша, жексенбі')
   })
 })
+
+describe('a typed time', () => {
+  it('reads 24-hour times in the usual ways and refuses the rest', async () => {
+    const { parseTime } = await import('./calendar')
+    expect(parseTime('9:30')).toBe('09:30')
+    expect(parseTime('930')).toBe('09:30')
+    expect(parseTime('16.05')).toBe('16:05')
+    expect(parseTime('24:00')).toBeNull()
+    expect(parseTime('ab')).toBeNull()
+  })
+})
