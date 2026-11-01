@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import type { SignalException, SignalKind } from '@exam/contracts'
-import { ref } from 'vue'
-import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
-import { setException } from '../api'
+import type { SignalKind } from '@exam/contracts'
+import type { useExceptions } from '../use-exceptions'
 
 /**
  * Section 25.3, individual exceptions: for a student with special needs, signals that are not watched (the
  * device raises no hint, the server sets no marker). Saved as soon as a box is ticked.
  */
-const props = defineProps<{ examId: string; participants: string[] }>()
-/** Owned by the editor page, so the saved state survives switching tabs. */
-const exceptions = defineModel<SignalException[]>('exceptions', { required: true })
+defineProps<{ participants: string[]; exceptions: ReturnType<typeof useExceptions> }>()
 const SIGNALS: SignalKind[] = [
   'face_missing',
   'looking_away',
@@ -20,35 +16,6 @@ const SIGNALS: SignalKind[] = [
   'object_detected',
   'paste',
 ]
-
-const disabledFor = (email: string) => exceptions.value.find((e) => e.email === email)?.disabledSignals ?? []
-const withSignals = (email: string, disabledSignals: SignalKind[]) => [
-  ...exceptions.value.filter((e) => e.email !== email),
-  { email, disabledSignals },
-]
-const saving = ref(new Set<string>())
-/** A refused save, per student: another student's save must not hide it. */
-const failed = ref(new Map<string, ErrorKey>())
-
-/** Shown at once and saved; a refused save puts the student's previous list back. */
-async function toggle(email: string, signal: SignalKind, on: boolean) {
-  const before = disabledFor(email)
-  const next = on ? [...before, signal] : before.filter((s) => s !== signal)
-  exceptions.value = withSignals(email, next)
-  saving.value = new Set(saving.value).add(email)
-  const errors = new Map(failed.value)
-  try {
-    await setException(props.examId, { email, disabledSignals: next })
-    errors.delete(email)
-  } catch (error) {
-    exceptions.value = withSignals(email, before)
-    errors.set(email, errorKey(error))
-  }
-  failed.value = errors
-  const rest = new Set(saving.value)
-  rest.delete(email)
-  saving.value = rest
-}
 </script>
 
 <template>
@@ -59,22 +26,24 @@ async function toggle(email: string, signal: SignalKind, on: boolean) {
     <details v-for="email in participants" :key="email" class="student">
       <summary>
         {{ email }}
-        <span v-if="disabledFor(email).length" class="count">{{
-          $t('authoring.exceptions.count', { n: disabledFor(email).length })
+        <span v-if="exceptions.disabledFor(email).length" class="count">{{
+          $t('authoring.exceptions.count', { n: exceptions.disabledFor(email).length })
         }}</span>
       </summary>
-      <fieldset :disabled="saving.has(email)">
+      <fieldset :disabled="exceptions.saving.value.has(email)">
         <legend class="visually-hidden">{{ $t('authoring.exceptions.for', { email }) }}</legend>
         <label v-for="signal in SIGNALS" :key="signal">
           <input
             type="checkbox"
-            :checked="disabledFor(email).includes(signal)"
-            @change="toggle(email, signal, ($event.target as HTMLInputElement).checked)"
+            :checked="exceptions.disabledFor(email).includes(signal)"
+            @change="exceptions.toggle(email, signal, ($event.target as HTMLInputElement).checked)"
           />
           {{ $t(`review.marker.${signal}`) }}
         </label>
       </fieldset>
-      <p v-if="failed.has(email)" class="error" role="alert">{{ $t(failed.get(email)!) }}</p>
+      <p v-if="exceptions.failed.value.has(email)" class="error" role="alert">
+        {{ $t(exceptions.failed.value.get(email)!) }}
+      </p>
     </details>
   </section>
 </template>

@@ -12,6 +12,7 @@ import QuestionsWorkspace from '../components/QuestionsWorkspace.vue'
 import SaveBar from '../components/SaveBar.vue'
 import { questionsWithIssues } from '../issues'
 import { useExamDraft } from '../use-exam-draft'
+import { useExceptions } from '../use-exceptions'
 
 /**
  * Creates a new exam (/examiner/exams/new) or edits one (/examiner/exams/:examId/edit), in three steps:
@@ -24,11 +25,18 @@ const examId = computed(() => (route.params.examId ? String(route.params.examId)
 type Step = 'settings' | 'questions' | 'participants'
 const step = ref<Step>('settings')
 const selected = ref(0)
-const { draft, participants, exceptions, locked, saved, invalid, load, save, submit, participantsSaved } =
-  useExamDraft(examId, () => {
+const { draft, participants, exceptions, locked, saved, invalid, load, save, submit } = useExamDraft(
+  examId,
+  () => {
     step.value = 'settings'
     selected.value = 0
-  })
+  },
+)
+const signalExceptions = useExceptions(examId, exceptions)
+function participantsSaved(list: string[]) {
+  participants.value = list
+  signalExceptions.keepOnly(list)
+}
 const { t } = useI18n()
 
 // Questions that would fail the check, marked in the outline as the examiner goes.
@@ -110,12 +118,7 @@ async function send() {
             :initial="participants"
             @saved="participantsSaved"
           />
-          <ExceptionsEditor
-            v-if="examId"
-            v-model:exceptions="exceptions"
-            :exam-id="examId"
-            :participants="participants"
-          />
+          <ExceptionsEditor v-if="examId" :exceptions="signalExceptions" :participants="participants" />
         </AppCard>
       </Transition>
 

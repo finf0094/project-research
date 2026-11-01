@@ -72,11 +72,5 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
     return null
   }
 
-  /** The server drops a removed student's exception (a returning student starts without one). */
-  function participantsSaved(list: string[]) {
-    participants.value = list
-    exceptions.value = exceptions.value.filter((e) => list.includes(e.email))
-  }
-
-  return { draft, participants, exceptions, locked, saved, invalid, load, save, submit, participantsSaved }
+  return { draft, participants, exceptions, locked, saved, invalid, load, save, submit }
 }
