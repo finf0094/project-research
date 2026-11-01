@@ -38,13 +38,14 @@ export function useExceptions(examId: Ref<string | null>, exceptions: Ref<Signal
     }
     // The page left this exam (even if it came back to it since): the answer is about an old screen.
     if (generation !== loadedAt) return
-    // A student removed meanwhile has no entry left: nothing to restore for them.
-    if (refused && exceptions.value.some((e) => e.email === email)) put(email, before)
+    saving.value = without(saving.value, email)
+    // A student removed meanwhile has no entry left: nothing to restore or report for them.
+    if (!exceptions.value.some((e) => e.email === email)) return
+    if (refused) put(email, before)
     const errors = new Map(failed.value)
     if (refused) errors.set(email, refused)
     else errors.delete(email)
     failed.value = errors
-    saving.value = without(saving.value, email)
   }
 
   /** The server drops a removed student's exception (a returning student starts without one). */
@@ -53,11 +54,15 @@ export function useExceptions(examId: Ref<string | null>, exceptions: Ref<Signal
     failed.value = new Map([...failed.value].filter(([email]) => participants.includes(email)))
   }
 
-  watch(examId, () => {
-    generation++
-    saving.value = new Set()
-    failed.value = new Map()
-  })
+  watch(
+    examId,
+    () => {
+      generation++
+      saving.value = new Set()
+      failed.value = new Map()
+    },
+    { flush: 'sync' },
+  )
 
   return { saving, failed, disabledFor, toggle, keepOnly }
 }

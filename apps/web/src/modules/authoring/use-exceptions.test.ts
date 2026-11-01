@@ -61,6 +61,8 @@ describe('individual exceptions', () => {
     finish(false)
     await saving
     expect(exceptions.value).toEqual([])
+    expect(x.failed.value.size).toBe(0)
+    expect(x.saving.value.size).toBe(0)
   })
 
   it('forgets removed students', () => {
