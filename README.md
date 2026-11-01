@@ -85,10 +85,10 @@ docker compose -f infra/docker-compose.yml run --rm api node src/db/migrate.ts
 Caddy serves the built SPA (with its service worker) and proxies `/api`; API and worker share one image.
 
 **A server in one step.** On a fresh Ubuntu server (4 GB RAM or more), as root, or in the provider's
-cloud-init field (with the first line):
+cloud-init field (with the first line; some panels accept only `#!/bin/sh`):
 
 ```bash
-#!/bin/bash
+#!/bin/sh
 curl -fsSL https://raw.githubusercontent.com/finf0094/project-research/feat/exam-platform/infra/install.sh | bash
 ```
 

@@ -23,7 +23,10 @@ if ! swapon --show | grep -q .; then
 fi
 
 command -v git >/dev/null || { apt-get update && apt-get install -y git; }
-command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
+# Docker's own script first; a release it does not know yet gets Ubuntu's own packages instead.
+if ! command -v docker >/dev/null; then
+  curl -fsSL https://get.docker.com | sh || { apt-get update && apt-get install -y docker.io docker-compose-v2; }
+fi
 
 if [ -d "$DIR/.git" ]; then git -C "$DIR" pull --ff-only; else git clone -b "$BRANCH" "$REPO" "$DIR"; fi
 cd "$DIR/infra"
