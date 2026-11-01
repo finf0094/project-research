@@ -12,7 +12,7 @@ import { liveKitOf, roomOf, studentIdentity } from './service.ts'
  * attempt. Listening there is the one place that sees all of them. Returns the function that stops it.
  */
 export async function watchEndedCalls(deps: Deps, log: FastifyBaseLogger) {
-  if (!liveKitOf(deps)) return undefined // no calls without LiveKit: nothing to watch
+  // Without LiveKit endCall stops before any query; the settings are read per call, not at startup.
   const end = (attemptId: string) =>
     void endCall(deps, attemptId).catch((error: unknown) =>
       log.error({ err: error, attemptId }, 'could not remove the student from the oral exam room'),
@@ -24,7 +24,7 @@ export async function watchEndedCalls(deps: Deps, log: FastifyBaseLogger) {
       if (attemptId) end(attemptId)
     },
     // Announcements made while the connection was down are lost: end every call that may have ended then.
-    () => void endedOralAttempts(deps).then((ids) => ids.forEach(end)),
+    () => void (liveKitOf(deps) && endedOralAttempts(deps).then((ids) => ids.forEach(end))),
   )
 }
 
