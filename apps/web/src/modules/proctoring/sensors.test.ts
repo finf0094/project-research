@@ -73,6 +73,27 @@ describe('createSensors', () => {
     expect(await (await sensors).analyze(true)).toBeNull()
   })
 
+  it('fails instead of waiting forever when the models do not load', async () => {
+    vi.useFakeTimers()
+    try {
+      const sensors = createSensors(stream, 'full', baseline)
+      const failed = expect(sensors).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(60_000)
+      await failed
+      expect(FakeWorker.last.terminated).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reports a worker that dies mid-exam as dead', async () => {
+    const { sensors, worker } = await started()
+    expect(sensors.dead()).toBe(false)
+    worker.onerror?.({ message: 'out of memory' })
+    expect(sensors.dead()).toBe(true)
+    expect(await sensors.analyze(false)).toBeNull()
+  })
+
   it('settles waiting frames when the page goes away', async () => {
     const { sensors, worker } = await started()
     const waiting = sensors.analyze(false)

@@ -1,8 +1,9 @@
-import type { AttemptSession, AuthoredExam, ExamPackage, StudentExam } from '@exam/contracts'
+import type { AttemptSession, ExamPackage, StudentExam } from '@exam/contracts'
 import { genesisHash, openPackage } from '@exam/integrity'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { exams } from '../src/db/schema.ts'
+import { attempts, exams } from '../src/db/schema.ts'
+import { authoredExam, updateExam } from '../src/modules/exams/authoring.ts'
 import { clientChain, createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
 
 let ctx: TestContext
@@ -59,14 +60,52 @@ describe('offline start: the package', () => {
     expect((await download()).statusCode).toBe(409) // a week-long window is no sitting
   })
 
-  it('gets a new version when the exam is edited, so outdated packages no longer open', async () => {
+  // Authoring is called directly with the test clock (its routes use the real one).
+  const read = () => authoredExam(ctx.deps.db, seeded.examiner.id, seeded.exam.id, ctx.clock.now)
+  const edit = async () =>
+    updateExam(ctx.deps.db, seeded.examiner.id, seeded.exam.id, (await read()).definition, ctx.clock.now)
+
+  it('gets a new version when the exam is edited before it opens, so outdated packages no longer open', async () => {
     const before: ExamPackage = (await download()).json()
-    const { definition }: AuthoredExam = (
-      await call('GET', `/examiner/exams/${seeded.exam.id}/definition`, examiner)
-    ).json()
-    const put = await call('PUT', `/examiner/exams/${seeded.exam.id}/definition`, examiner, definition)
-    expect(put.statusCode).toBe(204)
+    expect((await read()).locked).toBe(false)
+    await edit()
     expect(((await download()).json() as ExamPackage).version).not.toBe(before.version)
+  })
+
+  it('freezes the exam once it opens with packages out, before any offline attempt has synced', async () => {
+    await download()
+    at(opensAt)
+    expect((await read()).locked).toBe(true)
+    await expect(edit()).rejects.toMatchObject({ statusCode: 409 })
+  })
+
+  it('stays editable after opening when nobody downloaded a package', async () => {
+    at(opensAt)
+    expect((await read()).locked).toBe(false)
+    await expect(edit()).resolves.toBeUndefined()
+  })
+
+  it('waits for an online start holding the exam, then sees its attempt instead of reserving another', async () => {
+    // Stands in for startAttempt: the exam row under FOR SHARE while the attempt is created.
+    let pending: ReturnType<typeof download> | undefined
+    await ctx.deps.db.transaction(async (tx) => {
+      await tx.select().from(exams).where(eq(exams.id, seeded.exam.id)).for('share')
+      pending = download()
+      await new Promise((resolve) => setTimeout(resolve, 200)) // the download reaches the lock and waits
+      const id = crypto.randomUUID()
+      await tx.insert(attempts).values({
+        id,
+        examId: seeded.exam.id,
+        userId: seeded.student.id,
+        status: 'active',
+        startedAt: new Date(ctx.clock.now),
+        deadline: new Date(opensAt + 60 * 60_000),
+        hmacKeyEnc: Buffer.alloc(60),
+        lastHash: await genesisHash(id),
+        lastSeenAt: new Date(ctx.clock.now),
+      })
+    })
+    expect((await pending!).statusCode).toBe(409)
   })
 })
 

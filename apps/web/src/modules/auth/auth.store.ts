@@ -1,6 +1,7 @@
 import { User, type Role } from '@exam/contracts'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { deletePackage, listPackages } from '@/modules/offline'
 import { ApiError, request } from '@/shared/lib/http'
 
 const CACHE_KEY = 'exam.user'
@@ -27,8 +28,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    const userId = user.value?.id
     await request('/auth/logout', { method: 'POST' }).catch(() => undefined)
     setUser(null)
+    // On a shared device the next person must not find this student's packages (their chain keys).
+    // Best effort: logging out must not fail because local storage did.
+    if (userId)
+      await listPackages(userId)
+        .then((pkgs) => Promise.all(pkgs.map((p) => deletePackage(userId, p.examId))))
+        .catch(() => undefined)
   }
 
   function setUser(next: User | null) {

@@ -2,7 +2,7 @@ import type { AuthoredExam, ExamDefinition, ParticipantsResult } from '@exam/con
 import { and, asc, count, eq, inArray, notInArray } from 'drizzle-orm'
 import type { Db, Tx } from '../../db/client.ts'
 import { examExceptions } from './exceptions.ts'
-import { attempts, examParticipants, exams, questions, users } from '../../db/schema.ts'
+import { attempts, examParticipants, examPreloads, exams, questions, users } from '../../db/schema.ts'
 import { conflict, notFound } from '../../shared/errors.ts'
 
 /** The exam, if this examiner owns it; FOR UPDATE inside a transaction that changes it. */
@@ -16,9 +16,20 @@ async function ownedExam(db: Db | Tx, ownerId: string, examId: string, forUpdate
   return exam
 }
 
-async function hasAttempts(db: Db | Tx, examId: string) {
-  const [row] = await db.select({ n: count() }).from(attempts).where(eq(attempts.examId, examId))
+async function hasRows(db: Db | Tx, table: typeof attempts | typeof examPreloads, examId: string) {
+  const [row] = await db.select({ n: count() }).from(table).where(eq(table.examId, examId))
   return (row?.n ?? 0) > 0
+}
+
+/**
+ * Whether students may already be writing: an attempt exists, or the exam has opened and someone downloaded a
+ * package (an offline attempt reaches the server only on its first sync, and its answers point at these
+ * question ids). Before opening a download alone does not lock: an edit changes the code, so the outdated
+ * package no longer opens and the device downloads the new one.
+ */
+async function isLocked(db: Db | Tx, exam: { id: string; opensAt: Date }, now: number) {
+  if (await hasRows(db, attempts, exam.id)) return true
+  return now >= exam.opensAt.getTime() && (await hasRows(db, examPreloads, exam.id))
 }
 
 const examColumns = (d: ExamDefinition) => ({
@@ -45,13 +56,22 @@ export async function createExam(db: Db, ownerId: string, definition: ExamDefini
 }
 
 /**
- * Replaces the exam's settings and questions. Once a student has started, the exam is frozen: answers,
- * tickets and the sealed event logs refer to exactly these questions.
+ * Replaces the exam's settings and questions. Once students may be writing (see isLocked), the exam is
+ * frozen: answers, tickets and the sealed event logs refer to exactly these questions. `now` is the
+ * server's time (a parameter so tests can set it).
  */
-export async function updateExam(db: Db, ownerId: string, examId: string, definition: ExamDefinition) {
+export async function updateExam(
+  db: Db,
+  ownerId: string,
+  examId: string,
+  definition: ExamDefinition,
+  now: number,
+) {
   await db.transaction(async (tx) => {
-    await ownedExam(tx, ownerId, examId, true)
-    if (await hasAttempts(tx, examId))
+    // FOR UPDATE also waits for a package download in progress (it locks the exam row), so its reservation
+    // is seen here.
+    const exam = await ownedExam(tx, ownerId, examId, true)
+    if (await isLocked(tx, exam, now))
       throw conflict('Students have started this exam; it can no longer change')
     // Questions are recreated with new ids: downloaded packages are outdated, so their code stops working
     // (a new one is made on the next download).
@@ -64,7 +84,12 @@ export async function updateExam(db: Db, ownerId: string, examId: string, defini
   })
 }
 
-export async function authoredExam(db: Db, ownerId: string, examId: string): Promise<AuthoredExam> {
+export async function authoredExam(
+  db: Db,
+  ownerId: string,
+  examId: string,
+  now: number,
+): Promise<AuthoredExam> {
   const exam = await ownedExam(db, ownerId, examId)
   const rows = await db
     .select()
@@ -87,7 +112,7 @@ export async function authoredExam(db: Db, ownerId: string, examId: string): Pro
         points,
       })),
     },
-    locked: await hasAttempts(db, examId),
+    locked: await isLocked(db, exam, now),
     participants: await participantEmails(db, examId),
     exceptions: await examExceptions(db, examId),
   }

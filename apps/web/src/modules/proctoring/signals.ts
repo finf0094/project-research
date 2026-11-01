@@ -75,6 +75,9 @@ export function riskLevel(active: ReadonlySet<SignalKind>, recentActivations: nu
   return 'low'
 }
 
+/** Object detection is the heaviest model: run it every few seconds only (the exam and preflight alike). */
+export const OBJECTS_EVERY_MS = 2000
+
 /** Frames analysed per second at each level. */
 export const ANALYSIS_FPS: Record<RiskLevel, number> = { low: 1, medium: 2, high: 4 }
 
@@ -89,3 +92,20 @@ export const HINTED: ReadonlySet<SignalKind> = new Set([
   'looking_away',
   'object_detected',
 ])
+
+/** Browser signals: leaving the tab and pasting. Returns a function that stops watching. */
+export function watchBrowser(setSignal: (kind: SignalKind, on: boolean) => void) {
+  const onVisibility = () => setSignal('tab_hidden', document.visibilityState === 'hidden')
+  const onPaste = (event: ClipboardEvent) => {
+    // Only substantial pastes matter; moving a word around is normal editing.
+    if ((event.clipboardData?.getData('text') ?? '').length < 20) return
+    setSignal('paste', true)
+    setSignal('paste', false)
+  }
+  document.addEventListener('visibilitychange', onVisibility)
+  document.addEventListener('paste', onPaste)
+  return () => {
+    document.removeEventListener('visibilitychange', onVisibility)
+    document.removeEventListener('paste', onPaste)
+  }
+}

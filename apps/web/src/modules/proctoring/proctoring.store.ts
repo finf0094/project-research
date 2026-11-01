@@ -64,19 +64,22 @@ export const useProctoringStore = defineStore('proctoring', () => {
     const abort = new AbortController()
     launching = abort
     camera.value = 'starting'
+    let media: MediaStream | null = null
     try {
-      const media = await abortable(requestCamera(), abort.signal, (m) => stopTracks(m))
+      media = await abortable(requestCamera(), abort.signal, (m) => stopTracks(m))
       if (!media) return
       const proctor = await abortable(
         startProctor(media, {
           ...opts,
+          // A start given up on may finish after this attempt was opened again: it must not add to its chain.
+          log: silencedOnAbort(opts.log, abort.signal),
           tier: savedTier(),
           baseline: savedBaseline(),
           onHint: (kind) => (hint.value = kind),
           onRisk: (level) => (risk.value = level),
         }),
         abort.signal,
-        (p) => void p.stop(),
+        (p) => void p.stop(true),
       )
       if (!proctor) return stopTracks(media)
 
@@ -96,6 +99,8 @@ export const useProctoringStore = defineStore('proctoring', () => {
       }
     } catch (error) {
       console.error('proctoring could not start', error)
+      // Whatever was acquired is released, so the camera light goes off and a retry does not open a second one.
+      if (running?.media !== media) stopTracks(media)
       if (!abort.signal.aborted) await cameraLost(opts)
     } finally {
       if (launching === abort) launching = null
@@ -143,6 +148,14 @@ export const useProctoringStore = defineStore('proctoring', () => {
 
   return { stream, camera, hint, risk, recording, start, retry, capture, stop }
 })
+
+/** The log as seen by one start: once that start is aborted, its events are dropped. */
+function silencedOnAbort(log: EventLog, signal: AbortSignal): EventLog {
+  return {
+    append: (type, data, onWrite) => (signal.aborted ? Promise.resolve() : log.append(type, data, onWrite)),
+    head: () => log.head(),
+  }
+}
 
 /** Resolves with the value, or with null if aborted first; a value arriving after the abort is cleaned up. */
 function abortable<T>(

@@ -8,8 +8,16 @@ const EDGE = 8
  * runs on the `toggle` event, when the menu can be measured.
  */
 export function placeNextToOpener(event: Event) {
-  if ((event as ToggleEvent).newState !== 'open') return
   const menu = event.target as HTMLElement
+  // While open it follows its button when the window changes (a rotation, the phone's address bar).
+  const follow = () => place(menu)
+  if ((event as ToggleEvent).newState !== 'open') return removeEventListener('resize', follow)
+  place(menu)
+  addEventListener('resize', follow)
+  menu.addEventListener('toggle', () => removeEventListener('resize', follow), { once: true })
+}
+
+function place(menu: HTMLElement) {
   const opener = document.querySelector<HTMLElement>(`[popovertarget="${menu.id}"]`)
   if (!opener) return
   const button = opener.getBoundingClientRect()
@@ -19,6 +27,4 @@ export function placeNextToOpener(event: Event) {
   const left = Math.min(Math.max(EDGE, button.right - width), innerWidth - width - EDGE)
   menu.style.top = `${Math.max(EDGE, top)}px`
   menu.style.left = `${left}px`
-  // Placed once: a resized window would leave it detached from its button, so it simply closes.
-  addEventListener('resize', () => menu.hidePopover(), { once: true })
 }

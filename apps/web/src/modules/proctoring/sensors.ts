@@ -3,6 +3,9 @@ import type { Pose } from './calibration'
 import type { FrameReport } from './detectors'
 import type { WorkerRequest, WorkerResponse } from './detector.worker'
 
+/** Models are large; on a slow link they may take a while, but a fetch that stalls must not wait forever. */
+const READY_TIMEOUT_MS = 60_000
+
 export type { FrameReport } from './detectors'
 
 export interface Sensors {
@@ -12,6 +15,8 @@ export interface Sensors {
   lower(tier: DeviceTier): void
   /** Microphone level 0..1 (RMS). */
   loudness(): number
+  /** True once the detector worker has died: no frame will be analysed again. */
+  dead(): boolean
   dispose(): void
 }
 
@@ -39,7 +44,11 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     pending.clear()
   }
   let markReady = () => {}
-  const ready = new Promise<void>((resolve) => (markReady = resolve))
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  const ready = new Promise<void>((resolve, reject) => {
+    markReady = resolve
+    timeout = setTimeout(() => reject(new Error('detectors did not load in time')), READY_TIMEOUT_MS)
+  })
   worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
     if (data.type === 'ready') return markReady()
     pending.get(data.id)?.(data.report)
@@ -54,7 +63,16 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     markReady()
   }
   post({ type: 'init', tier })
-  await ready
+  // A stall becomes an error, which callers already treat as "analysis could not start".
+  try {
+    await ready
+  } catch (error) {
+    worker.terminate()
+    video.srcObject = null
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 
   const audio = new AudioContext()
   // Without a user gesture (e.g. after a reload) the context starts suspended and hears nothing.
@@ -85,6 +103,7 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
       for (const s of samples) sum += s * s
       return Math.sqrt(sum / samples.length)
     },
+    dead: () => dead,
     dispose() {
       window.removeEventListener('pointerdown', resume)
       window.removeEventListener('keydown', resume)

@@ -26,22 +26,30 @@ type ExamRow = typeof exams.$inferSelect
  * key reserved for them. The sealed content is the same for everyone, so it is made once per code.
  */
 export async function examPackage(deps: Deps, userId: string, examId: string): Promise<ExamPackage> {
-  const now = deps.now()
-  let [exam] = await deps.db.select().from(exams).where(eq(exams.id, examId))
-  if (!exam) throw notFound('Exam not found')
-  if (!(await isParticipant(deps.db, examId, userId))) throw forbidden()
-  if (!offlineCapable(exam)) throw conflict('Only sittings of written exams can start without network')
-  if (now < exam.opensAt.getTime() - PRELOAD_BEFORE_MS || now >= exam.opensAt.getTime())
-    throw conflict('The package is offered only before the exam opens')
-  const [started] = await deps.db
-    .select({ id: attempts.id })
-    .from(attempts)
-    .where(and(eq(attempts.examId, examId), eq(attempts.userId, userId)))
-  if (started) throw conflict('The attempt has already started')
+  // The checks and the reservation run under one exam row lock. FOR UPDATE, not FOR SHARE: two shared locks
+  // do not wait for each other, and an online start (FOR SHARE) must either see this reservation and take
+  // its attempt id, or have created its attempt before we check. An edit (also FOR UPDATE) waits likewise.
+  const { row, now, reservation } = await deps.db.transaction(async (tx) => {
+    const [exam] = await tx.select().from(exams).where(eq(exams.id, examId)).for('update')
+    if (!exam) throw notFound('Exam not found')
+    if (!(await isParticipant(tx, examId, userId))) throw forbidden()
+    if (!offlineCapable(exam)) throw conflict('Only sittings of written exams can start without network')
+    // Read after the lock: a time taken before waiting for it could be stale.
+    const now = deps.now()
+    if (now < exam.opensAt.getTime() - PRELOAD_BEFORE_MS || now >= exam.opensAt.getTime())
+      throw conflict('The package is offered only before the exam opens')
+    const [started] = await tx
+      .select({ id: attempts.id })
+      .from(attempts)
+      .where(and(eq(attempts.examId, examId), eq(attempts.userId, userId)))
+    if (started) throw conflict('The attempt has already started')
+    return { row: exam, now, reservation: await reserve(deps, tx, examId, userId) }
+  })
 
-  exam = await withStartCode(deps, exam)
+  // After the lock is released, since making the code updates the exam row. An edit in between makes
+  // sealing refuse with a retry (see sealCurrent), never a package of mixed versions.
+  const exam = await withStartCode(deps, row)
   const disabledSignals = await disabledSignalsOf(deps.db, examId, userId)
-  const reservation = await deps.db.transaction((tx) => reserve(deps, tx, examId, userId))
   return {
     examId,
     attemptId: reservation.attemptId,

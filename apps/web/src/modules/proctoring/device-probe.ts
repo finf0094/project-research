@@ -3,7 +3,7 @@ import { stopTracks } from '@/shared/lib/media'
 import { saveBaseline, type Pose } from './calibration'
 import { saveTier, tierFromTiming } from './device-tier'
 import { createSensors, requestCamera, type Sensors } from './sensors'
-import { DARK_BRIGHTNESS } from './signals'
+import { DARK_BRIGHTNESS, OBJECTS_EVERY_MS } from './signals'
 
 /** `blocked`: no permission or the device went away; `failed`: the analysis could not start here. */
 export type ProbeState = 'idle' | 'starting' | 'running' | 'blocked' | 'failed'
@@ -104,11 +104,15 @@ export function useDeviceProbe() {
   }
 
   let measuring = false
+  let lastObjects = -Infinity
   async function measure() {
     if (measuring || !sensors) return // a slow computer: skip a beat instead of piling frames up
     measuring = true
+    // Objects as often as the exam looks for them, so the timing matches what the exam will cost.
+    const withObjects = performance.now() - lastObjects > OBJECTS_EVERY_MS
+    if (withObjects) lastObjects = performance.now()
     const frame = await sensors
-      .analyze(true)
+      .analyze(withObjects)
       .catch(() => null)
       .finally(() => (measuring = false))
     if (!frame || disposed || state.value !== 'running') return

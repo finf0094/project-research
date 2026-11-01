@@ -28,14 +28,14 @@ export const authoringRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app,
   app.get(
     '/examiner/exams/:id/definition',
     { schema: { params: IdParams, response: { 200: AuthoredExam } } },
-    async (request) => authoredExam(deps.db, me(request), request.params.id),
+    async (request) => authoredExam(deps.db, me(request), request.params.id, deps.now()),
   )
 
   app.put(
     '/examiner/exams/:id/definition',
     { schema: { params: IdParams, body: ExamDefinition } },
     async (request, reply) => {
-      await updateExam(deps.db, me(request), request.params.id, request.body)
+      await updateExam(deps.db, me(request), request.params.id, request.body, deps.now())
       return reply.code(204).send()
     },
   )
