@@ -71,7 +71,9 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
       chunks: m.chunks,
     })),
     serverAnalysis: attempt.serverAnalysis,
-    ...(exam.profile.mode === 'oral' ? await oralRecordingOf(db, attempt) : { call: [], audio: null }),
+    ...(exam.profile.mode === 'oral'
+      ? await oralRecordingOf(db, attempt, deps.now())
+      : { call: [], audio: null }),
     decision: decision
       ? {
           verdict: decision.verdict,

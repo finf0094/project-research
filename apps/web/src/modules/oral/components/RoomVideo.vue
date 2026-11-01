@@ -22,10 +22,12 @@ const { t } = useI18n()
 
 const remote = ref<HTMLVideoElement>()
 const own = ref<HTMLVideoElement>()
-watchEffect(() => {
-  if (remote.value) remote.value.srcObject = props.stream
-  if (own.value) own.value.srcObject = props.local ?? null
-})
+// Each picture only when its own stream changes: re-setting srcObject restarts a video (a black flash).
+const attach = (video: HTMLVideoElement | undefined, stream: MediaStream | null) => {
+  if (video && video.srcObject !== stream) video.srcObject = stream
+}
+watchEffect(() => attach(remote.value, props.stream))
+watchEffect(() => attach(own.value, props.local ?? null))
 
 /** Problems stay visible over the picture too (a frozen frame looks like a working call). */
 const problem = computed(() => props.state !== 'connected' && (props.state !== 'idle' || !props.stream))
@@ -39,14 +41,16 @@ const status = computed(() =>
   <div class="room" :class="{ live }">
     <!-- Muted: the sound is played by the call itself, so autoplay rules never block the picture. -->
     <video v-show="stream" ref="remote" class="remote" muted playsinline autoplay :aria-label="who" />
-    <p class="visually-hidden" role="status">{{ status }}</p>
+    <p class="visually-hidden" role="status">
+      {{ status }}<template v-if="recording && problem"> {{ $t('oral.stillRecording') }}</template>
+    </p>
 
     <div v-if="!stream || problem" class="overlay" :class="{ dim: stream }">
       <span class="icon" aria-hidden="true"
         ><component :is="state === 'connected' ? Video : VideoOff" :size="28"
       /></span>
       <p class="message" aria-hidden="true">{{ status }}</p>
-      <p v-if="recording && problem" class="keep">{{ $t('oral.stillRecording') }}</p>
+      <p v-if="recording && problem" class="keep" aria-hidden="true">{{ $t('oral.stillRecording') }}</p>
       <AppButton v-if="state === 'disconnected'" variant="lime" @click="$emit('retry')">{{
         $t('oral.reconnect')
       }}</AppButton>

@@ -8,7 +8,6 @@ import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
 import { examQuestions, isParticipant, studentExam } from '../exams/service.ts'
-import { offlineCapable } from '../exams/offline.ts'
 import { reservationOf } from '../preload/service.ts'
 
 type AttemptRow = typeof attempts.$inferSelect
@@ -45,12 +44,10 @@ export async function startAttempt(
     if (!exam) throw notFound('Exam not found')
     // A downloaded package reserved the attempt's id and key: the events written offline are sealed with them.
     const reserved = await reservationOf(tx, examId, userId)
-    // An offline start is heard of only after the sitting opened (its code is read out then), and only for
-    // sittings: anything else would hand out the questions early.
-    if (
-      offlineStartedAt !== undefined &&
-      (!reserved || !offlineCapable(exam) || now < exam.opensAt.getTime())
-    )
+    // An offline start is heard of only after the sitting opened (its code is read out then); before that it
+    // would hand out the questions early. The reservation proves the exam was a sitting when downloaded, so a
+    // later edit (say, a longer window) cannot strand the students who already started.
+    if (offlineStartedAt !== undefined && (!reserved || now < exam.opensAt.getTime()))
       throw conflict('Not a valid offline start')
     const startedAt = offlineStartedAt === undefined ? now : offlineStart(exam, offlineStartedAt, now)
     if (offlineStartedAt === undefined && (now < exam.opensAt.getTime() || now >= exam.closesAt.getTime()))
@@ -88,8 +85,8 @@ export async function startAttempt(
 }
 
 /**
- * The start time of an attempt begun offline. Never refused (the device has already sealed the student's
- * answers): a device time outside what is possible is pulled into the window — not before opening, not in the
+ * The start time of an attempt begun offline (refused only before opening, see above, since the device has
+ * already sealed the student's answers): a device time outside what is possible is pulled into the window — not before opening, not in the
  * future, not after closing. Offline start exists only for sittings, so the deadline (at most the window's
  * close) leaves nothing to gain; answers still count only if they arrive within the offline window.
  */

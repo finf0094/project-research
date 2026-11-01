@@ -3,14 +3,20 @@ import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Db } from '../db/client.ts'
 import { attempts, blobs, events, exams } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
-import { BYTES_PER_SECOND, MAX_AUDIO_BYTES, decodeAudio, encodeOpus, silence } from '../media/audio.ts'
+import {
+  AUDIO_LEASE_MS,
+  BYTES_PER_SECOND,
+  MAX_AUDIO_BYTES,
+  MAX_AUDIO_TRIES,
+  decodeAudio,
+  encodeOpus,
+  silence,
+} from '../media/audio.ts'
 import { blobKey } from '../shared/storage.ts'
 
 /** A claim older than this belongs to a worker that died. */
-const CLAIM_LEASE_MS = 15 * 60_000
+const CLAIM_LEASE_MS = AUDIO_LEASE_MS
 
-/** Transient failures (storage, a stuck ffmpeg) are retried this many times, then the merge is given up. */
-export const MAX_AUDIO_TRIES = 3
 /** Gaps longer than this between chunks (a reload, the camera restarting) are kept as silence. */
 const GAP_MS = 500
 
@@ -23,24 +29,15 @@ const GAP_MS = 500
 export async function mergeNextAudio(deps: Deps): Promise<boolean> {
   const attempt = await claimNext(deps)
   if (!attempt) return false
-  const done = { audioMergedAt: new Date(deps.now()), audioClaimedAt: null }
   try {
     const audioHash = await merge(deps, attempt.id)
     await deps.db
       .update(attempts)
-      .set({ ...done, audioHash })
+      .set({ audioHash, audioMergedAt: new Date(deps.now()), audioClaimedAt: null })
       .where(eq(attempts.id, attempt.id))
   } catch (error) {
+    // The claim stays: its lease is the pause before the next try (tries were counted when claiming).
     console.error(`audio of attempt ${attempt.id} could not be merged`, error)
-    const tries = attempt.audioTries + 1
-    await deps.db
-      .update(attempts)
-      .set(
-        tries >= MAX_AUDIO_TRIES
-          ? { ...done, audioTries: tries }
-          : { audioTries: tries, audioClaimedAt: null },
-      )
-      .where(eq(attempts.id, attempt.id))
   }
   return true
 }
@@ -58,6 +55,8 @@ async function claimNext({ db, now }: Deps) {
           inArray(attempts.status, ['ready_for_review', 'decided']),
           isNull(attempts.audioMergedAt),
           or(isNull(attempts.audioClaimedAt), lt(attempts.audioClaimedAt, leaseCutoff)),
+          // Counted at the claim, so a merge that crashes the worker is not retried forever either.
+          lt(attempts.audioTries, MAX_AUDIO_TRIES),
         ),
       )
       .limit(1)
@@ -80,9 +79,14 @@ async function merge({ db, storage }: Deps, attemptId: string): Promise<string |
     const chunk = await storage.get(blobKey(attemptId, hash))
     const sound = chunk ? await decodeAudio(chunk).catch(() => null) : null
     if (!sound?.length) continue
-    if (endsAt !== null && start - endsAt > GAP_MS) parts.push(silence(Math.min(start - endsAt, 3_600_000)))
-    parts.push(sound)
-    size = parts.reduce((sum, p) => sum + p.length, 0)
+    // Silence and sound both count towards the cap, so memory stays bounded whatever the gaps.
+    if (endsAt !== null && start - endsAt > GAP_MS) {
+      const gap = silence(Math.min(start - endsAt, ((MAX_AUDIO_BYTES - size) / BYTES_PER_SECOND) * 1000))
+      parts.push(gap)
+      size += gap.length
+    }
+    parts.push(sound.subarray(0, Math.max(0, MAX_AUDIO_BYTES - size)))
+    size += Math.min(sound.length, Math.max(0, MAX_AUDIO_BYTES - size))
     endsAt = start + (sound.length / BYTES_PER_SECOND) * 1000
   }
   if (!size) return null

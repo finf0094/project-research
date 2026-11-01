@@ -13,6 +13,6 @@ describe('byteRange', () => {
     expect(byteRange(undefined, 100)).toBeNull()
     expect(byteRange('bytes=1-2,5-6', 100)).toBeNull()
     expect(byteRange('bytes=100-', 100)).toBe('unsatisfiable')
-    expect(byteRange('bytes=20-10', 100)).toBe('unsatisfiable')
+    expect(byteRange('bytes=20-10', 100)).toBeNull() // not a valid range: ignored
   })
 })

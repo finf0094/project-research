@@ -19,6 +19,11 @@ export function decodeAudio(chunk: Buffer): Promise<Buffer> {
   })
 }
 
+/** Transient failures (storage, a stuck ffmpeg) are retried this many times, then the merge is given up. */
+export const MAX_AUDIO_TRIES = 3
+/** A worker's claim on a merge lasts this long; a failed try waits it out before the next one. */
+export const AUDIO_LEASE_MS = 15 * 60_000
+
 /** Silence of the given length, to keep a gap in the recording as long as it was. */
 export const silence = (ms: number) => Buffer.alloc(Math.floor((ms / 1000) * RATE) * 2)
 

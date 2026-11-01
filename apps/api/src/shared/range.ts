@@ -12,5 +12,7 @@ export function byteRange(
   // "bytes=-500" is the last 500 bytes.
   const start = from ? Number(from) : Math.max(0, size - Number(to))
   const end = from && to ? Math.min(Number(to), size - 1) : size - 1
+  // "bytes=5-2" is not a range at all: ignored, the whole file is sent (RFC 9110).
+  if (from && to && Number(from) > Number(to)) return null
   return start > end || start >= size ? 'unsatisfiable' : { start, end }
 }

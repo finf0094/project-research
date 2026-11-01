@@ -51,10 +51,10 @@ function end() {
       <nav class="crumbs" :aria-label="$t('hub.crumbs')">
         <RouterLink to="/examiner">{{ $t('review.exams.title') }}</RouterLink>
         <span aria-hidden="true">/</span>
-        <RouterLink v-if="detail" :to="`/examiner/exams/${detail.examId}/monitoring`">{{
-          detail.examTitle
-        }}</RouterLink>
-        <span aria-hidden="true">/</span>
+        <template v-if="detail">
+          <RouterLink :to="`/examiner/exams/${detail.examId}/monitoring`">{{ detail.examTitle }}</RouterLink>
+          <span aria-hidden="true">/</span>
+        </template>
         <span aria-current="page">{{ $t('review.room.title') }}</span>
       </nav>
       <h1>{{ detail?.summary.student.name ?? $t('review.room.title') }}</h1>
