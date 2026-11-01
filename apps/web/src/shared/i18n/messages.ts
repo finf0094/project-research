@@ -6,6 +6,7 @@ export const commonMessages = defineMessages({
     common: {
       language: 'Язык интерфейса',
       retry: 'Повторить',
+      loading: 'Загрузка…',
       cancel: 'Отмена',
       understood: 'Понятно',
       back: 'Назад',
@@ -32,6 +33,7 @@ export const commonMessages = defineMessages({
     common: {
       language: 'Интерфейс тілі',
       retry: 'Қайталау',
+      loading: 'Жүктелуде…',
       cancel: 'Бас тарту',
       understood: 'Түсінікті',
       back: 'Артқа',
@@ -58,6 +60,7 @@ export const commonMessages = defineMessages({
     common: {
       language: 'Interface language',
       retry: 'Try again',
+      loading: 'Loading…',
       cancel: 'Cancel',
       understood: 'Got it',
       back: 'Back',

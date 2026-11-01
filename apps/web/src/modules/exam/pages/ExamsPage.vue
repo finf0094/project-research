@@ -3,7 +3,8 @@ import type { StudentExamListItem } from '@exam/contracts'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
-import { AppButton } from '@/shared/ui'
+import { CalendarCheck, ChevronRight, GraduationCap } from 'lucide-vue-next'
+import { AppButton, IconTile } from '@/shared/ui'
 import HomeHero from '../components/HomeHero.vue'
 import UpcomingCard from '../components/UpcomingCard.vue'
 import { attemptPath } from '../paths'
@@ -54,11 +55,22 @@ function go(exam: StudentExamListItem) {
           :offline-ready="ready.has(exam.id)"
         />
       </div>
-      <RouterLink v-if="finished.length" to="/results" class="to-results press">
-        {{ $t('student.toResults', { n: finished.length }) }} →
+      <RouterLink v-if="finished.length" to="/results" class="list-group to-results press">
+        <span class="list-row">
+          <IconTile :icon="GraduationCap" tone="accent" />
+          <span class="list-row-text">{{ $t('student.toResults', { n: finished.length }) }}</span>
+          <ChevronRight :size="18" class="chevron" aria-hidden="true" />
+        </span>
       </RouterLink>
-      <p v-if="!exams.length" class="empty muted">{{ $t('student.empty') }}</p>
+      <div v-if="!exams.length" class="empty-state">
+        <span class="empty-icon"><CalendarCheck :size="28" aria-hidden="true" /></span>
+        <p>{{ $t('student.empty') }}</p>
+      </div>
     </template>
+    <div v-else-if="!load.error.value" class="loading" role="status" :aria-label="$t('common.loading')">
+      <span class="skeleton hero" />
+      <span class="skeleton row" />
+    </div>
   </main>
 </template>
 
@@ -91,17 +103,22 @@ h1 {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-4);
 }
-.empty {
-  padding: var(--space-8);
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-lg);
-  text-align: center;
+.loading {
+  display: grid;
+  gap: var(--space-4);
+  .hero {
+    block-size: 360px;
+  }
+  .row {
+    block-size: 68px;
+  }
 }
 .error {
   color: var(--danger);
 }
 .to-results {
-  justify-self: start;
-  font-weight: 600;
+  max-inline-size: 560px;
+  color: inherit;
+  text-decoration: none;
 }
 </style>

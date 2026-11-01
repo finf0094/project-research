@@ -6,7 +6,6 @@ import { ApiError } from '@/shared/lib/http'
 import { useAuthStore } from '../auth.store'
 import BrandArt from '../components/BrandArt.vue'
 import PasswordField from '../components/PasswordField.vue'
-import { homeFor } from '../home'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -25,7 +24,8 @@ async function submit() {
     // Only same-app paths: an open redirect would let a link send students to a fake page after sign-in.
     const next =
       typeof route.query.next === 'string' && /^\/(?!\/)/.test(route.query.next) ? route.query.next : null
-    await router.replace(next ?? homeFor(auth.role))
+    // '/' sends each role to its home (app/router.ts).
+    await router.replace(next ?? '/')
   } catch (e) {
     const status = e instanceof ApiError ? e.status : 0
     error.value = status === 401 ? 'auth.badCredentials' : status === 429 ? 'auth.tooMany' : 'auth.offline'

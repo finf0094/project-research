@@ -89,6 +89,7 @@ function choose(code: Locale, menu?: HTMLElement | null) {
 }
 @media (width < 600px) {
   .pill {
+    min-inline-size: var(--tap);
     min-block-size: var(--tap);
   }
 }

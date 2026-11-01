@@ -1,10 +1,11 @@
 import type { Role } from '@exam/contracts'
 import { createRouter, createWebHistory } from 'vue-router'
 import { adminRoutes } from '@/modules/admin'
-import { authRoutes, homeFor, useAuthStore } from '@/modules/auth'
+import { authRoutes, useAuthStore } from '@/modules/auth'
 import { authoringRoutes } from '@/modules/authoring'
 import { examRoutes } from '@/modules/exam'
 import { reviewRoutes } from '@/modules/review'
+import { homeFor } from './shell/sections'
 
 declare module 'vue-router' {
   interface RouteMeta {

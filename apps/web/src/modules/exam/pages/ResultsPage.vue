@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { GraduationCap } from 'lucide-vue-next'
 import { AppButton } from '@/shared/ui'
 import FinishedList from '../components/FinishedList.vue'
 import { useStudentExams } from '../use-student-exams'
@@ -15,7 +16,13 @@ const { exams, load, refresh, finished } = useStudentExams()
       <AppButton variant="ghost" @click="refresh">{{ $t('common.retry') }}</AppButton>
     </p>
     <FinishedList v-if="finished.length" :exams="finished" :titled="false" />
-    <p v-else-if="exams" class="empty muted">{{ $t('student.noResults') }}</p>
+    <div v-else-if="exams" class="empty-state">
+      <span class="empty-icon"><GraduationCap :size="28" aria-hidden="true" /></span>
+      <p>{{ $t('student.noResults') }}</p>
+    </div>
+    <div v-else-if="!load.error.value" class="loading" :aria-label="$t('common.loading')" role="status">
+      <span v-for="n in 3" :key="n" class="skeleton" />
+    </div>
   </main>
 </template>
 
@@ -25,11 +32,13 @@ const { exams, load, refresh, finished } = useStudentExams()
   gap: var(--space-5);
   max-inline-size: 720px;
 }
-.empty {
-  padding: var(--space-8);
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-lg);
-  text-align: center;
+.loading {
+  display: grid;
+  gap: var(--space-2);
+  .skeleton {
+    block-size: 64px;
+    border-radius: var(--radius);
+  }
 }
 .error {
   color: var(--danger);

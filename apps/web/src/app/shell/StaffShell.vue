@@ -8,7 +8,7 @@ import UserMenu from './UserMenu.vue'
  * The examiner's and administrator's frame: a dark sidebar with the sections of their role, the page
  * beside it. Tablets: the sidebar becomes a bar on top. Phones: a slim top bar and the tab bar below.
  */
-const { sections, inSection } = useSections()
+const { sections, inSection, current } = useSections()
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const { sections, inSection } = useSections()
           :to="item.to"
           class="item"
           :class="{ active: inSection(item.to) }"
-          :aria-current="inSection(item.to) ? 'page' : undefined"
+          :aria-current="current(item.to)"
         >
           <component :is="item.icon" :size="20" aria-hidden="true" />
           <span class="label">{{ $t(item.label) }}</span>
@@ -148,8 +148,15 @@ const { sections, inSection } = useSections()
   .foot {
     display: none;
   }
+  /* The same light header as the student's: the logo on the page, no dark slab above every screen. */
   .side {
     grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-1) var(--space-1) 0;
+    background: none;
+    color: var(--text);
+  }
+  .home {
+    padding-inline: 0;
   }
 }
 </style>

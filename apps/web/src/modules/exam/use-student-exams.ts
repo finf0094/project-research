@@ -15,13 +15,16 @@ import { preloadPackages } from './preload'
  */
 export function useStudentExams() {
   const auth = useAuthStore()
-  const exams = ref<StudentExamListItem[] | null>(null)
   const load = useAction()
   const now = ref(Date.now())
   const clock = setInterval(() => (now.value = Date.now()), 1000)
   onScopeDispose(() => clearInterval(clock))
-  const userId = auth.user!.id // the routes require a signed-in student
+  // The routes require a signed-in student; a session ending meanwhile leads to sign-in (main.ts).
+  const userId = auth.user?.id ?? ''
   const cached = useStored<StudentExamListItem[] | null>(`exams:list:${userId}`, null)
+  // The last list shows at once (switching between Home and Results never flashes empty); the fresh one
+  // replaces it when it comes.
+  const exams = ref<StudentExamListItem[] | null>(cached.value)
   const fromCache = ref(false)
   const ready = ref(new Set<string>())
   const refresh = () =>

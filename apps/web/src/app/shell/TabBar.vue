@@ -5,7 +5,7 @@ import { useSections } from './sections'
  * The phone's tab bar, as in a native app: the role's sections at the thumb, above the home indicator.
  * Wider screens keep the sidebar or the top bar instead.
  */
-const { sections, inSection } = useSections()
+const { sections, inSection, current } = useSections()
 </script>
 
 <template>
@@ -16,7 +16,7 @@ const { sections, inSection } = useSections()
       :to="item.to"
       class="tab press"
       :class="{ active: inSection(item.to) }"
-      :aria-current="inSection(item.to) ? 'page' : undefined"
+      :aria-current="current(item.to)"
     >
       <span class="icon"><component :is="item.icon" :size="22" aria-hidden="true" /></span>
       <span class="label">{{ $t(item.label) }}</span>

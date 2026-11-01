@@ -136,6 +136,12 @@ const aiCheck = computed(() => {
 .place {
   font-size: var(--text-sm);
 }
+/* Phones: the round back button already leads to the queue; the trail would only repeat it. */
+@media (width < 700px) {
+  .crumbs {
+    display: none;
+  }
+}
 .facts {
   display: flex;
   flex-wrap: wrap;

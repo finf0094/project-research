@@ -1,29 +1,36 @@
 <script setup lang="ts">
 import type { StudentExamListItem } from '@exam/contracts'
-import { CheckCircle2, Clock } from 'lucide-vue-next'
+import { CheckCircle2, ChevronRight, Clock } from 'lucide-vue-next'
 import { IconTile } from '@/shared/ui'
 
-/** Exams already taken: still being reviewed, or with a result to open. */
-/** `titled`: the list names itself (on the home grid); the Results page has its own heading. */
+/**
+ * Exams already taken, as a native list: still being reviewed, or with a result to open (a row with a chevron).
+ * `titled`: the list names itself; the Results page has its own heading.
+ */
 withDefaults(defineProps<{ exams: StudentExamListItem[]; titled?: boolean }>(), { titled: true })
 </script>
 
 <template>
-  <section class="card">
+  <section class="finished">
     <h2 v-if="titled">{{ $t('student.finished') }}</h2>
-    <ul>
+    <ul class="list-group stagger">
       <li v-for="exam in exams" :key="exam.id">
-        <RouterLink v-if="exam.attempt?.resultReady" :to="`/attempts/${exam.attempt.id}/result`" class="row">
+        <RouterLink
+          v-if="exam.attempt?.resultReady"
+          :to="`/attempts/${exam.attempt.id}/result`"
+          class="list-row"
+        >
           <IconTile :icon="CheckCircle2" tone="ok" />
-          <span>
-            <span class="title">{{ exam.title }}</span>
-            <span class="status ok">{{ $t('student.resultReady') }} →</span>
+          <span class="list-row-text">
+            <span>{{ exam.title }}</span>
+            <span class="status ok">{{ $t('student.resultReady') }}</span>
           </span>
+          <ChevronRight :size="18" class="chevron" aria-hidden="true" />
         </RouterLink>
-        <div v-else class="row">
+        <div v-else class="list-row">
           <IconTile :icon="Clock" tone="peach" />
-          <span>
-            <span class="title">{{ exam.title }}</span>
+          <span class="list-row-text">
+            <span>{{ exam.title }}</span>
             <span class="status">{{
               $t(
                 !exam.attempt
@@ -41,51 +48,26 @@ withDefaults(defineProps<{ exams: StudentExamListItem[]; titled?: boolean }>(), 
 </template>
 
 <style scoped>
-.card {
+.finished {
   display: grid;
-  gap: var(--space-4);
-  align-content: start;
-  padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
+  gap: var(--space-2);
 }
 h2 {
+  padding-inline: var(--space-4);
   color: var(--text-2);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 600;
 }
-ul {
-  display: grid;
-  gap: var(--space-2);
-  padding: 0;
-  list-style: none;
-}
-.row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  border-radius: var(--radius);
-  color: inherit;
-  text-decoration: none;
-  > span {
-    display: grid;
-  }
-}
-a.row:hover {
-  background: var(--surface-2);
-}
-.title {
-  font-weight: 600;
-}
 .status {
-  color: var(--warn);
-  font-size: var(--text-xs);
+  /* Beats the list's grey second line: the state is the point of the row. */
+  &.status {
+    color: var(--warn);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
   &.ok {
     color: var(--ok);
-    font-weight: 700;
   }
 }
 </style>

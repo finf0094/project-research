@@ -63,8 +63,8 @@
     --space-6: 24px;
     --space-8: 32px;
     --space-12: 48px;
-    /* The smallest comfortable touch target on phones. */
-    --tap: 40px;
+    /* The smallest comfortable touch target on phones (Apple's and Google's guidelines: 44 px and up). */
+    --tap: 44px;
     /* The exam's pinned bar on phones (ExamHeader); base.css keeps focused answers clear of it. */
     --exam-bar-height: 64px;
     --radius-sm: 12px;
@@ -79,7 +79,8 @@
     --tabbar-height: 68px;
     --dur-fast: 140ms;
     --dur: 240ms;
-    --dur-slow: 480ms;
+    /* Entrances and page slides stay short: an app that waits on its own animations feels slow. */
+    --dur-slow: 300ms;
 
     /* Soft tile colours (mockup: peach, sky, lime) for stat tiles and state cards. */
     --peach: light-dark(#ffe7d4, #3a2518);

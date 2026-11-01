@@ -1,10 +1,10 @@
 import { SyncResponse, type AttemptStatus, type NetState } from '@exam/contracts'
-import Dexie from 'dexie'
 import { ApiError, isNetworkError, request } from '@/shared/lib/http'
 import type { ServerClock } from './clock'
 import { initialConnection, nextConnection, retryDelay, type SyncOutcome } from './connection'
 import { CHUNKS_PER_TICK, CHUNKS_PER_TICK_CLOSED, uploadChunks } from './chunk-upload'
 import { db } from './db'
+import { nextEvents } from './event-batch'
 import type { EventLog } from './event-log'
 import { countChunks } from './local-data'
 
@@ -31,9 +31,6 @@ export interface SyncHandle {
   stop(): void
 }
 
-const BATCH_SIZE = 100
-/** Keeps a batch well below the server body limit even with long essays. */
-const BATCH_BYTES = 512 * 1024
 const IDLE_MS = 4000
 const OPEN: readonly AttemptStatus[] = ['active', 'terminated']
 
@@ -47,6 +44,7 @@ export function startSync(options: SyncOptions): SyncHandle {
   const aborter = new AbortController()
   let connection = initialConnection
   let wakeUp: (() => void) | null = null
+  let woken = false
   let accepting = true
   // How far a classroom hub holds the events while the cloud is away (kept here until the cloud has them).
   let relayedSeq = 0
@@ -75,13 +73,7 @@ export function startSync(options: SyncOptions): SyncHandle {
   async function tick(): Promise<number> {
     const attempt = await db.attempts.get(attemptId)
     if (!attempt) return IDLE_MS
-    const pending = accepting
-      ? await db.events
-          .where('[attemptId+seq]')
-          .between([attemptId, Math.max(attempt.ackedSeq, relayedSeq) + 1], [attemptId, Dexie.maxKey])
-          .limit(BATCH_SIZE)
-          .toArray()
-      : []
+    const pending = accepting ? await nextEvents(attemptId, Math.max(attempt.ackedSeq, relayedSeq)) : []
 
     const startedAt = performance.now()
     let response: SyncResponse
@@ -102,7 +94,7 @@ export function startSync(options: SyncOptions): SyncHandle {
         `/attempts/${attemptId}/sync`,
         {
           method: 'POST',
-          body: { events: limitBytes(pending.map(({ attemptId: _, ...event }) => event)) },
+          body: { events: pending },
           timeoutMs: 10_000,
           signal: aborter.signal,
         },
@@ -181,7 +173,6 @@ export function startSync(options: SyncOptions): SyncHandle {
     }
   }
 
-  let woken = false
   const wake = () => (wakeUp ? wakeUp() : (woken = true))
   window.addEventListener('online', wake) // the network is back: try at once, not after the backoff
   void publish()
@@ -194,16 +185,4 @@ export function startSync(options: SyncOptions): SyncHandle {
       wake()
     },
   }
-}
-
-/** Takes events from the front until the batch would exceed BATCH_BYTES (always at least one). */
-function limitBytes<T>(events: T[]): T[] {
-  let size = 0
-  const batch: T[] = []
-  for (const event of events) {
-    size += JSON.stringify(event).length
-    if (batch.length > 0 && size > BATCH_BYTES) break
-    batch.push(event)
-  }
-  return batch
 }

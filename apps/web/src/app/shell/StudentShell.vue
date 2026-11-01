@@ -8,7 +8,7 @@ import UserMenu from './UserMenu.vue'
  * The student's frame. Wide screens: a light top bar (logo, sections, language, initials) above a centred
  * page. Phones: just the logo on top and the sections in a tab bar at the thumb, like a native app.
  */
-const { sections, inSection } = useSections()
+const { sections, inSection, current } = useSections()
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const { sections, inSection } = useSections()
           :to="item.to"
           class="link"
           :class="{ active: inSection(item.to) }"
-          :aria-current="inSection(item.to) ? 'page' : undefined"
+          :aria-current="current(item.to)"
           >{{ $t(item.label) }}</RouterLink
         >
       </nav>

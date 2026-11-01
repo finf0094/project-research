@@ -14,10 +14,19 @@ function sync(open: boolean) {
 // Mounted already open (a message waiting when the page appears): the element exists only from here.
 onMounted(() => sync(props.open))
 watch(() => props.open, sync, { flush: 'post' })
+
+// A tap on the dimmed backdrop dismisses it, as a sheet does (the dialog's own padding is not the backdrop).
+function onClick(event: MouseEvent) {
+  const box = dialog.value?.getBoundingClientRect()
+  if (!box || event.target !== dialog.value) return
+  const inside =
+    event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom
+  if (!inside) dialog.value?.close()
+}
 </script>
 
 <template>
-  <dialog ref="dialog" class="dialog" :aria-labelledby="titleId" @close="emit('close')">
+  <dialog ref="dialog" class="dialog" :aria-labelledby="titleId" @close="emit('close')" @click="onClick">
     <h2 :id="titleId" class="title">{{ title }}</h2>
     <slot />
     <footer v-if="$slots.actions" class="actions"><slot name="actions" /></footer>
@@ -36,9 +45,10 @@ watch(() => props.open, sync, { flush: 'post' })
 
   &::backdrop {
     background: var(--scrim);
+    animation: veil var(--dur) var(--ease);
   }
   &[open] {
-    animation: rise 0.3s var(--ease);
+    animation: rise var(--dur) var(--ease);
   }
 }
 .title {
@@ -51,10 +61,54 @@ watch(() => props.open, sync, { flush: 'post' })
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
+/*
+ * Phones: a bottom sheet, as in a native app. It slides up from the bottom edge with a grabber on top, clears
+ * the home indicator, and its buttons span the width within reach of the thumb.
+ */
+@media (width < 700px) {
+  .dialog {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    max-block-size: calc(100dvh - max(var(--space-8), env(safe-area-inset-top)));
+    margin: auto 0 0;
+    padding: var(--space-6) var(--space-5) max(var(--space-5), env(safe-area-inset-bottom));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    &::before {
+      content: '';
+      display: block;
+      inline-size: 40px;
+      block-size: 5px;
+      margin: calc(-1 * var(--space-3)) auto var(--space-4);
+      border-radius: var(--radius-pill);
+      background: var(--border);
+    }
+    &[open] {
+      animation: sheet var(--dur) var(--ease);
+    }
+  }
+  .actions {
+    flex-direction: column-reverse;
+    > * {
+      inline-size: 100%;
+    }
+  }
+}
 @keyframes rise {
   from {
     opacity: 0;
     transform: translateY(12px) scale(0.98);
+  }
+}
+@keyframes sheet {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes veil {
+  from {
+    opacity: 0;
   }
 }
 </style>

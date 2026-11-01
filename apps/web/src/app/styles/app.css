@@ -1,0 +1,160 @@
+/*
+ * App-like building blocks shared by every role: native list rows, loading skeletons, empty states and the
+ * phone's back link. Components give these classes; their own scoped styles still win where they differ.
+ */
+@layer base {
+  /* A grouped list, as in iOS settings: one card, rows split by hairlines that start after the icon. */
+  .list-group {
+    display: grid;
+    margin: 0;
+    padding: var(--space-1) 0;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    list-style: none;
+    overflow: hidden;
+  }
+  .list-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-block-size: 60px;
+    padding: var(--space-3) var(--space-4);
+    color: inherit;
+    text-decoration: none;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      scale var(--dur-fast) var(--ease);
+  }
+  /* The hairline between rows starts under the text, not under the icon. */
+  .list-group > li + li > .list-row::before,
+  .list-group > .list-row + .list-row::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 64px;
+    border-block-start: 1px solid var(--border);
+  }
+  button.list-row {
+    inline-size: 100%;
+    border: 0;
+    background: transparent;
+    text-align: start;
+  }
+  :is(a, button).list-row {
+    cursor: pointer;
+    &:hover {
+      background: var(--surface-2);
+    }
+    &:active {
+      background: var(--surface-2);
+    }
+  }
+  .list-row-text {
+    display: grid;
+    flex: 1;
+    min-inline-size: 0;
+    gap: 2px;
+    > :first-child {
+      font-weight: 600;
+    }
+    > :not(:first-child) {
+      color: var(--text-2);
+      font-size: var(--text-sm);
+    }
+  }
+  /* A chevron at the end of a row that opens something. */
+  .chevron {
+    flex: none;
+    color: var(--text-2);
+    transition: translate var(--dur-fast) var(--ease);
+    :is(a, button):hover > & {
+      translate: 2px 0;
+    }
+  }
+
+  /* Loading: grey shapes of what is coming, with a soft light passing over them. */
+  .skeleton {
+    display: block;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in oklab, var(--surface) 70%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 200% 100% no-repeat,
+      var(--surface-2);
+    animation: shimmer 1.2s linear infinite;
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0, 0 0;
+    }
+    to {
+      background-position: -50% 0, 0 0;
+    }
+  }
+
+  /* Nothing here yet: an icon in a soft circle, a line of text, maybe an action. */
+  .empty-state {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+    padding: var(--space-12) var(--space-6);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    color: var(--text-2);
+    text-align: center;
+    animation: rise var(--dur) var(--ease) both;
+    .empty-icon {
+      display: grid;
+      place-items: center;
+      inline-size: 64px;
+      block-size: 64px;
+      border-radius: 50%;
+      background: var(--accent-tint);
+      color: var(--accent-ink);
+    }
+  }
+}
+
+/*
+ * Phones: breadcrumbs become a native back link — only the parent page, with a chevron, big enough for a
+ * thumb. Wider screens keep the full trail. Outside the layer, so it outranks the headers' own crumb styles.
+ */
+@media (width < 700px) {
+  html .crumbs {
+    > :not(a:last-of-type) {
+      display: none;
+    }
+    > a:last-of-type {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      min-block-size: var(--tap);
+      max-inline-size: 100%;
+      margin-block: calc(-1 * var(--space-2));
+      overflow: hidden;
+      color: var(--accent-ink);
+      font-weight: 600;
+      text-decoration: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      &::before {
+        content: '';
+        flex: none;
+        inline-size: 20px;
+        block-size: 20px;
+        margin-inline-start: -4px;
+        background: currentColor;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+      }
+      &:active {
+        opacity: 0.6;
+      }
+    }
+  }
+}
