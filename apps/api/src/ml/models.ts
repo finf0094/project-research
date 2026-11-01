@@ -9,7 +9,11 @@ export interface ModelFile {
   sha256: string
 }
 
-/** Pinned ONNX models (ONNX Model Zoo mirrors on Hugging Face). Fetched by `pnpm models`. */
+/**
+ * Pinned ONNX models (ONNX Model Zoo mirrors on Hugging Face). They are kept in the repository as well
+ * (apps/api/models), so a build never depends on Hugging Face being reachable; `pnpm models` fetches them
+ * only when missing or changed.
+ */
 export const MODELS = {
   /** UltraFace RFB-320: a 1.3 MB face detector, input 320×240. */
   faces: {
