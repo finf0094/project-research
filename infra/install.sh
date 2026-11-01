@@ -7,6 +7,8 @@
 #                 Given on a later run, it replaces the one in .env (point the domain at the server first).
 #   BRANCH        which branch to run (default feat/exam-platform)
 set -euo pipefail
+# The log holds the demo password: readable by root only.
+touch /var/log/exam-install.log && chmod 600 /var/log/exam-install.log
 exec > >(tee -a /var/log/exam-install.log) 2>&1
 
 REPO=https://github.com/finf0094/project-research.git
@@ -50,10 +52,12 @@ docker compose run -T --rm api node src/db/migrate.ts </dev/null
 # Demo accounts once, for trying it out, with the random password from .env (not for real exams).
 if [ ! -f .seeded ]; then
   docker compose run -T --rm -e DEMO_PASSWORD="$(grep ^DEMO_PASSWORD= .env | cut -d= -f2)" api \
-    node scripts/seed.ts </dev/null && touch .seeded
+    node scripts/seed.ts </dev/null
+  touch .seeded # reached only when the seed succeeded (set -e)
 fi
 
 echo "Ready: https://$(grep ^SITE_ADDRESS= .env | cut -d= -f2)"
-echo "Demo sign-in: teacher@example.edu / admin@example.edu, password $(grep ^DEMO_PASSWORD= .env | cut -d= -f2)"
+DEMO=$(grep ^DEMO_PASSWORD= .env | cut -d= -f2 || true)
+echo "Demo sign-in: teacher@example.edu / admin@example.edu, password ${DEMO:-password}"
 echo "Keep a copy of $DIR/infra/.env: it holds MASTER_KEY."
 
