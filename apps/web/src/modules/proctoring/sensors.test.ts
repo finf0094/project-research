@@ -88,6 +88,16 @@ describe('createSensors', () => {
     }
   })
 
+  it('treats models that did not load as a dead worker, not as frames with nobody in them', async () => {
+    const before = FakeWorker.last
+    const sensors = createSensors(stream, 'full', baseline)
+    await vi.waitFor(() => expect(FakeWorker.last !== before && FakeWorker.last.posted[0]?.type).toBe('init'))
+    FakeWorker.last.reply({ type: 'ready', ok: false })
+    const started = await sensors
+    expect(started.dead()).toBe(true)
+    expect(await started.analyze(false)).toBeNull()
+  })
+
   it('reports a worker that dies mid-exam as dead', async () => {
     const { sensors, worker } = await started()
     expect(sensors.dead()).toBe(false)

@@ -25,7 +25,13 @@ export const en: typeof ru = {
       elsewhere: 'The exam is open in another tab',
       elsewhereHint: 'Continue there. Close this tab so the answers do not get mixed up.',
     },
-    header: { submit: 'Submit', focus: 'Focus', step: 'Question {n} of {total}', oral: 'Oral exam' },
+    header: {
+      submit: 'Submit',
+      focus: 'Focus',
+      step: 'Question {n} of {total}',
+      oral: 'Oral exam',
+      sync: { saved: 'Saved', sending: 'Sending', offline: 'Offline' },
+    },
     page: {
       previous: 'Previous question',
       next: 'Next question',

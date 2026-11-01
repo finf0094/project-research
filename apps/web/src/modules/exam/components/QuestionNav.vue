@@ -86,7 +86,9 @@ const label = (q: Question, i: number) =>
   font-weight: 700;
 }
 .link {
-  padding: 0;
+  /* A 44px-tall hit area without pushing the layout apart. */
+  padding: 12px 0;
+  margin-block: -12px;
   border: 0;
   background: none;
   color: var(--accent-ink);
@@ -125,9 +127,11 @@ const label = (q: Question, i: number) =>
   &:hover {
     translate: 0 -2px;
   }
+  /* Answered: tinted and outlined, so it differs from an empty cell by more than a faint hue. */
   &.done {
     background: var(--accent-tint);
     color: var(--accent-ink);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   &.current {
     background: var(--accent);
@@ -178,6 +182,7 @@ const label = (q: Question, i: number) =>
   background: var(--surface-2);
   &.done {
     background: var(--accent-tint);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   &.flag {
     border-radius: 50%;

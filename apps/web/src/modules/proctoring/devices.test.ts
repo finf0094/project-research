@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { watchDevices, watchMicrophone } from './devices'
+import { watchCameraMute, watchDevices, watchMicrophone } from './devices'
 
 function setup(camera: string, microphone: string, output = 'Default - Speakers') {
   const events = new EventTarget()
@@ -96,6 +96,66 @@ describe('microphone muted', () => {
     track.readyState = 'ended'
     track.dispatchEvent(new Event('ended'))
     expect(signals.at(-1)).toBe(true)
+    stop()
+  })
+})
+
+describe('mute while the page is hidden (iPhone in the background)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+  function setup(watch: typeof watchMicrophone) {
+    let visibility: DocumentVisibilityState = 'visible'
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
+    const track = Object.assign(new EventTarget(), { muted: false, readyState: 'live' as MediaStreamTrackState })
+    const stream = { getAudioTracks: () => [track], getVideoTracks: () => [track] } as unknown as MediaStream
+    const signals: string[] = []
+    const stop = watch(stream, (kind, on) => signals.push(`${kind}:${on}`))
+    const hide = (hidden: boolean) => {
+      visibility = hidden ? 'hidden' : 'visible'
+      document.dispatchEvent(new Event('visibilitychange'))
+    }
+    const mute = (muted: boolean) => {
+      track.muted = muted
+      track.dispatchEvent(new Event(muted ? 'mute' : 'unmute'))
+    }
+    return { signals, stop, hide, mute }
+  }
+
+  it('does not count the mute iOS puts on a page in the background, even when the unmute comes late', () => {
+    vi.useFakeTimers()
+    const { signals, stop, hide, mute } = setup(watchMicrophone)
+    hide(true)
+    mute(true)
+    vi.advanceTimersByTime(10_000)
+    hide(false)
+    vi.advanceTimersByTime(1000) // the unmute comes a moment after the page is back
+    mute(false)
+    vi.advanceTimersByTime(5000)
+    expect(signals).not.toContain('mic_off:true')
+    stop()
+  })
+
+  it('still counts a mute that lasts after the page is back', () => {
+    vi.useFakeTimers()
+    const { signals, stop, hide, mute } = setup(watchMicrophone)
+    hide(true)
+    mute(true)
+    hide(false)
+    vi.advanceTimersByTime(2000)
+    expect(signals.at(-1)).toBe('mic_off:true')
+    stop()
+  })
+
+  it('counts a camera the system keeps muted while the page is shown (a frozen picture)', () => {
+    vi.useFakeTimers()
+    const { signals, stop, mute } = setup(watchCameraMute)
+    mute(true)
+    vi.advanceTimersByTime(2000)
+    expect(signals.at(-1)).toBe('camera_off:true')
+    mute(false)
+    expect(signals.at(-1)).toBe('camera_off:false')
     stop()
   })
 })

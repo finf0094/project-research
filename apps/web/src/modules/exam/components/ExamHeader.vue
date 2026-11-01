@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Check, Maximize, Minimize, RefreshCw, WifiOff } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { SyncStatusBadge, useSyncStore } from '@/modules/offline'
 import { useFullscreen } from '@/shared/lib/use-fullscreen'
 import { AppButton, AppLogo } from '@/shared/ui'
@@ -12,14 +11,6 @@ defineProps<{ title: string; step: string; remainingMs: number; finishing: boole
 defineEmits<{ finish: [] }>()
 const focus = useFullscreen()
 /* The pinned bar's short save status: icon plus a word, so it never relies on colour alone. */
-const ru = { saved: 'Сохранено', sending: 'Отправка', offline: 'Нет сети' }
-const { t } = useI18n<[typeof ru], 'ru' | 'kk' | 'en'>({
-  messages: {
-    ru,
-    kk: { saved: 'Сақталды', sending: 'Жіберу', offline: 'Желі жоқ' },
-    en: { saved: 'Saved', sending: 'Sending', offline: 'Offline' },
-  },
-})
 const sync = useSyncStore()
 const short = computed(() => {
   const { connection, pendingEvents } = sync.status
@@ -41,7 +32,9 @@ const short = computed(() => {
     <SyncStatusBadge class="badge" />
     <!-- The badge above stays the live region for screen readers; this is its visible short form. -->
     <span class="sync-short" :class="short.tone" aria-hidden="true">
-      <component :is="short.icon" :size="14" />{{ t(short.text) }}
+      <component :is="short.icon" :size="14" /><span class="sync-word">{{
+        $t(`exam.header.sync.${short.text}`)
+      }}</span>
     </span>
     <div class="actions">
       <button
@@ -107,17 +100,15 @@ const short = computed(() => {
     background: var(--accent-tint);
     color: var(--accent-ink);
   }
-}
-/* Only on the narrowest phones would the button squeeze the title; everywhere else it stays. */
-@media (width < 480px) {
-  .focus {
+  /* Only on the narrowest phones would the button squeeze the title; everywhere else it stays. */
+  @media (width < 480px) {
     display: none;
   }
-}
-@media (width < 700px) {
-  .focus-label {
-    position: absolute;
-    clip-path: inset(50%);
+  @media (width < 700px) {
+    .focus-label {
+      position: absolute;
+      clip-path: inset(50%);
+    }
   }
 }
 .sync-short {
@@ -140,6 +131,13 @@ const short = computed(() => {
   &.off {
     background: var(--off-tint);
     color: var(--off);
+  }
+  /* Narrowest phones: the distinct icon stays, the word goes, so the exam's name stays readable. */
+  @media (width < 480px) {
+    padding: 6px;
+    .sync-word {
+      display: none;
+    }
   }
 }
 .actions {
@@ -169,10 +167,14 @@ const short = computed(() => {
       display: none;
     }
   }
+  /* Two short lines rather than one ellipsis that leaves only the first letter on a phone. */
   .name {
+    display: -webkit-box;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: var(--text-sm);
+    line-height: 1.25;
   }
   /* Both stay for screen readers; the badge's full text gives way to its short form. */
   .step,

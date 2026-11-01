@@ -57,7 +57,8 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
   }
   if (worker) {
     worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
-      if (data.type === 'ready') return markReady()
+      // Models that did not load answer every frame with nothing: that is a dead worker, not an empty room.
+      if (data.type === 'ready') return data.ok === false ? giveUp() : markReady()
       pending.get(data.id)?.(data.report)
       pending.delete(data.id)
     }

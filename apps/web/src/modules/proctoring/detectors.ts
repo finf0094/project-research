@@ -27,8 +27,8 @@ const fileset = { wasmLoaderPath, wasmBinaryPath }
 
 /**
  * The on-device models (runs inside the detector worker). Every tier checks the face (the weakest one less
- * often, architecture 10.5); `full` and `lite` also find phones and books (`lite` less often). A model that fails to
- * load is left out, so its signals read "not measured" instead of breaking the exam.
+ * often, architecture 10.5); `full` and `lite` also find phones and books (`lite` less often). An object model that
+ * fails to load is left out (its signal reads "not measured"); without the face model loading fails as a whole.
  */
 export async function loadDetectors(tier: DeviceTier) {
   const [landmarker, loadedObjects] = await Promise.all([
@@ -37,6 +37,8 @@ export async function loadDetectors(tier: DeviceTier) {
       ? load('object', () => ObjectDetector.createFromOptions(fileset, OBJECT_OPTIONS))
       : null,
   ])
+  // Without the face model every tier is blind to the student: a failure, not "no face in view".
+  if (!landmarker) throw (loadedObjects?.close(), new Error('the face model did not load'))
   let objects = loadedObjects
   const canvas = new OffscreenCanvas(SAMPLE_W, SAMPLE_H)
   const context = canvas.getContext('2d', { willReadFrequently: true })!
@@ -53,7 +55,7 @@ export async function loadDetectors(tier: DeviceTier) {
   return {
     analyze(frame: ImageBitmap, timestamp: number, withObjects: boolean, baseline: Pose): FrameReport {
       const started = performance.now()
-      const face = landmarker?.detectForVideo(frame, timestamp)
+      const face = landmarker.detectForVideo(frame, timestamp)
       const seen = face ? countFaces(face.faceLandmarks) : null
       const single = seen === 1 ? face : null
       const object =
@@ -73,7 +75,7 @@ export async function loadDetectors(tier: DeviceTier) {
       if (next !== 'full' && next !== 'lite') objects = (objects?.close(), null)
     },
     close() {
-      landmarker?.close()
+      landmarker.close()
       objects?.close()
     },
   }

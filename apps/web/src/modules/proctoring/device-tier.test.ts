@@ -13,6 +13,15 @@ describe('createTierWatch', () => {
     const results = Array.from({ length: 10 }, () => tooSlow(400))
     expect(results.indexOf(true)).toBe(9) // 5 warm-up frames, then 5 slow ones in a row
   })
+
+  it('measures the lower tier afresh instead of dropping it again on the old slow average', () => {
+    const tooSlow = createTierWatch()
+    const full = Array.from({ length: 10 }, () => tooSlow(700))
+    expect(full.at(-1)).toBe(true)
+    // The lower tier is fast: the 700 ms average of the old one must not drop it a second time.
+    const lite = Array.from({ length: 20 }, () => tooSlow(100))
+    expect(lite).not.toContain(true)
+  })
 })
 
 describe('device tiers', () => {

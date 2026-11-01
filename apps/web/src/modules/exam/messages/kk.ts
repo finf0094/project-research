@@ -25,7 +25,13 @@ export const kk: typeof ru = {
       elsewhere: 'Емтихан басқа қойындыда ашық',
       elsewhereHint: 'Сонда жалғастырыңыз. Жауаптар араласпауы үшін бұл қойындыны жабыңыз.',
     },
-    header: { submit: 'Тапсыру', focus: 'Фокус', step: 'Сұрақ {n} / {total}', oral: 'Ауызша емтихан' },
+    header: {
+      submit: 'Тапсыру',
+      focus: 'Фокус',
+      step: 'Сұрақ {n} / {total}',
+      oral: 'Ауызша емтихан',
+      sync: { saved: 'Сақталды', sending: 'Жіберу', offline: 'Желі жоқ' },
+    },
     page: {
       previous: 'Алдыңғы сұрақ',
       next: 'Келесі сұрақ',

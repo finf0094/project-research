@@ -46,4 +46,21 @@ describe('watchers on Safari', () => {
     vi.restoreAllMocks()
     vi.useRealTimers()
   })
+
+  it('counts text dropped in from another window as a paste, but not a drag within the page', () => {
+    const signals: string[] = []
+    const stop = watchBrowser((kind, on) => kind === 'paste' && on && signals.push(kind))
+    const drop = (text: string) => {
+      const event = new Event('drop', { bubbles: true })
+      Object.assign(event, { dataTransfer: { getData: () => text } })
+      document.body.dispatchEvent(event)
+    }
+    drop('a whole paragraph found somewhere else')
+    expect(signals).toEqual(['paste'])
+    document.body.dispatchEvent(new Event('dragstart', { bubbles: true }))
+    drop('the question text dragged into the answer')
+    document.body.dispatchEvent(new Event('dragend', { bubbles: true }))
+    expect(signals).toEqual(['paste'])
+    stop()
+  })
 })

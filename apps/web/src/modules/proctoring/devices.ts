@@ -48,22 +48,45 @@ const TRACK_EVENTS = ['mute', 'unmute', 'ended']
  */
 const MUTE_GRACE_MS = 2000
 
-/** A muted or disconnected microphone (the system's mute, an unplugged headset) is a signal of its own. */
-export function watchMicrophone(stream: MediaStream, setSignal: SetSignal) {
-  const tracks = stream.getAudioTracks()
+/**
+ * Tracks of `kind`'s device muted for a while (or ended, when `ended` counts) turn `kind` on. A mute while
+ * the page is hidden does not count: iPhone mutes camera and microphone of every page in the background
+ * (that is "tab hidden" already), and the unmute may come only after the grace ran out on return.
+ */
+function watchMuted(
+  tracks: MediaStreamTrack[],
+  kind: 'mic_off' | 'camera_off',
+  countEnded: boolean,
+  setSignal: SetSignal,
+) {
   let timer: ReturnType<typeof setTimeout> | undefined
-  const ended = () => tracks.some((t) => t.readyState === 'ended')
+  const ended = () => countEnded && tracks.some((t) => t.readyState === 'ended')
   const muted = () => tracks.some((t) => t.muted)
+  const hidden = () => document.visibilityState === 'hidden'
   const update = () => {
     clearTimeout(timer)
-    if (ended()) return setSignal('mic_off', true)
-    if (!muted()) return setSignal('mic_off', false)
-    timer = setTimeout(() => setSignal('mic_off', muted() || ended()), MUTE_GRACE_MS)
+    if (ended()) return setSignal(kind, true)
+    if (!muted() || hidden()) return setSignal(kind, false)
+    timer = setTimeout(() => setSignal(kind, ended() || (muted() && !hidden())), MUTE_GRACE_MS)
   }
   for (const track of tracks) for (const type of TRACK_EVENTS) track.addEventListener(type, update)
+  document.addEventListener('visibilitychange', update)
   update() // muted already when the exam starts
   return () => {
     clearTimeout(timer)
+    document.removeEventListener('visibilitychange', update)
     for (const track of tracks) for (const type of TRACK_EVENTS) track.removeEventListener(type, update)
   }
 }
+
+/** A muted or disconnected microphone (the system's mute, an unplugged headset) is a signal of its own. */
+export const watchMicrophone = (stream: MediaStream, setSignal: SetSignal) =>
+  watchMuted(stream.getAudioTracks(), 'mic_off', true, setSignal)
+
+/**
+ * A camera the system keeps from the page (another app took it, a privacy switch, iPad split view) mutes its
+ * track: the picture freezes on the last frame, which would read as the student sitting still. An ended
+ * camera is the store's (it restarts it), so only a lasting mute counts here.
+ */
+export const watchCameraMute = (stream: MediaStream, setSignal: SetSignal) =>
+  watchMuted(stream.getVideoTracks(), 'camera_off', false, setSignal)

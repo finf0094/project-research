@@ -1,9 +1,10 @@
 import type { SignalKind } from '@exam/contracts'
-import { watchDevices, watchMicrophone } from './devices'
+import { watchCameraMute, watchDevices, watchMicrophone } from './devices'
 import type { SetSignal } from './signals'
 
 /** The page may lose focus this long (the browser's own menus, a permission prompt) before it counts. */
 const BLUR_GRACE_MS = 2000
+const DRAGS = ['dragstart', 'dragend'] as const
 
 /** Browser signals: leaving the tab, pasting or copying text, a second screen. Returns a stop function. */
 export function watchBrowser(setSignal: SetSignal) {
@@ -24,6 +25,11 @@ export function watchBrowser(setSignal: SetSignal) {
   const pulse = (kind: SignalKind) => (setSignal(kind, true), setSignal(kind, false))
   const onPaste = (event: ClipboardEvent) =>
     substantial(event.clipboardData?.getData('text')) && pulse('paste')
+  // Text dragged in from another window is pasting without the paste event (a drag within the page is not).
+  let inside = false
+  const onDrag = (event: DragEvent) => (inside = event.type === 'dragstart')
+  const onDrop = (event: DragEvent) =>
+    !inside && substantial(event.dataTransfer?.getData('text')) && pulse('paste')
   // Copying from the exam's text, not the student's own answer (an input or a text area).
   const onCopy = (event: ClipboardEvent) =>
     !(event.target as Element | null)?.closest?.('input, textarea, [contenteditable]') &&
@@ -38,6 +44,8 @@ export function watchBrowser(setSignal: SetSignal) {
   window.addEventListener('blur', onBlur)
   window.addEventListener('focus', back)
   document.addEventListener('paste', onPaste)
+  document.addEventListener('drop', onDrop, true)
+  for (const type of DRAGS) document.addEventListener(type, onDrag, true)
   document.addEventListener('copy', onCopy)
   display.addEventListener?.('change', onScreen)
   return () => {
@@ -46,6 +54,8 @@ export function watchBrowser(setSignal: SetSignal) {
     window.removeEventListener('blur', onBlur)
     window.removeEventListener('focus', back)
     document.removeEventListener('paste', onPaste)
+    document.removeEventListener('drop', onDrop, true)
+    for (const type of DRAGS) document.removeEventListener(type, onDrag, true)
     document.removeEventListener('copy', onCopy)
     display.removeEventListener?.('change', onScreen)
   }
@@ -60,6 +70,7 @@ export function watchAll(stream: MediaStream, setSignal: SetSignal): () => void 
   const starts = [
     () => watchBrowser(setSignal),
     () => watchMicrophone(stream, setSignal),
+    () => watchCameraMute(stream, setSignal),
     () => watchDevices(stream, setSignal),
   ]
   const stops = starts.map((start) => {

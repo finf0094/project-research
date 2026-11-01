@@ -17,7 +17,13 @@ export const ru = {
       elsewhere: 'Экзамен открыт в другой вкладке',
       elsewhereHint: 'Продолжайте там. Закройте эту вкладку, чтобы ответы не перепутались.',
     },
-    header: { submit: 'Сдать', focus: 'Фокус', step: 'Вопрос {n} из {total}', oral: 'Устный экзамен' },
+    header: {
+      submit: 'Сдать',
+      focus: 'Фокус',
+      step: 'Вопрос {n} из {total}',
+      oral: 'Устный экзамен',
+      sync: { saved: 'Сохранено', sending: 'Отправка', offline: 'Нет сети' },
+    },
     page: {
       previous: 'Предыдущий вопрос',
       next: 'Следующий вопрос',

@@ -13,7 +13,10 @@ export type WorkerRequest =
   | { type: 'frame'; id: number; frame: ImageBitmap; timestamp: number; withObjects: boolean; baseline: Pose }
   | { type: 'lower'; tier: DeviceTier }
 
-export type WorkerResponse = { type: 'ready' } | { type: 'report'; id: number; report: FrameReport | null }
+/** `ok: false`: the models could not load, so no frame will ever be analysed. */
+export type WorkerResponse =
+  | { type: 'ready'; ok: boolean }
+  | { type: 'report'; id: number; report: FrameReport | null }
 
 declare const self: DedicatedWorkerGlobalScope
 const reply = (response: WorkerResponse) => self.postMessage(response)
@@ -26,8 +29,7 @@ self.onmessage = async ({ data }: MessageEvent<WorkerRequest>) => {
       console.error('detectors unavailable', error)
       return null
     })
-    await detectors
-    return reply({ type: 'ready' })
+    return reply({ type: 'ready', ok: (await detectors) !== null })
   }
   const loaded = await detectors
   if (data.type === 'lower') return loaded?.lower(data.tier)

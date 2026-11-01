@@ -66,7 +66,8 @@ export function createTierWatch() {
     average = average ? average * 0.8 + ms * 0.2 : ms
     slow = average > SLOW_ANALYSIS_MS ? slow + 1 : 0
     if (slow < SLOW_FRAMES) return false
-    slow = 0
+    // The lower tier is measured afresh: the old tier's slow average would otherwise drop it again at once.
+    average = frames = slow = 0
     return true
   }
 }
