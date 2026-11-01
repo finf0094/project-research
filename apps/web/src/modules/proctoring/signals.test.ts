@@ -67,7 +67,7 @@ describe('observeFrame', () => {
   it('takes a black picture for a covered camera, not a dark room', () => {
     const covered = seen(frame({ faces: 0, brightness: 5 }))
     expect(covered.get('face_missing')).toBe(true)
-    expect(covered.get('too_dark')).toBe(false)
+    expect(covered.get('too_dark')).toBe(true) // the hint stays, in case the room is that dark
   })
 
   it('measures no gaze on a weak device', () => {
@@ -82,9 +82,12 @@ describe('watchBrowser', () => {
     const selection = document.getSelection
     document.getSelection = () =>
       ({ toString: () => 'Какое свойство ACID гарантирует атомарность?' }) as never
-    document.dispatchEvent(new Event('copy'))
-    expect(changes).toEqual(['copy:true', 'copy:false'])
-    document.getSelection = selection
-    stop()
+    try {
+      document.dispatchEvent(new Event('copy'))
+      expect(changes).toEqual(['copy:true', 'copy:false'])
+    } finally {
+      document.getSelection = selection
+      stop()
+    }
   })
 })

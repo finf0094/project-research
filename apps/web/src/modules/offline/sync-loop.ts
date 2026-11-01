@@ -39,8 +39,8 @@ const OPEN: readonly AttemptStatus[] = ['active', 'terminated']
 
 /**
  * One request does three jobs: delivers pending events, measures the connection and fetches commands.
- * Events always go first (they carry the answers). Recorded chunks follow once every event is acknowledged,
- * on a good connection — or on any connection once the attempt is submitted and nothing else is left.
+ * Events go first (they carry the answers); recorded chunks follow once all are acknowledged, on a good
+ * connection, or on any once the attempt is submitted and nothing else is left.
  */
 export function startSync(options: SyncOptions): SyncHandle {
   const { attemptId, log, clock } = options
@@ -153,9 +153,10 @@ export function startSync(options: SyncOptions): SyncHandle {
       } catch (error) {
         console.error('sync tick failed', error)
         delay = retryDelay(connection.failures + 1)
+        woken = false // a failed tick keeps its backoff
       }
       if (!running()) break
-      // Woken while this tick ran (a signal arrived mid-sync): go again at once, the wake is not lost.
+      // Woken while this tick ran (a signal arrived mid-sync): go again at once.
       if (woken) delay = 0
       woken = false
       if (delay > 0) {
@@ -173,8 +174,7 @@ export function startSync(options: SyncOptions): SyncHandle {
 
   let woken = false
   const wake = () => (wakeUp ? wakeUp() : (woken = true))
-  // The browser noticing the network is back is a good moment to try at once, not after the backoff.
-  window.addEventListener('online', wake)
+  window.addEventListener('online', wake) // the network is back: try at once, not after the backoff
   void publish()
   void loop()
   return {

@@ -21,7 +21,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,woff2,wasm,tflite,task}'],
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        // The API and the server's deploy status are the server's, never the app shell.
+        navigateFallbackDenylist: [/^\/api\//, /^\/deploy-status\.txt$/],
       },
     }),
   ],

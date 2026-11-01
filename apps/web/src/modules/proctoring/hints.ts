@@ -20,7 +20,8 @@ export function createHinter(log: EventLog, now: () => number, onHint: (kind: Si
       returnHintUntil = now() + RETURN_HINT_MS
     },
     show(active: ReadonlySet<SignalKind>) {
-      const kind = [...active].find((k) => HINTED.has(k)) ?? (now() < returnHintUntil ? 'tab_hidden' : null)
+      // The most pressing hint first (HINTED's order), whatever turned on first.
+      const kind = [...HINTED].find((k) => active.has(k)) ?? (now() < returnHintUntil ? 'tab_hidden' : null)
       onHint(kind)
       if (!kind || document.visibilityState !== 'visible') return
       if (now() - (lastLogged.get(kind) ?? -Infinity) <= HINT_REPEAT_MS) return

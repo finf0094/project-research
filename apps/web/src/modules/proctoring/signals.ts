@@ -68,7 +68,7 @@ export const NOISE_RMS = 0.08
  * Problems of the environment or the device; they never raise the risk (and with the camera off
  * there is nothing to record anyway). The examiner still sees them on the timeline.
  */
-const ENVIRONMENT: ReadonlySet<SignalKind> = new Set(['too_dark', 'camera_off'])
+const ENVIRONMENT: ReadonlySet<SignalKind> = new Set(['too_dark', 'camera_off', 'mic_off', 'second_screen'])
 
 /**
  * How much evidence to collect right now (review section 10.1). Risk never depends on the network.
@@ -92,18 +92,19 @@ export const objectsEvery = (tier: DeviceTier) =>
 export const ANALYSIS_FPS: Record<RiskLevel, number> = { low: 1, medium: 2, high: 4 }
 
 /** Signals the student gets a hint for (what to fix, never an accusation; texts in messages.ts). */
+// In order of what the student should fix first: one hint at a time is shown.
 export const HINTED: ReadonlySet<SignalKind> = new Set([
-  'face_missing',
-  'multiple_faces',
-  'too_dark',
-  'noise',
-  'tab_hidden',
   'camera_off',
-  'looking_away',
+  'mic_off',
+  'multiple_faces',
+  'face_missing',
   'object_detected',
   'off_center',
+  'looking_away',
+  'tab_hidden',
+  'noise',
+  'too_dark',
   'second_screen',
-  'mic_off',
 ])
 
 /** Browser signals: leaving the tab and pasting. Returns a function that stops watching. */
@@ -119,7 +120,11 @@ export function watchBrowser(setSignal: (kind: SignalKind, on: boolean) => void)
   const pulse = (kind: SignalKind) => (setSignal(kind, true), setSignal(kind, false))
   const onPaste = (event: ClipboardEvent) =>
     substantial(event.clipboardData?.getData('text')) && pulse('paste')
-  const onCopy = () => substantial(document.getSelection()?.toString()) && pulse('copy')
+  // Copying from the exam's text, not the student's own answer (an input or a text area).
+  const onCopy = (event: ClipboardEvent) =>
+    !(event.target as Element | null)?.closest?.('input, textarea, [contenteditable]') &&
+    substantial(document.getSelection()?.toString()) &&
+    pulse('copy')
   // A second screen (Chromium tells; elsewhere this stays unknown and silent).
   const display = screen as unknown as EventTarget & { isExtended?: boolean }
   const onScreen = () => display.isExtended !== undefined && setSignal('second_screen', display.isExtended)
@@ -151,6 +156,7 @@ export function watchMicrophone(stream: MediaStream, setSignal: (kind: SignalKin
     )
   for (const track of tracks)
     for (const type of ['mute', 'unmute', 'ended']) track.addEventListener(type, update)
+  update() // muted already when the exam starts
   return () => {
     for (const track of tracks)
       for (const type of ['mute', 'unmute', 'ended']) track.removeEventListener(type, update)
@@ -163,9 +169,10 @@ export function observeFrame(
   tier: DeviceTier,
   observe: (kind: ObservedKind, present: boolean) => void,
 ) {
-  // A black picture is a covered camera, not a dim room: then a missing face is the student's doing.
+  // A black picture may be a covered camera: then a missing face counts (the "too dark" hint still shows,
+  // in case the room really is that dark).
+  observe('too_dark', frame.brightness < DARK_BRIGHTNESS)
   const dark = frame.brightness < DARK_BRIGHTNESS && frame.brightness >= COVERED_BRIGHTNESS
-  observe('too_dark', dark)
   if (frame.faces != null) {
     // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.
     observe('face_missing', frame.faces === 0 && !dark)
