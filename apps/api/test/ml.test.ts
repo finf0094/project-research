@@ -157,5 +157,11 @@ describe("reconciling the server's findings with the device", () => {
     const device = marker('client', 0, 10)
     expect(riskScore([device, ...findings])).toBe(riskScore(findings)) // the larger of the two, not both
     expect(riskScore([device, ...findings])).toBeGreaterThanOrEqual(riskScore([device]))
+    // A short report confirming a second, separate episode does not cancel that episode's finding.
+    const later = marker('model', 50, 53)
+    const withLater = [device, ...findings, later]
+    expect(riskScore([...withLater, marker('client', 50, 50.25)])).toBeGreaterThanOrEqual(
+      riskScore(withLater),
+    )
   })
 })
