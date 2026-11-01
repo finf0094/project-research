@@ -158,7 +158,7 @@ export function riskScore(
   // less than either alone, and one episode never cancels another.
   const confirming = counted.filter((m) => m.source === 'model' && confirmedByDevice(m, counted))
   let score = counted.filter((m) => !confirming.includes(m)).reduce((sum, m) => sum + points(m), 0)
-  const episodes: { findings: MarkerDraft[]; reported: Set<MarkerDraft> }[] = []
+  let episodes: { findings: MarkerDraft[]; reported: Set<MarkerDraft> }[] = []
   for (const finding of confirming) {
     const reported = counted.filter(
       (d) => d.source === 'client' && d.kind === finding.kind && overlaps(d, finding),
@@ -168,7 +168,7 @@ export function riskScore(
       findings: [finding, ...linked.flatMap((e) => e.findings)],
       reported: new Set([...reported, ...linked.flatMap((e) => [...e.reported])]),
     }
-    episodes.splice(0, episodes.length, ...episodes.filter((e) => !linked.includes(e)), merged)
+    episodes = [...episodes.filter((e) => !linked.includes(e)), merged]
   }
   const sum = (list: Iterable<MarkerDraft>) => [...list].reduce((total, m) => total + points(m), 0)
   for (const e of episodes) score += Math.max(0, sum(e.findings) - sum(e.reported))
