@@ -30,6 +30,7 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
       // Nothing of the previous exam may stay on screen (or be saved onto this one) while it loads.
       draft.value = id ? null : emptyExam(Date.now())
       participants.value = []
+      exceptions.value = []
       locked.value = false
       onReset()
       if (!id) return
@@ -71,5 +72,11 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
     return null
   }
 
-  return { draft, participants, exceptions, locked, saved, invalid, load, save, submit }
+  /** The server drops a removed student's exception (a returning student starts without one). */
+  function participantsSaved(list: string[]) {
+    participants.value = list
+    exceptions.value = exceptions.value.filter((e) => list.includes(e.email))
+  }
+
+  return { draft, participants, exceptions, locked, saved, invalid, load, save, submit, participantsSaved }
 }

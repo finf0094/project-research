@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SignalException, SignalKind } from '@exam/contracts'
 import { ref } from 'vue'
-import { useAction } from '@/shared/lib/use-action'
+import { errorKey, type ErrorKey } from '@/shared/lib/error-key'
 import { setException } from '../api'
 
 /**
@@ -26,8 +26,9 @@ const withSignals = (email: string, disabledSignals: SignalKind[]) => [
   ...exceptions.value.filter((e) => e.email !== email),
   { email, disabledSignals },
 ]
-const save = useAction()
 const saving = ref(new Set<string>())
+/** A refused save, per student: another student's save must not hide it. */
+const failed = ref(new Map<string, ErrorKey>())
 
 /** Shown at once and saved; a refused save puts the student's previous list back. */
 async function toggle(email: string, signal: SignalKind, on: boolean) {
@@ -35,8 +36,15 @@ async function toggle(email: string, signal: SignalKind, on: boolean) {
   const next = on ? [...before, signal] : before.filter((s) => s !== signal)
   exceptions.value = withSignals(email, next)
   saving.value = new Set(saving.value).add(email)
-  const saved = await save.run(() => setException(props.examId, { email, disabledSignals: next }))
-  if (!saved) exceptions.value = withSignals(email, before)
+  const errors = new Map(failed.value)
+  try {
+    await setException(props.examId, { email, disabledSignals: next })
+    errors.delete(email)
+  } catch (error) {
+    exceptions.value = withSignals(email, before)
+    errors.set(email, errorKey(error))
+  }
+  failed.value = errors
   const rest = new Set(saving.value)
   rest.delete(email)
   saving.value = rest
@@ -66,8 +74,8 @@ async function toggle(email: string, signal: SignalKind, on: boolean) {
           {{ $t(`review.marker.${signal}`) }}
         </label>
       </fieldset>
+      <p v-if="failed.has(email)" class="error" role="alert">{{ $t(failed.get(email)!) }}</p>
     </details>
-    <p v-if="save.error.value" class="error" role="alert">{{ $t(save.error.value) }}</p>
   </section>
 </template>
 

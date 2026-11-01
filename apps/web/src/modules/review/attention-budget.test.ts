@@ -11,21 +11,24 @@ const alert = (kind: AlertKind, name: string = kind): Alert => ({
 })
 
 describe('attention budget', () => {
-  it('shows the most important two a minute and folds the rest into one line', () => {
+  it('shows at most two a minute, most important first, and folds the rest into one line', () => {
     const fresh = [alert('online'), alert('submitted'), alert('risk'), alert('offline')]
     const { alerts, shown } = withinBudget(fresh, [], 1000)
     expect(alerts.map((a) => a.kind)).toEqual(['risk', 'offline', 'more'])
     expect(alerts[2]!.count).toBe(2)
-    // Within the same minute only high risk still gets through on its own…
-    expect(withinBudget([alert('offline', 'o2')], shown, 30_000).alerts.map((a) => a.kind)).toEqual(['more'])
-    expect(withinBudget([alert('risk', 'r2')], shown, 30_000).alerts.map((a) => a.kind)).toEqual(['risk'])
-    // …but a burst of high risk is capped as well.
-    const risks = [alert('risk', 'r3'), alert('risk', 'r4'), alert('risk', 'r5')]
-    expect(withinBudget(risks, shown, 30_000).alerts.map((a) => a.kind)).toEqual(['risk', 'more'])
-    // …and a minute later the rest does again.
+    // The minute's budget is spent: even high risk waits in the "more" line (the list shows it)…
+    expect(withinBudget([alert('risk', 'r2')], shown, 30_000).alerts.map((a) => a.kind)).toEqual(['more'])
+    // …and a minute later alerts get through again.
     expect(withinBudget([alert('offline', 'o2')], shown, 62_000).alerts.map((a) => a.kind)).toEqual([
       'offline',
     ])
+  })
+
+  it('keeps one place a minute for high risk', () => {
+    const { shown } = withinBudget([alert('offline')], [], 1000)
+    expect(withinBudget([alert('submitted')], shown, 2000).alerts.map((a) => a.kind)).toEqual(['more'])
+    const risks = [alert('risk', 'r1'), alert('risk', 'r2')]
+    expect(withinBudget(risks, shown, 2000).alerts.map((a) => a.kind)).toEqual(['risk', 'more'])
   })
 
   it('adds folded changes to the last minute’s "more" line instead of a new line each time', () => {

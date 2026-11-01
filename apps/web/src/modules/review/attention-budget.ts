@@ -6,6 +6,8 @@ import type { Alert, AlertKind } from './alerts'
  * the list of students still shows every change.
  */
 export const ALERTS_PER_MINUTE = 2
+/** Ordinary alerts may take only this many of them, so a high-risk alert always finds room. */
+const ORDINARY_PER_MINUTE = 1
 const MINUTE = 60_000
 /** What a proctor should see first when several things happen at once. */
 const PRIORITY: Record<AlertKind, number> = {
@@ -17,7 +19,7 @@ const PRIORITY: Record<AlertKind, number> = {
   more: 5,
 }
 
-/** When an alert was shown, and whether it was a high-risk one (those have a budget of their own). */
+/** When an alert was shown, and whether it was a high-risk one. */
 export interface Shown {
   at: number
   risk: boolean
@@ -26,17 +28,15 @@ export interface Shown {
 export function withinBudget(fresh: Alert[], shown: Shown[], now: number) {
   const recent = shown.filter((s) => now - s.at < MINUTE)
   let room = Math.max(0, ALERTS_PER_MINUTE - recent.length)
-  // High risk is what a proctor must not miss: it gets through even when the budget is spent, but a burst
-  // of it (a room's Wi-Fi or lights failing) is capped too.
-  let riskRoom = Math.max(0, ALERTS_PER_MINUTE - recent.filter((s) => s.risk).length)
+  let ordinaryRoom = Math.max(0, ORDINARY_PER_MINUTE - recent.filter((s) => !s.risk).length)
   const passed: Alert[] = []
   let folded = 0
   for (const alert of fresh.toSorted((a, b) => PRIORITY[a.kind] - PRIORITY[b.kind])) {
     const risk = alert.kind === 'risk'
-    if (risk ? riskRoom > 0 : room > 0) {
+    if (room > 0 && (risk || ordinaryRoom > 0)) {
       passed.push(alert)
       room--
-      if (risk) riskRoom--
+      if (!risk) ordinaryRoom--
     } else folded++
   }
   const alerts: Alert[] = folded

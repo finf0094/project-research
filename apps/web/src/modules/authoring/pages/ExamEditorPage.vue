@@ -24,13 +24,11 @@ const examId = computed(() => (route.params.examId ? String(route.params.examId)
 type Step = 'settings' | 'questions' | 'participants'
 const step = ref<Step>('settings')
 const selected = ref(0)
-const { draft, participants, exceptions, locked, saved, invalid, load, save, submit } = useExamDraft(
-  examId,
-  () => {
+const { draft, participants, exceptions, locked, saved, invalid, load, save, submit, participantsSaved } =
+  useExamDraft(examId, () => {
     step.value = 'settings'
     selected.value = 0
-  },
-)
+  })
 const { t } = useI18n()
 
 // Questions that would fail the check, marked in the outline as the examiner goes.
@@ -110,7 +108,7 @@ async function send() {
             :key="examId"
             :exam-id="examId"
             :initial="participants"
-            @saved="participants = $event"
+            @saved="participantsSaved"
           />
           <ExceptionsEditor
             v-if="examId"

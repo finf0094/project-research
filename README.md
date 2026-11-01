@@ -162,8 +162,10 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   `HUB_TOKEN` must be guarded like a server secret). Devices must reach the hub under the exam's usual address
   (room DNS and a certificate for it): cookies and on-device data belong to that address. Update the hubs
   before the cloud: the cloud answers 410 for a removed attempt, which an older hub would keep retrying.
-- 25.2 Attention budget: the live alerts feed shows at most two alerts a minute; alerts on high-risk attempts always
-  get through, the rest of that minute fold into a single "and N more" line (`review/attention-budget.ts`).
+- 25.2 Attention budget: the live alerts feed shows at most two alerts a minute, the most important first;
+  ordinary ones may take only one of them, so a high-risk alert always finds room. The rest of that minute
+  folds into a single "and N more" line, and the student list still shows every change
+  (`review/attention-budget.ts`).
 - 25.3 Individual exceptions: in the participants tab an examiner can stop tracking chosen signals for one student
   (for example voice for a student who reads aloud). The student's proctor does not watch them, and analysis
   drops markers of those kinds; the list survives re-saving participants and travels in the offline package.
