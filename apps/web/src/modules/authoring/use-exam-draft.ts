@@ -23,10 +23,14 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
   const invalid = ref<string[]>([])
   const load = useAction()
   const save = useAction({ 409: 'authoring.lockedNow' as const })
+  // Answers that come back after the page moved on (another exam, or more edits) must not land on it.
+  let visit = 0
+  let edits = 0
 
   watch(
     examId,
     (id) => {
+      const current = ++visit
       // Nothing of the previous exam may stay on screen (or be saved onto this one) while it loads.
       draft.value = id ? null : emptyExam(Date.now())
       participants.value = []
@@ -36,6 +40,7 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
       if (!id) return
       void load.run(async () => {
         const exam = await getExam(id)
+        if (current !== visit) return
         draft.value = exam.definition
         participants.value = exam.participants
         exceptions.value = exam.exceptions
@@ -49,6 +54,7 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
   watch(
     draft,
     () => {
+      edits++
       invalid.value = []
       saved.value = false
     },
@@ -62,13 +68,15 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
     invalid.value = parsed.success ? [] : describeIssues(parsed.error.issues, t)
     if (!parsed.success) return parsed.error.issues
     const id = examId.value
+    const [sentAt, editsAt] = [visit, edits]
     const ok = await save.run(async () => {
       if (id) await updateExam(id, parsed.data)
       else return router.replace(`/examiner/exams/${(await createExam(parsed.data)).id}/edit`)
-      saved.value = true
+      // "Saved" only if what is on screen is what was sent.
+      saved.value = sentAt === visit && editsAt === edits
     })
     // Students started meanwhile: show the exam as it now is (frozen) instead of a form that cannot save.
-    if (!ok && id && save.error.value === 'authoring.lockedNow') locked.value = true
+    if (!ok && id && sentAt === visit && save.error.value === 'authoring.lockedNow') locked.value = true
     return null
   }
 

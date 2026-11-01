@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { Camera, Lock, RotateCcw } from 'lucide-vue-next'
-import { AppButton, IconTile } from '@/shared/ui'
+import { Camera, Lock } from 'lucide-vue-next'
+import { useId } from 'vue'
+import { IconTile } from '@/shared/ui'
 
-/** The browser refused the camera: how to allow it, step by step, and a way to check again. */
-defineEmits<{ retry: [] }>()
+/** The browser refused the camera: how to allow it, step by step (checking again is on the camera itself). */
+const titleId = useId()
 const STEPS = ['lock', 'allow', 'retry'] as const
 </script>
 
 <template>
-  <section class="help" role="region" :aria-labelledby="'camera-help'">
+  <section class="help" :aria-labelledby="titleId">
     <header>
       <IconTile :icon="Camera" tone="accent" />
-      <h2 id="camera-help">{{ $t('exam.cameraHelp.title') }}</h2>
+      <h2 :id="titleId">{{ $t('exam.cameraHelp.title') }}</h2>
     </header>
     <p class="text">{{ $t('exam.cameraHelp.text') }}</p>
     <div class="bar" aria-hidden="true">
@@ -27,9 +28,6 @@ const STEPS = ['lock', 'allow', 'retry'] as const
         >{{ $t(`exam.cameraHelp.steps.${step}`) }}
       </li>
     </ol>
-    <AppButton variant="ink" @click="$emit('retry')">
-      <RotateCcw :size="16" aria-hidden="true" /> {{ $t('proctoring.check.again') }}
-    </AppButton>
   </section>
 </template>
 

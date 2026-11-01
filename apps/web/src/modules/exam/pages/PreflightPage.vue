@@ -100,7 +100,7 @@ const startLabel = computed(
         >
         <p v-if="starting.error.value" class="error" role="alert">{{ $t(starting.error.value) }}</p>
       </div>
-      <CameraHelp v-if="probe.state.value === 'blocked'" class="help" @retry="probe.start" />
+      <CameraHelp v-if="probe.state.value === 'blocked' && probe.denied.value" class="help" />
       <p v-else class="timer"><Timer :size="18" aria-hidden="true" /> {{ $t('exam.preflight.timerHint') }}</p>
       <DataConsent v-model="consent" class="data" />
     </div>

@@ -22,6 +22,8 @@ const STEADY_FRAMES = 3
  */
 export function useDeviceProbe() {
   const state = ref<ProbeState>('idle')
+  /** The browser (or the student) refused the permission, as opposed to a missing or busy camera. */
+  const denied = ref(false)
   const stream = shallowRef<MediaStream | null>(null)
   const faces = ref<number | null>(null)
   const brightness = ref<number | null>(null)
@@ -54,10 +56,13 @@ export function useDeviceProbe() {
     release()
     timings.length = poses.length = 0 // a retry measures this camera position afresh
     state.value = 'starting'
+    denied.value = false
     let media: MediaStream
     try {
       media = await requestCamera()
-    } catch {
+    } catch (error) {
+      if (mine !== run) return
+      denied.value = error instanceof DOMException && error.name === 'NotAllowedError'
       state.value = 'blocked'
       return
     }
@@ -139,7 +144,7 @@ export function useDeviceProbe() {
     disposed = true
     release()
   })
-  return { state, stream, faces, brightness, checks, ready, start }
+  return { state, denied, stream, faces, brightness, checks, ready, start }
 }
 
 function median(values: number[]) {
