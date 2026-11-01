@@ -29,8 +29,8 @@ const attach = (video: HTMLVideoElement | undefined, stream: MediaStream | null)
 watchEffect(() => attach(remote.value, props.stream))
 watchEffect(() => attach(own.value, props.local ?? null))
 
-/** Problems stay visible over the picture too (a frozen frame looks like a working call). */
-const problem = computed(() => props.state !== 'connected' && (props.state !== 'idle' || !props.stream))
+/** Problems stay visible over the picture (a frozen frame looks like a working call); idle is no problem. */
+const problem = computed(() => props.state !== 'connected' && props.state !== 'idle')
 const live = computed(() => props.state === 'connected' && !!props.stream)
 const status = computed(() =>
   props.state === 'connected' && !props.stream ? t('oral.waiting') : t(`oral.state.${props.state}`),

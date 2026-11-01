@@ -31,7 +31,7 @@ export function ffmpeg(
       child.kill('SIGKILL')
       reject(error)
     }
-    const timer = setTimeout(() => fail(new Error('ffmpeg timed out')), limits.timeoutMs)
+    const timer = setTimeout(() => fail(new FfmpegTimeout()), limits.timeoutMs)
     child.stdout.on('data', (d: Buffer) => {
       size += d.length
       if (size > limits.maxBytes) return fail(new Error('ffmpeg output too large'))
@@ -47,4 +47,11 @@ export function ffmpeg(
     child.stdin.on('error', () => undefined) // ffmpeg may close stdin early on a broken file; 'close' reports it
     child.stdin.end(input)
   })
+}
+
+/** ffmpeg did not finish in time: the machine was busy, not the input broken, so it is worth another try. */
+export class FfmpegTimeout extends Error {
+  constructor() {
+    super('ffmpeg timed out')
+  }
 }

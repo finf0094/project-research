@@ -1,0 +1,1 @@
+CREATE INDEX "markers_decided_index" ON "markers" USING btree ("attempt_id") WHERE "markers"."status" in ('confirmed', 'dismissed');

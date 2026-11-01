@@ -46,19 +46,14 @@ export function withinBudget(fresh: Alert[], shown: Shown[], now: number) {
 }
 
 /**
- * Puts budgeted alerts on top of the feed. Folded changes join the "N more" line of the last minute rather
- * than adding a line each time, so the feed (and a screen reader) is not flooded with "1 more" lines.
+ * Puts budgeted alerts on top of the feed. Folded changes join this minute's "N more" line (wherever it is,
+ * a high-risk alert may have come above it) rather than adding a line each time, so the feed (and a screen
+ * reader) is not flooded with "1 more" lines.
  */
 export function addToFeed(feed: Alert[], budgeted: Alert[], now: number, keep: number): Alert[] {
   const more = budgeted.find((a) => a.kind === 'more')
-  const top = feed[0]
-  if (more && top?.kind === 'more' && now - top.at < MINUTE) {
-    const rest = budgeted.filter((a) => a !== more)
-    return [
-      ...rest.toReversed(),
-      { ...top, count: (top.count ?? 0) + (more.count ?? 0) },
-      ...feed.slice(1),
-    ].slice(0, keep)
-  }
-  return [...budgeted.toReversed(), ...feed].slice(0, keep)
+  const open = more ? feed.findIndex((a) => a.kind === 'more' && now - a.at < MINUTE) : -1
+  if (!more || open < 0) return [...budgeted.toReversed(), ...feed].slice(0, keep)
+  const merged = feed.map((a, i) => (i === open ? { ...a, count: (a.count ?? 0) + (more.count ?? 0) } : a))
+  return [...budgeted.filter((a) => a !== more).toReversed(), ...merged].slice(0, keep)
 }

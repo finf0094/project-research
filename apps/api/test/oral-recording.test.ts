@@ -149,7 +149,7 @@ describe('merge-audio', () => {
     expect(part.statusCode).toBe(206)
     expect(part.rawPayload.equals(file.rawPayload.subarray(0, 100))).toBe(true)
     // 1 s of tone, the 2 s gap kept as silence, 1 s of tone (measured on the decoded sound, 16 kHz 16-bit).
-    const seconds = (await decodeAudio(file.rawPayload)).length / 32_000
+    const seconds = (await decodeAudio(file.rawPayload))!.length / 32_000
     expect(seconds).toBeGreaterThan(3.8)
     expect(seconds).toBeLessThan(4.3)
   })

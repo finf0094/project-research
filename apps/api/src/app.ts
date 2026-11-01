@@ -39,7 +39,9 @@ export async function buildApp(deps: Deps, { logger = true } = {}) {
 
   await registerDocs(app)
   await app.register(cookie)
-  await app.register(rateLimit, { global: false })
+  // After the body and the session are read, so limits can be per account: a classroom (or its hub) shares
+  // one address, and a hundred students signing in at once must not lock each other out.
+  await app.register(rateLimit, { global: false, hook: 'preHandler' })
   installAuth(app, deps)
 
   app.get('/health', async () => ({ ok: true }))

@@ -36,8 +36,11 @@ export async function mergeNextAudio(deps: Deps): Promise<boolean> {
       .set({ audioHash, audioMergedAt: new Date(deps.now()), audioClaimedAt: null })
       .where(eq(attempts.id, attempt.id))
   } catch (error) {
-    // The claim stays: its lease is the pause before the next try (tries were counted when claiming).
     console.error(`audio of attempt ${attempt.id} could not be merged`, error)
+    // The claim stays as the pause before the next try (a fixed lease); after the last try it is released,
+    // so the examiner sees "failed" at once instead of "pending".
+    if (attempt.audioTries + 1 >= MAX_AUDIO_TRIES)
+      await deps.db.update(attempts).set({ audioClaimedAt: null }).where(eq(attempts.id, attempt.id))
   }
   return true
 }
@@ -64,7 +67,6 @@ async function claimNext({ db, now }: Deps) {
     if (!row) return null
     await tx
       .update(attempts)
-      // The try is counted here, so a merge that crashes the worker is not retried forever either.
       .set({ audioClaimedAt: new Date(now()), audioTries: sql`${attempts.audioTries} + 1` })
       .where(eq(attempts.id, row.id))
     return row
@@ -78,7 +80,7 @@ async function merge({ db, storage }: Deps, attemptId: string): Promise<string |
   for (const { hash, start } of await chunksInOrder(db, attemptId)) {
     if (size >= MAX_AUDIO_BYTES) break // the rest would be cut anyway: do not hold it in memory
     const chunk = await storage.get(blobKey(attemptId, hash))
-    const sound = chunk ? await decodeAudio(chunk).catch(() => null) : null
+    const sound = chunk ? await decodeAudio(chunk) : null
     if (!sound?.length) continue
     // Silence and sound both count towards the cap, so memory stays bounded whatever the gaps.
     if (endsAt !== null && start - endsAt > GAP_MS) {

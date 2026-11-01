@@ -19,6 +19,12 @@ export function calibrationFactor(confirmed: number, dismissed: number): number 
   return Math.min(1, Math.max(0.25, Math.round(precision * 2 * 100) / 100))
 }
 
+/**
+ * Markers of the record's integrity (a broken chain, recordings that never came) keep their weight: many
+ * dismissed upload gaps must not hide the one real tampering case.
+ */
+const INTEGRITY: ReadonlySet<MarkerKind> = new Set(['chain_broken', 'missing_fragment'])
+
 /** Decisions on markers across the examiner's exams, by kind. */
 export async function kindDecisions(db: Db | Tx, ownerId: string): Promise<CalibrationRow[]> {
   const rows = await db
@@ -34,7 +40,11 @@ export async function kindDecisions(db: Db | Tx, ownerId: string): Promise<Calib
     entry[status as 'confirmed' | 'dismissed'] += n
     byKind.set(kind, entry)
   }
-  return [...byKind].map(([kind, c]) => ({ kind, ...c, factor: calibrationFactor(c.confirmed, c.dismissed) }))
+  return [...byKind].map(([kind, c]) => ({
+    kind,
+    ...c,
+    factor: INTEGRITY.has(kind) ? 1 : calibrationFactor(c.confirmed, c.dismissed),
+  }))
 }
 
 /** The factors only, for the analysis. */

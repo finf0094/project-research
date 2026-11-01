@@ -1,18 +1,31 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ffmpeg } from './ffmpeg.ts'
+import { FfmpegTimeout, ffmpeg } from './ffmpeg.ts'
 
 /** Speech needs no more: 16 kHz mono, 16-bit. */
 const RATE = 16_000
 export const BYTES_PER_SECOND = RATE * 2
 /** A recorded chunk is 10 s; anything longer is cut. */
 const CHUNK_SECONDS = 12
-/** An oral answer is cut after this (it would be a recording left running); also bounds memory. */
-export const MAX_AUDIO_BYTES = 3 * 3600 * BYTES_PER_SECOND
+/**
+ * An oral answer is cut after this (longer is a recording left running). It bounds the merge's memory too:
+ * the PCM and its one copy for the encoder stay near 230 MB.
+ */
+export const MAX_AUDIO_BYTES = 3600 * BYTES_PER_SECOND
 
-/** The sound of one recorded chunk as raw PCM; a chunk without sound gives an empty buffer. */
-export function decodeAudio(chunk: Buffer): Promise<Buffer> {
+/**
+ * The sound of one recorded chunk as raw PCM; a chunk without sound gives an empty buffer. A chunk ffmpeg
+ * cannot read gives null (it is skipped); a timeout is thrown, so the merge is tried again later.
+ */
+export function decodeAudio(chunk: Buffer): Promise<Buffer | null> {
+  return decodeRaw(chunk).catch((error: unknown) => {
+    if (error instanceof FfmpegTimeout) throw error
+    return null
+  })
+}
+
+function decodeRaw(chunk: Buffer): Promise<Buffer> {
   return ffmpeg(['-t', String(CHUNK_SECONDS), '-vn', '-ac', '1', '-ar', String(RATE), '-f', 's16le'], chunk, {
     maxBytes: CHUNK_SECONDS * BYTES_PER_SECOND,
     timeoutMs: 30_000,

@@ -45,4 +45,21 @@ describe('attention budget', () => {
     expect(next).toHaveLength(1)
     expect(next[0]!.count).toBe(3)
   })
+
+  it('folds into this minute’s "more" line even when a risk alert came above it', () => {
+    const more = (n: number, at: number): Alert => ({
+      id: `m${at}`,
+      kind: 'more',
+      name: '',
+      attemptId: '',
+      at,
+      count: n,
+    })
+    const feed = addToFeed(addToFeed([], [more(2, 1000)], 1000, 30), [alert('risk')], 5000, 30)
+    const next = addToFeed(feed, [more(1, 20_000)], 20_000, 30)
+    expect(next.map((a) => [a.kind, a.count])).toEqual([
+      ['risk', undefined],
+      ['more', 3],
+    ])
+  })
 })

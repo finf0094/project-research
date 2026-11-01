@@ -73,6 +73,8 @@ describe('classroom hub', () => {
     const kept = await sync(student, session.attemptId, offline)
     // The hub holds them (relayedSeq); the cloud's ack is unchanged, so the device keeps them too.
     expect(kept.json()).toMatchObject({ ackedSeq: 1, relayedSeq: 3 })
+    // On the cloud's clock, not the mini-PC's (a hub running slow must not move the deadline).
+    expect(Math.abs(kept.json().serverTime - ctx.clock.now)).toBeLessThan(5_000)
     expect(await cloudHead(session.attemptId)).toBe(1)
     // Nobody else can add to it, and anything but an event sync says the cloud is away.
     const neighbour = { cookie: 'sid=someone-else' }

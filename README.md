@@ -14,7 +14,7 @@ apps/
 packages/
   contracts/    Zod schemas shared by client and server
   integrity/    canonical JSON, SHA-256 hash chain, HMAC — the same code on both sides
-docs/           literature review and architecture document
+docs/           architecture document
 ```
 
 Modules are imported only through their `index.ts` (enforced by ESLint).
@@ -49,8 +49,8 @@ Requirements: Node.js ≥ 22.18, pnpm 10, PostgreSQL ≥ 16.
 
 ```bash
 pnpm install
-cp apps/api/.env.example apps/api/.env      # set MASTER_KEY (see the comment in the file)
-createdb exam
+cp apps/api/.env.example apps/api/.env      # set MASTER_KEY and DATABASE_URL (see the comments)
+createdb exam                               # with -h/-p/-U matching DATABASE_URL
 pnpm --filter @exam/api db:migrate
 pnpm --filter @exam/api seed               # teacher@example.edu / student1@example.edu, password "password"
 
@@ -159,9 +159,10 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   case; it reports how far it holds the events (`relayedSeq`) while the cloud's acknowledgement stays the cloud's,
   so a device keeps its events until the cloud has them and can send them directly if it leaves the room.
   Attempts with relayed events are marked for the examiner, as the hub's receipt times are taken on trust (its
-  `HUB_TOKEN` must be guarded like a server secret). Devices must reach the hub under the exam's usual address
-  (room DNS and a certificate for it): cookies and on-device data belong to that address. Update the hubs
-  before the cloud: the cloud answers 410 for a removed attempt, which an older hub would keep retrying.
+  `HUB_TOKEN` must be guarded like a server secret: with it and a student's own key, receipt times could be
+  backdated). The hub keeps the cloud's clock, so a mini-PC running slow does not move deadlines. Devices
+  must reach the hub under the exam's usual address (room DNS and a certificate for it): cookies and
+  on-device data belong to that address. Update the hubs before the cloud: the cloud answers 410 for a removed attempt, which an older hub would keep retrying.
 - 25.2 Attention budget: the live alerts feed shows at most two alerts a minute, the most important first;
   ordinary ones may take only one of them, so a high-risk alert always finds room. The rest of that minute
   folds into a single "and N more" line, and the student list still shows every change

@@ -13,7 +13,13 @@ export const preloadRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, {
     {
       onRequest: requireRole('student'),
       // A device downloads a package when it is missing or outdated; anything more is a misbehaving client.
-      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+          keyGenerator: (request) => request.user?.id ?? request.ip,
+        },
+      },
       schema: { params, response: { 200: ExamPackage } },
     },
     async (request) => examPackage(deps, currentUser(request).id, request.params.id),

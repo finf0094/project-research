@@ -7,6 +7,8 @@ export interface HubAttempt {
   /** SHA-256 of the session cookie that last synced it through the cloud: only that student may add to it. */
   cookieHash: string
   last: SyncResponse
+  /** The cloud's clock minus the hub's at the last answer (absent in files from before it was kept). */
+  clockOffset?: number
   pending: { event: Event; receivedAt: number }[]
 }
 

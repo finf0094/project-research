@@ -30,7 +30,8 @@ const sessionHash = (request: FastifyRequest) =>
  * through the cloud may add to it, and the cloud verifies every event with keys the hub never holds.
  */
 export function buildHub({ store, upstream }: { store: HubStore; upstream: Upstream }) {
-  const app = Fastify({ logger: false, bodyLimit: 4 * 1024 * 1024 })
+  // Above every cloud limit (recorded chunks are up to 5 MB): the cloud decides what is too large.
+  const app = Fastify({ logger: false, bodyLimit: 8 * 1024 * 1024 })
   const health = cloudHealth()
   app.removeAllContentTypeParsers()
   app.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, body, done) => done(null, body))
@@ -62,6 +63,7 @@ export function buildHub({ store, upstream }: { store: HubStore; upstream: Upstr
     await store.update(attemptId, async (state) => ({
       cookieHash: hash,
       last,
+      clockOffset: last.serverTime - Date.now(),
       pending: (state?.pending ?? []).filter((p) => p.event.seq > last.ackedSeq),
     }))
     return reply.code(response.status).send(last)
@@ -76,14 +78,16 @@ export function buildHub({ store, upstream }: { store: HubStore; upstream: Upstr
       // Not this session's attempt, or one the cloud takes nothing more for: not the hub's to hold.
       if (!state || state.cookieHash !== sessionHash(request)) return null
       if (!OPEN.includes(state.last.status) || state.last.chainBroken) return null
+      // The cloud's clock, not the mini-PC's: a hub running slow must not move the exam's deadline.
+      const now = () => Date.now() + (state.clockOffset ?? 0)
       let head = state.pending.at(-1)?.event.seq ?? state.last.ackedSeq
       const pending = [...state.pending]
       for (const event of parsed.data.events.toSorted((a, b) => a.seq - b.seq)) {
         if (event.seq !== head + 1) continue
-        pending.push({ event, receivedAt: Date.now() })
+        pending.push({ event, receivedAt: now() })
         head = event.seq
       }
-      answer = { ...state.last, relayedSeq: head, serverTime: Date.now(), commands: [] }
+      answer = { ...state.last, relayedSeq: head, serverTime: now(), commands: [] }
       return { ...state, pending }
     })
     return answer

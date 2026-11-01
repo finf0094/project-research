@@ -25,7 +25,13 @@ export const markers = pgTable(
       .notNull()
       .default(sql`'{}'`),
   },
-  (t) => [index().on(t.attemptId)],
+  (t) => [
+    index().on(t.attemptId),
+    // Calibration (section 25.4) reads only decided markers, on every analysis: this keeps that read small.
+    index('markers_decided_index')
+      .on(t.attemptId)
+      .where(sql`${t.status} in ('confirmed', 'dismissed')`),
+  ],
 )
 
 /** Append-only audit of verdicts; the latest row is the current decision. */
