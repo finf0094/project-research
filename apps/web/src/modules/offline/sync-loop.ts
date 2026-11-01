@@ -90,6 +90,9 @@ export function startSync(options: SyncOptions): SyncHandle {
           method: 'POST',
           body: { examId: attempt.offlineStart.examId, offlineStartedAt: attempt.offlineStart.startedAt },
           signal: aborter.signal,
+        }).catch((error: unknown) => {
+          // 409: the server already has this attempt (a lost reply) or will never take it; syncing says which.
+          if (!(error instanceof ApiError && error.status === 409)) throw error
         })
         await db.attempts.update(attemptId, { offlineStart: null })
       }

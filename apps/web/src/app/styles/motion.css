@@ -50,6 +50,20 @@
     opacity: 0;
   }
 
+  /* Something done pops in (a badge, a tick); a check mark draws itself (stroke-dasharray: 40). */
+  @keyframes pop {
+    from {
+      scale: 0.4;
+      opacity: 0;
+      rotate: -12deg;
+    }
+  }
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 40;
+    }
+  }
+
   /* A live status (online, recording, running exam): a soft ring that keeps breathing. */
   .live {
     position: relative;

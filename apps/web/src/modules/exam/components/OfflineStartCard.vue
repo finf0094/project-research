@@ -30,7 +30,7 @@ const code = ref('')
         maxlength="16"
         placeholder="XXXXX-XXXXX"
         :aria-invalid="!!error || undefined"
-        aria-describedby="code-error"
+        :aria-describedby="error ? 'code-error' : undefined"
       />
     </label>
     <p v-if="error" id="code-error" class="error" role="alert">{{ $t(error) }}</p>

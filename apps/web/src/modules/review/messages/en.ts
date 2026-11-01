@@ -71,6 +71,8 @@ export const en: typeof ru = {
       terminateConfirm: 'Yes, end it',
     },
     attempt: {
+      offline: 'Started offline',
+      offlineHint: 'The start time comes from the student’s device (kept within the exam window).',
       backToQueue: 'Back to the review queue',
       place: '{n} of {total} in the queue',
       next: 'Next: {name}',

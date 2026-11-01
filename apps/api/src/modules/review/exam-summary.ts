@@ -3,6 +3,7 @@ import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { attempts, examParticipants, exams, questions } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { conflict } from '../../shared/errors.ts'
+import { offlineCapable } from '../exams/offline.ts'
 import { ownExam } from './access.ts'
 
 /**
@@ -66,6 +67,7 @@ export async function listExams(deps: Deps, ownerId: string, onlyId?: string): P
       opensAt: exam.opensAt.getTime(),
       closesAt: exam.closesAt.getTime(),
       durationMin: exam.durationMin,
+      offlineCapable: offlineCapable(exam),
       recording: exam.profile.recording,
       questions: {
         single: q?.single ?? 0,

@@ -3,6 +3,7 @@ import type { ru } from './ru'
 export const en: typeof ru = {
   hub: {
     startCode: {
+      later: 'The code appears here when the exam opens.',
       title: 'Start code for no network',
       text: 'Students download the exam to their device in advance. If the room loses the network, read out this code and the exam starts without internet.',
       show: 'Show code',

@@ -17,7 +17,11 @@ const { exam, now } = useExamHub()
       <ReadinessCard :exam="exam" />
     </div>
     <ExamFacts :exam="exam" />
-    <StartCodeCard v-if="exam.mode === 'written' && now < exam.closesAt" :exam-id="exam.id" />
+    <StartCodeCard
+      v-if="exam.offlineCapable && now < exam.closesAt"
+      :exam-id="exam.id"
+      :open="now >= exam.opensAt"
+    />
     <ObservationCard :exam="exam" />
   </div>
 </template>

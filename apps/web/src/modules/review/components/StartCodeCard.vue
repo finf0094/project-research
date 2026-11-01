@@ -9,7 +9,8 @@ import { getStartCode } from '../api'
  * The start code of a written exam: students who download the exam ahead of time start it with this code
  * when the room has no network. Hidden until asked for, as it unlocks the questions.
  */
-const props = defineProps<{ examId: string }>()
+/** `open`: the exam has opened, so the code may be shown (before that it would unlock the questions early). */
+const props = defineProps<{ examId: string; open: boolean }>()
 const code = ref<string | null>(null)
 const load = useAction()
 const reveal = () => load.run(async () => (code.value = (await getStartCode(props.examId)).code))
@@ -24,6 +25,7 @@ const reveal = () => load.run(async () => (code.value = (await getStartCode(prop
     <p class="text">{{ $t('hub.startCode.text') }}</p>
     <Transition name="reveal" mode="out-in">
       <p v-if="code" key="code" class="code" aria-live="polite">{{ code }}</p>
+      <p v-else-if="!open" key="later" class="later">{{ $t('hub.startCode.later') }}</p>
       <AppButton v-else key="button" variant="secondary" :loading="load.busy.value" @click="reveal">
         <Eye :size="16" aria-hidden="true" /> {{ $t('hub.startCode.show') }}
       </AppButton>
@@ -64,6 +66,12 @@ header {
   font-size: var(--text-2xl);
   font-weight: 700;
   letter-spacing: 0.1em;
+}
+.later {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-weight: 600;
 }
 .error {
   color: var(--danger);

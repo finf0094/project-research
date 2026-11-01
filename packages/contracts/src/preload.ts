@@ -19,6 +19,8 @@ export const ExamPackage = z.object({
   /** The sealed StudentExam (questions and settings), see @exam/integrity's openPackage. */
   sealed: z.object({ iv: z.string(), data: z.string() }),
   serverTime: Timestamp,
+  /** Matches StudentExamListItem.offline.version while the package is current. */
+  version: z.string(),
 })
 export type ExamPackage = z.infer<typeof ExamPackage>
 

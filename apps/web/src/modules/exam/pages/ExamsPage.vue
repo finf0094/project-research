@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
 import { useAction } from '@/shared/lib/use-action'
 import { AppButton } from '@/shared/ui'
-import { listPackageIds } from '@/modules/offline'
+import { listPackages } from '@/modules/offline'
 import { isNetworkError } from '@/shared/lib/http'
 import { useStored } from '@/shared/lib/stored'
 import { listExams } from '../api'
@@ -25,7 +25,8 @@ const clock = setInterval(() => (now.value = Date.now()), 1000)
 onScopeDispose(() => clearInterval(clock))
 // The last list is kept on the device: with no network the student still finds the exam and starts it
 // from its downloaded package. `ready`: exams that can start without network here.
-const cached = useStored<StudentExamListItem[] | null>(`exams:list:${auth.user?.id}`, null)
+const userId = auth.user!.id // the route requires a signed-in student
+const cached = useStored<StudentExamListItem[] | null>(`exams:list:${userId}`, null)
 const fromCache = ref(false)
 const ready = ref(new Set<string>())
 const refresh = () =>
@@ -34,12 +35,12 @@ const refresh = () =>
       exams.value = await listExams()
       cached.value = exams.value
       fromCache.value = false
-      ready.value = await preloadPackages(exams.value)
+      ready.value = await preloadPackages(userId, exams.value)
     } catch (error) {
       if (!isNetworkError(error) || !cached.value) throw error
       exams.value = cached.value
       fromCache.value = true
-      ready.value = new Set(await listPackageIds())
+      ready.value = new Set((await listPackages(userId)).map((p) => p.examId))
     }
   })
 onMounted(refresh)

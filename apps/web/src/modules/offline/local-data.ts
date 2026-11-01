@@ -75,6 +75,7 @@ export const listPins = (attemptId: string) => db.pins.where('attemptId').equals
 export const deletePin = (id: number) => db.pins.delete(id)
 
 export const savePackage = (pkg: StoredPackage) => db.packages.put(pkg)
-export const getPackage = (examId: string) => db.packages.get(examId)
-export const deletePackage = (examId: string) => db.packages.delete(examId)
-export const listPackageIds = () => db.packages.toCollection().primaryKeys()
+export const getPackage = (userId: string, examId: string) => db.packages.get([userId, examId])
+export const deletePackage = (userId: string, examId: string) => db.packages.delete([userId, examId])
+/** The student's packages on this device. */
+export const listPackages = (userId: string) => db.packages.where('userId').equals(userId).toArray()

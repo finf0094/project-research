@@ -51,7 +51,12 @@ async function deriveKey(code: string, examId: string, iterations: number, usage
   )
 }
 
-const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes))
+/** In slices: spreading a whole large package into one call would overflow the stack. */
+function toBase64(bytes: Uint8Array) {
+  let text = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return btoa(text)
+}
 const fromBase64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0))
 
 /** The exam id is bound in as associated data: a package cannot be passed off as another exam's. */

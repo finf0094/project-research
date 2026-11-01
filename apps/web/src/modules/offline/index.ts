@@ -9,7 +9,7 @@ export {
   deletePin,
   getAttempt,
   getPackage,
-  listPackageIds,
+  listPackages,
   listAnswers,
   listEvents,
   listPins,

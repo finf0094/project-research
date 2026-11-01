@@ -18,6 +18,12 @@ describe('exam package', () => {
     await expect(openPackage(sealed, code, 'exam-2', 1000)).rejects.toThrow()
   })
 
+  it('seals large exams too', async () => {
+    const big = 'x'.repeat(1_000_000)
+    const sealed = await sealPackage(big, 'ABCDE12345', 'exam-1', 1000)
+    expect(await openPackage(sealed, 'ABCDE12345', 'exam-1', 1000)).toBe(big)
+  })
+
   it('reads easily confused letters as the digits they stand for', () => {
     expect(normalizeStartCode('ol-i 2')).toBe('0112')
   })

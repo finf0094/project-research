@@ -10,7 +10,12 @@ const params = z.object({ id: z.uuid() })
 export const preloadRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { deps }) => {
   app.get(
     '/exams/:id/package',
-    { onRequest: requireRole('student'), schema: { params, response: { 200: ExamPackage } } },
+    {
+      onRequest: requireRole('student'),
+      // A device downloads a package when it is missing or outdated; anything more is a misbehaving client.
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      schema: { params, response: { 200: ExamPackage } },
+    },
     async (request) => examPackage(deps, currentUser(request).id, request.params.id),
   )
   app.get(

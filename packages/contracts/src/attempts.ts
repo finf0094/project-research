@@ -64,6 +64,11 @@ export const StudentExamListItem = z.object({
   questionCount: z.number().int().nonnegative(),
   /** `resultReady`: the examiner decided and published, so the student can open their result. */
   attempt: z.object({ id: Id, status: AttemptStatus, resultReady: z.boolean() }).nullable(),
+  /**
+   * Set for sittings that can start without network: the package's version (it changes when the exam is
+   * edited), null until the first package was made. A device with an older package downloads it again.
+   */
+  offline: z.object({ version: z.string().nullable() }).nullable(),
 })
 export type StudentExamListItem = z.infer<typeof StudentExamListItem>
 

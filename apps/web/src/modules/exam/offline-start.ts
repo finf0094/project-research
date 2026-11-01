@@ -1,5 +1,5 @@
 import { StudentExam } from '@exam/contracts'
-import { genesisHash, importHmacKeyBase64, openPackage } from '@exam/integrity'
+import { genesisHash, openPackage } from '@exam/integrity'
 import { deletePackage, saveAttempt, type LocalAttempt, type StoredPackage } from '@/modules/offline'
 
 /** The start code did not open the package (mistyped, or the exam changed since it was downloaded). */
@@ -22,7 +22,7 @@ export async function startOffline(pkg: StoredPackage, code: string): Promise<Lo
   const attempt: LocalAttempt = {
     id: pkg.attemptId,
     exam,
-    key: await importHmacKeyBase64(pkg.hmacKey),
+    key: pkg.key,
     head: { seq: 0, hash: await genesisHash(pkg.attemptId) },
     ackedSeq: 0,
     deadline: Math.min(now + pkg.durationMin * 60_000, pkg.closesAt),
@@ -33,6 +33,6 @@ export async function startOffline(pkg: StoredPackage, code: string): Promise<Lo
   }
   await saveAttempt(attempt, {})
   // The key is in the attempt now; the package is not needed (nor wanted) any longer.
-  await deletePackage(pkg.examId)
+  await deletePackage(pkg.userId, pkg.examId)
   return attempt
 }

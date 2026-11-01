@@ -16,17 +16,14 @@ type AttemptRow = typeof attempts.$inferSelect
 export const OPEN_STATUSES: readonly AttemptStatus[] = ['active', 'terminated']
 
 /** Control fragments are requested at random moments between these bounds. */
-/** Device clocks drift; an offline start a little "in the future" is still the present. */
-const CLOCK_SKEW_MS = 60_000
 const CAPTURE_MIN_MS = 4 * 60_000
 const CAPTURE_MAX_MS = 12 * 60_000
 export const nextCaptureTime = (now: number, random = Math.random) =>
   new Date(now + CAPTURE_MIN_MS + random() * (CAPTURE_MAX_MS - CAPTURE_MIN_MS))
 
-/** Starts an attempt, or returns the running one so a student who lost local data can resume. */
 /**
- * Starts (or resumes) the student's attempt. `offlineStartedAt`: the attempt was begun without network from
- * a downloaded package at that (client) time; it is trusted within the same window as answers written offline.
+ * Starts the student's attempt, or returns the running one so a student who lost local data can resume.
+ * `offlineStartedAt`: begun without network from a downloaded package at that device time (see offlineStart).
  */
 export async function startAttempt(
   deps: Deps,
@@ -47,9 +44,10 @@ export async function startAttempt(
     if (!exam) throw notFound('Exam not found')
     // A downloaded package reserved the attempt's id and key: the events written offline are sealed with them.
     const reserved = await reservationOf(tx, examId, userId)
-    const startedAt =
-      offlineStartedAt === undefined ? now : checkOfflineStart(deps, exam, reserved, offlineStartedAt)
-    if (startedAt < exam.opensAt.getTime() || startedAt >= exam.closesAt.getTime())
+    if (offlineStartedAt !== undefined && !reserved)
+      throw conflict('No downloaded package for an offline start')
+    const startedAt = offlineStartedAt === undefined ? now : offlineStart(exam, offlineStartedAt, now)
+    if (offlineStartedAt === undefined && (now < exam.opensAt.getTime() || now >= exam.closesAt.getTime()))
       throw conflict('Exam is not open')
 
     const id = reserved?.attemptId ?? randomUUID()
@@ -67,6 +65,7 @@ export async function startAttempt(
         userId,
         status: 'active',
         startedAt: new Date(startedAt),
+        startedOffline: offlineStartedAt !== undefined,
         deadline: new Date(Math.min(startedAt + exam.durationMin * 60_000, exam.closesAt.getTime())),
         hmacKeyEnc: reserved?.hmacKeyEnc ?? encryptSecret(deps.masterKey, randomBytes(32)),
         lastHash: await genesisHash(id),
@@ -83,20 +82,14 @@ export async function startAttempt(
 }
 
 /**
- * An offline start counts only with a package (its reservation) and a start time the server can believe:
- * not in the future, and recent enough that the attempt and its offline window are not over yet.
+ * The start time of an attempt begun offline. Never refused (the device has already sealed the student's
+ * answers): a device time outside what is possible is pulled into the window — not before opening, not in the
+ * future, not after closing. Offline start exists only for sittings, so the deadline (at most the window's
+ * close) leaves nothing to gain; answers still count only if they arrive within the offline window.
  */
-function checkOfflineStart(
-  { config, now }: Deps,
-  exam: { durationMin: number },
-  reserved: unknown,
-  startedAt: number,
-): number {
-  if (!reserved) throw conflict('No downloaded package for an offline start')
-  const oldest = now() - exam.durationMin * 60_000 - config.OFFLINE_WINDOW_MIN * 60_000
-  if (startedAt > now() + CLOCK_SKEW_MS || startedAt < oldest)
-    throw conflict('Offline start time is not plausible')
-  return Math.min(startedAt, now())
+function offlineStart(exam: { opensAt: Date; closesAt: Date }, claimed: number, now: number): number {
+  const latest = Math.min(now, exam.closesAt.getTime() - 1)
+  return Math.max(exam.opensAt.getTime(), Math.min(claimed, latest))
 }
 
 async function findAttempt(tx: Tx, examId: string, userId: string) {

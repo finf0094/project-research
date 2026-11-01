@@ -37,6 +37,12 @@ defineProps<{ detail: AttemptDetail; queue: QueuePlace | null }>()
         <StatusPill v-if="detail.submittedAt" tone="ok">{{
           $t('review.attempt.submittedAt', { at: formatClock(detail.submittedAt) })
         }}</StatusPill>
+        <StatusPill
+          v-if="detail.summary.startedOffline"
+          tone="warn"
+          :title="$t('review.attempt.offlineHint')"
+          >{{ $t('review.attempt.offline') }}</StatusPill
+        >
         <StatusPill v-if="detail.summary.riskScore !== null" tone="danger">{{
           $t('review.attempt.risk', { n: detail.summary.riskScore })
         }}</StatusPill>

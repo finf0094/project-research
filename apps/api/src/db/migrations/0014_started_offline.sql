@@ -1,0 +1,1 @@
+ALTER TABLE "attempts" ADD COLUMN "started_offline" boolean DEFAULT false NOT NULL;

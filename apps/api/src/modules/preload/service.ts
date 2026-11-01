@@ -1,49 +1,45 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import type { ExamPackage } from '@exam/contracts'
-import { PACKAGE_ITERATIONS, formatStartCode, newStartCode, sealPackage } from '@exam/integrity'
-import { and, eq } from 'drizzle-orm'
-import type { Tx } from '../../db/client.ts'
+import {
+  PACKAGE_ITERATIONS,
+  formatStartCode,
+  newStartCode,
+  sealPackage,
+  type SealedPackage,
+} from '@exam/integrity'
+import { and, eq, isNull } from 'drizzle-orm'
+import type { Db, Tx } from '../../db/client.ts'
 import { attempts, examPreloads, exams } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
+import { offlineCapable, packageVersion } from '../exams/offline.ts'
 import { isParticipant, studentExam } from '../exams/service.ts'
 
-/** Packages can be downloaded from a day before the exam opens. */
-export const PRELOAD_BEFORE_MS = 24 * 3_600_000
+/** Packages are offered from a day before the sitting until it opens (after that, students start online). */
+const PRELOAD_BEFORE_MS = 24 * 3_600_000
 
 type ExamRow = typeof exams.$inferSelect
-
 /**
- * The student's package for starting without network: the written exam sealed under its start code, with
- * the attempt id and chain key reserved for them. Downloaded again whenever the student is online, so an
- * edit (which changes the start code) replaces an outdated package.
+ * The student's package: the sitting's questions sealed under its start code, and the attempt id and chain
+ * key reserved for them. The sealed content is the same for everyone, so it is made once per code.
  */
 export async function examPackage(deps: Deps, userId: string, examId: string): Promise<ExamPackage> {
   const now = deps.now()
-  const { exam, code, reservation, content } = await deps.db.transaction(async (tx) => {
-    // FOR UPDATE: the first download creates the start code, exactly once.
-    const [exam] = await tx.select().from(exams).where(eq(exams.id, examId)).for('update')
-    if (!exam) throw notFound('Exam not found')
-    if (!(await isParticipant(tx, examId, userId))) throw forbidden()
-    if (exam.profile.mode !== 'written') throw conflict('Only written exams can start without network')
-    if (now < exam.opensAt.getTime() - PRELOAD_BEFORE_MS || now >= exam.closesAt.getTime())
-      throw conflict('The package is not available now')
-    const [started] = await tx
-      .select({ id: attempts.id })
-      .from(attempts)
-      .where(and(eq(attempts.examId, examId), eq(attempts.userId, userId)))
-    if (started) throw conflict('The attempt has already started')
-    const content = await studentExam(tx, examId, null)
-    return {
-      exam,
-      code: await startCodeOf(deps, tx, exam),
-      reservation: await reserve(deps, tx, examId, userId),
-      content,
-    }
-  })
-  // Sealing is slow on purpose (key stretching), so it runs after the transaction, not under its lock.
-  const sealed = await sealPackage(JSON.stringify(content), code, examId, PACKAGE_ITERATIONS)
+  let [exam] = await deps.db.select().from(exams).where(eq(exams.id, examId))
+  if (!exam) throw notFound('Exam not found')
+  if (!(await isParticipant(deps.db, examId, userId))) throw forbidden()
+  if (!offlineCapable(exam)) throw conflict('Only sittings of written exams can start without network')
+  if (now < exam.opensAt.getTime() - PRELOAD_BEFORE_MS || now >= exam.opensAt.getTime())
+    throw conflict('The package is offered only before the exam opens')
+  const [started] = await deps.db
+    .select({ id: attempts.id })
+    .from(attempts)
+    .where(and(eq(attempts.examId, examId), eq(attempts.userId, userId)))
+  if (started) throw conflict('The attempt has already started')
+
+  exam = await withStartCode(deps, exam)
+  const reservation = await deps.db.transaction((tx) => reserve(deps, tx, examId, userId))
   return {
     examId,
     attemptId: reservation.attemptId,
@@ -53,33 +49,54 @@ export async function examPackage(deps: Deps, userId: string, examId: string): P
     opensAt: exam.opensAt.getTime(),
     closesAt: exam.closesAt.getTime(),
     iterations: PACKAGE_ITERATIONS,
-    sealed,
+    sealed: await sealedFor(deps, exam),
     serverTime: now,
+    version: packageVersion(exam)!,
   }
 }
 
-/** The exam's start code, created on first use (the caller holds the exam row lock). */
-export async function startCodeOf(deps: Deps, tx: Tx, exam: ExamRow): Promise<string> {
-  if (exam.startCodeEnc) return decryptSecret(deps.masterKey, exam.startCodeEnc).toString()
-  const code = newStartCode()
-  await tx
-    .update(exams)
-    .set({ startCodeEnc: encryptSecret(deps.masterKey, Buffer.from(code)) })
-    .where(eq(exams.id, exam.id))
-  return code
+/** For the examiner to read out at the start (not before: the code opens the questions). */
+export async function examinerStartCode(deps: Deps, ownerId: string, examId: string) {
+  const [exam] = await deps.db
+    .select()
+    .from(exams)
+    .where(and(eq(exams.id, examId), eq(exams.ownerId, ownerId)))
+  if (!exam) throw notFound('Exam not found')
+  if (!offlineCapable(exam)) throw conflict('This exam cannot start without network')
+  if (deps.now() < exam.opensAt.getTime()) throw conflict('The code is shown once the exam opens')
+  const withCode = await withStartCode(deps, exam)
+  return { code: formatStartCode(decryptSecret(deps.masterKey, withCode.startCodeEnc!).toString()) }
 }
 
-/** For the examiner to announce: the code, formatted for reading aloud. */
-export async function examinerStartCode(deps: Deps, ownerId: string, examId: string) {
-  return deps.db.transaction(async (tx) => {
-    const [exam] = await tx
-      .select()
-      .from(exams)
-      .where(and(eq(exams.id, examId), eq(exams.ownerId, ownerId)))
-      .for('update')
-    if (!exam) throw notFound('Exam not found')
-    return { code: formatStartCode(await startCodeOf(deps, tx, exam)) }
-  })
+/** The exam with its start code, made on first use: one conditional update, no lock on the exam row. */
+async function withStartCode({ db, masterKey }: Deps, exam: ExamRow): Promise<ExamRow> {
+  if (exam.startCodeEnc) return exam
+  const [made] = await db
+    .update(exams)
+    .set({ startCodeEnc: encryptSecret(masterKey, Buffer.from(newStartCode())) })
+    .where(and(eq(exams.id, exam.id), isNull(exams.startCodeEnc)))
+    .returning()
+  // Someone else made it a moment earlier: use theirs.
+  return made ?? (await db.select().from(exams).where(eq(exams.id, exam.id)))[0]!
+}
+
+// Sealing stretches the code on purpose (slow), so each exam's package is sealed once per code and reused.
+const sealedCache = new Map<string, Promise<SealedPackage>>()
+const CACHE_SIZE = 50
+
+function sealedFor(deps: Deps, exam: ExamRow): Promise<SealedPackage> {
+  const key = `${exam.id}|${exam.startCodeEnc}`
+  let sealed = sealedCache.get(key)
+  if (!sealed) {
+    const code = decryptSecret(deps.masterKey, exam.startCodeEnc!).toString()
+    sealed = studentExam(deps.db, exam.id, null).then((content) =>
+      sealPackage(JSON.stringify(content), code, exam.id, PACKAGE_ITERATIONS),
+    )
+    sealed.catch(() => sealedCache.delete(key))
+    sealedCache.set(key, sealed)
+    if (sealedCache.size > CACHE_SIZE) sealedCache.delete(sealedCache.keys().next().value!)
+  }
+  return sealed
 }
 
 async function reserve(deps: Deps, tx: Tx, examId: string, userId: string) {
@@ -92,16 +109,12 @@ async function reserve(deps: Deps, tx: Tx, examId: string, userId: string) {
       hmacKeyEnc: encryptSecret(deps.masterKey, randomBytes(32)),
     })
     .onConflictDoNothing()
-  const [row] = await tx
-    .select()
-    .from(examPreloads)
-    .where(and(eq(examPreloads.examId, examId), eq(examPreloads.userId, userId)))
-  return row!
+  return (await reservationOf(tx, examId, userId))!
 }
 
 /** The student's reservation, if they downloaded a package: the attempt then takes its id and key. */
-export async function reservationOf(tx: Tx, examId: string, userId: string) {
-  const [row] = await tx
+export async function reservationOf(db: Db | Tx, examId: string, userId: string) {
+  const [row] = await db
     .select()
     .from(examPreloads)
     .where(and(eq(examPreloads.examId, examId), eq(examPreloads.userId, userId)))

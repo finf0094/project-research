@@ -3,6 +3,7 @@ import type { StudentExamListItem } from '@exam/contracts'
 import { ArrowLeft, Timer } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/modules/auth'
 import { CameraStage, useDeviceProbe } from '@/modules/proctoring'
 import { AppButton, LocaleSwitch } from '@/shared/ui'
 import { listExams } from '../api'
@@ -24,7 +25,10 @@ const examId = String(route.params.examId)
 const probe = useDeviceProbe()
 const { checks, ready } = usePreflightChecks(probe)
 const consent = ref(false)
-const { starting, start, pkg, offline, unlocking, codeError, startWithCode } = useExamStart(examId)
+const { starting, start, pkg, offline, unlocking, codeError, startWithCode } = useExamStart(
+  examId,
+  useAuthStore().user!.id,
+)
 
 // The title is a courtesy: the check works without it.
 const exam = ref<StudentExamListItem | null>(null)

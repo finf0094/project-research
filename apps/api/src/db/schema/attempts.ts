@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -44,6 +45,8 @@ export const attempts = pgTable(
     /** When the server next asks for a control fragment; random, so the student cannot prepare for it. */
     nextCaptureAt: timestamp('next_capture_at', { withTimezone: true }),
     riskScore: integer('risk_score'),
+    /** Begun without network from a downloaded package (its start time came from the device). */
+    startedOffline: boolean('started_offline').notNull().default(false),
     /** A worker took the attempt for analysis at this time (a lease: a crashed worker's claim expires). */
     analysisClaimedAt: timestamp('analysis_claimed_at', { withTimezone: true }),
     /** Whether the server's own models checked the recordings; null until analysis. */

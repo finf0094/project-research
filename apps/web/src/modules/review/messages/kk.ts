@@ -71,6 +71,8 @@ export const kk: typeof ru = {
       terminateConfirm: 'Иә, аяқтау',
     },
     attempt: {
+      offline: 'Желісіз басталды',
+      offlineHint: 'Басталу уақыты студент құрылғысынан алынды (емтихан терезесі шегінде).',
       backToQueue: 'Тексеру кезегіне',
       place: 'Кезекте {total} ішінен {n}',
       next: 'Келесі: {name}',

@@ -131,18 +131,6 @@ const pending = computed(() => sync.status.pendingEvents + sync.status.pendingCh
   color: var(--on-lime);
   animation: pop 600ms var(--ease-spring) 120ms both;
 }
-@keyframes draw {
-  from {
-    stroke-dashoffset: 40;
-  }
-}
-@keyframes pop {
-  from {
-    scale: 0.4;
-    opacity: 0;
-    rotate: -12deg;
-  }
-}
 h1 {
   font-size: var(--text-2xl);
 }

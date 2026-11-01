@@ -43,6 +43,8 @@ export const AttemptBase = z.object({
   answered: z.number().int().nonnegative(),
   markerCount: z.number().int().nonnegative(),
   riskScore: z.number().int().min(0).max(100).nullable(),
+  /** Begun without network from a downloaded package; its start time comes from the device. */
+  startedOffline: z.boolean(),
 })
 export type AttemptBase = z.infer<typeof AttemptBase>
 
@@ -69,6 +71,8 @@ export const ExaminerExam = z.object({
   opensAt: Timestamp,
   closesAt: Timestamp,
   durationMin: z.number().int().positive(),
+  /** A sitting that students can start without network with the start code. */
+  offlineCapable: z.boolean(),
   recording: RecordingMode,
   /** Questions by type, and their total points (for an oral exam: the pool). */
   questions: z.object({

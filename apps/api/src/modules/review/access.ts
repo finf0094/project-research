@@ -49,5 +49,6 @@ export function toSummary(
     answered,
     markerCount,
     riskScore: attempt.riskScore,
+    startedOffline: attempt.startedOffline,
   }
 }

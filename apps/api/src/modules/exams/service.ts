@@ -2,6 +2,7 @@ import type { Question, StudentExam, StudentExamListItem } from '@exam/contracts
 import { and, asc, count, eq } from 'drizzle-orm'
 import type { Db, Tx } from '../../db/client.ts'
 import { attempts, examParticipants, exams, questions } from '../../db/schema.ts'
+import { offlineCapable, packageVersion } from './offline.ts'
 
 export async function listForStudent(db: Db, userId: string): Promise<StudentExamListItem[]> {
   const rows = await db
@@ -33,6 +34,7 @@ export async function listForStudent(db: Db, userId: string): Promise<StudentExa
             resultReady: attemptStatus === 'decided' && !!exam.publishedAt,
           }
         : null,
+    offline: offlineCapable(exam) ? { version: packageVersion(exam) } : null,
   }))
 }
 

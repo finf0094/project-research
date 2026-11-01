@@ -69,6 +69,8 @@ export const ru = {
       terminateConfirm: 'Да, завершить',
     },
     attempt: {
+      offline: 'Начат без сети',
+      offlineHint: 'Время начала взято с устройства студента (в пределах окна экзамена).',
       backToQueue: 'К очереди проверки',
       place: '{n} из {total} в очереди',
       next: 'Следующий: {name}',

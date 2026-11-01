@@ -23,8 +23,13 @@ export interface LocalAttempt {
   offlineStart?: { examId: string; startedAt: number } | null
 }
 
-/** A downloaded exam package (see @exam/contracts ExamPackage), kept until the attempt is started. */
-export interface StoredPackage extends ExamPackage {
+/**
+ * A downloaded exam package (see @exam/contracts ExamPackage), kept per student until the attempt starts.
+ * The chain key is stored as a non-extractable CryptoKey, like an attempt's.
+ */
+export interface StoredPackage extends Omit<ExamPackage, 'hmacKey'> {
+  userId: string
+  key: CryptoKey
   /** serverTime - Date.now() at download, so an offline start keeps the server's clock. */
   clockOffset: number
 }
@@ -73,7 +78,7 @@ export const db = new Dexie('exam') as Dexie & {
   chunks: Table<LocalChunk, [string, string]>
   ring: Table<RingChunk, [string, number]>
   pins: Table<PendingPin, number>
-  packages: EntityTable<StoredPackage, 'examId'>
+  packages: Table<StoredPackage, [string, string]>
 }
 
 db.version(1).stores({
@@ -87,5 +92,8 @@ db.version(2).stores({
   ring: '[attemptId+tStart]',
   pins: '++id, attemptId',
 })
-// Version 3: downloaded exam packages for starting without network.
+// Version 3: downloaded exam packages for starting without network. Version 4: kept per student (a shared
+// computer must not hand one student's reservation to another), so the table is rebuilt.
 db.version(3).stores({ packages: 'examId' })
+db.version(4).stores({ packages: null })
+db.version(5).stores({ packages: '[userId+examId], userId' })
