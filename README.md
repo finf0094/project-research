@@ -130,7 +130,7 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   oral ticket size) and choose participants by email. Once a student has started, questions and settings are
   frozen (answers, tickets and sealed logs refer to them); participants can still change. The administrator's
   role is user management (no self sign-up); the seed has `admin@example.edu`.
-- Offline start (stage 6), for sittings (a written exam whose window is at most its length plus an hour): from a
+- Offline start (stage 6), for sittings (a written exam whose window is at most its length plus 15 minutes): from a
   day before a sitting opens, the student's device downloads the exam sealed with AES-256-GCM under a key
   stretched (PBKDF2-SHA-256, 300 000 rounds) from the sitting's 10-character start code, together with the
   attempt id and chain key reserved for that student (kept as a non-extractable key). The examiner sees the code

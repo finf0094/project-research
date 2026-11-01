@@ -100,6 +100,11 @@ describe('offline start: the attempt', () => {
     expect((await startOffline(opensAt - 3_600_000)).json().deadline).toBe(opensAt + 60 * 60_000)
   })
 
+  it('is refused before the sitting opens, even with a package (the questions would come back)', async () => {
+    await download()
+    expect((await startOffline(opensAt)).statusCode).toBe(409)
+  })
+
   it('needs a package', async () => {
     at(opensAt)
     expect((await startOffline(opensAt)).statusCode).toBe(409)

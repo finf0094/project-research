@@ -23,12 +23,14 @@ export async function preloadPackages(
   const stored = new Map((await listPackages(userId)).map((p) => [p.examId, p]))
   for (const examId of stored.keys())
     if (!wanted.some((e) => e.id === examId)) await deletePackage(userId, examId)
+  const fresh = new Set<string>()
   for (const exam of wanted) {
     // Downloads happen only before opening; after that a current package is simply kept.
     if (now >= exam.opensAt || stored.get(exam.id)?.version === exam.offline?.version) continue
     const pkg = await fetchPackage(exam.id).catch(() => null)
     if (!pkg) continue
     const { hmacKey, ...rest } = pkg
+    fresh.add(exam.id)
     await savePackage({
       ...rest,
       userId,
@@ -36,5 +38,10 @@ export async function preloadPackages(
       clockOffset: pkg.serverTime - Date.now(),
     })
   }
-  return new Set((await listPackages(userId)).map((p) => p.examId))
+  // Only current packages count as ready: an edit after opening changes the code, and an old package
+  // would only answer "wrong code".
+  // A package downloaded just now is current even if the list was read before its code existed.
+  const current = (p: { examId: string; version: string }) =>
+    fresh.has(p.examId) || wanted.find((e) => e.id === p.examId)?.offline?.version === p.version
+  return new Set((await listPackages(userId)).filter(current).map((p) => p.examId))
 }

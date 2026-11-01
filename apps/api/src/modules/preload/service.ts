@@ -88,15 +88,26 @@ function sealedFor(deps: Deps, exam: ExamRow): Promise<SealedPackage> {
   const key = `${exam.id}|${exam.startCodeEnc}`
   let sealed = sealedCache.get(key)
   if (!sealed) {
-    const code = decryptSecret(deps.masterKey, exam.startCodeEnc!).toString()
-    sealed = studentExam(deps.db, exam.id, null).then((content) =>
-      sealPackage(JSON.stringify(content), code, exam.id, PACKAGE_ITERATIONS),
-    )
+    sealed = sealCurrent(deps, exam)
     sealed.catch(() => sealedCache.delete(key))
     sealedCache.set(key, sealed)
     if (sealedCache.size > CACHE_SIZE) sealedCache.delete(sealedCache.keys().next().value!)
   }
   return sealed
+}
+
+/** Seals the questions as they are under this code: both read in one snapshot, so an edit in between fails. */
+async function sealCurrent(deps: Deps, exam: ExamRow): Promise<SealedPackage> {
+  const content = await deps.db.transaction(
+    async (tx) => {
+      const [now] = await tx.select({ code: exams.startCodeEnc }).from(exams).where(eq(exams.id, exam.id))
+      if (now?.code !== exam.startCodeEnc) throw conflict('The exam changed just now; try again')
+      return studentExam(tx, exam.id, null)
+    },
+    { isolationLevel: 'repeatable read' },
+  )
+  const code = decryptSecret(deps.masterKey, exam.startCodeEnc!).toString()
+  return sealPackage(JSON.stringify(content), code, exam.id, PACKAGE_ITERATIONS)
 }
 
 async function reserve(deps: Deps, tx: Tx, examId: string, userId: string) {

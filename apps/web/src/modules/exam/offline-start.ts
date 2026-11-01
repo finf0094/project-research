@@ -4,8 +4,6 @@ import { deletePackage, saveAttempt, type LocalAttempt, type StoredPackage } fro
 
 /** The start code did not open the package (mistyped, or the exam changed since it was downloaded). */
 export class WrongStartCode extends Error {}
-/** By this device's (server-corrected) clock the exam is not open. */
-export class NotOpen extends Error {}
 
 /**
  * Begins an attempt with no network: opens the downloaded package with the start code the proctor
@@ -17,7 +15,7 @@ export async function startOffline(pkg: StoredPackage, code: string): Promise<Lo
     throw new WrongStartCode()
   })
   const now = Date.now() + pkg.clockOffset
-  if (now < pkg.opensAt || now >= pkg.closesAt) throw new NotOpen()
+  // No refusal by this device's clock: it may be wrong, and the server pulls the start into the window.
   const exam = StudentExam.parse(JSON.parse(text))
   const attempt: LocalAttempt = {
     id: pkg.attemptId,

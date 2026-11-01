@@ -3,8 +3,11 @@ import type { exams } from '../../db/schema.ts'
 
 type ExamRow = typeof exams.$inferSelect
 
-/** A sitting: the window is the exam's length plus at most this — reading early then gains nothing. */
-const SITTING_SLACK_MS = 60 * 60_000
+/**
+ * A sitting: the window is the exam's length plus at most this. A device could claim a later start than
+ * the real one and gain up to this much; such attempts carry the "started offline" mark for the examiner.
+ */
+const SITTING_SLACK_MS = 15 * 60_000
 
 /**
  * Offline start is for sittings: a written exam whose window barely exceeds its length, so everyone ends by
