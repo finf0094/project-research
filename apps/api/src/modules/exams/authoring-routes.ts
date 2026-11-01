@@ -52,6 +52,7 @@ export const authoringRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app,
   app.put(
     '/examiner/exams/:id/participants',
     { schema: { params: IdParams, body: ParticipantsBody, response: { 200: ParticipantsResult } } },
-    async (request) => setParticipants(deps.db, me(request), request.params.id, request.body.emails),
+    async (request) =>
+      setParticipants(deps.db, me(request), request.params.id, request.body.emails, deps.now()),
   )
 }

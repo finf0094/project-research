@@ -137,10 +137,11 @@ export async function setParticipants(
   ownerId: string,
   examId: string,
   emails: string[],
+  now: number,
 ): Promise<ParticipantsResult> {
   const wanted = [...new Set(emails.map((e) => e.trim().toLowerCase()))]
   return db.transaction(async (tx) => {
-    await ownedExam(tx, ownerId, examId, true)
+    const exam = await ownedExam(tx, ownerId, examId, true)
     const students = wanted.length
       ? await tx
           .select({ id: users.id, email: users.email })
@@ -151,7 +152,20 @@ export async function setParticipants(
       .select({ userId: attempts.userId })
       .from(attempts)
       .where(eq(attempts.examId, examId))
-    const keep = new Set([...students.map((s) => s.id), ...started.map((s) => s.userId)])
+    // Once it opened, a student holding a package may be writing offline (no attempt row until the first
+    // sync): they stay, like those who started online, or their work would be refused.
+    const offline =
+      now >= exam.opensAt.getTime()
+        ? await tx
+            .select({ userId: examPreloads.userId })
+            .from(examPreloads)
+            .where(eq(examPreloads.examId, examId))
+        : []
+    const keep = new Set([
+      ...students.map((s) => s.id),
+      ...started.map((s) => s.userId),
+      ...offline.map((s) => s.userId),
+    ])
     // Only the difference changes, so a student who stays keeps their row and its individual exception.
     await tx
       .delete(examParticipants)

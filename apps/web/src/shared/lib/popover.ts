@@ -10,10 +10,11 @@ const EDGE = 8
 export function placeNextToOpener(event: Event) {
   const menu = event.target as HTMLElement
   // While open it follows its button when the window changes (a rotation, the phone's address bar).
+  if ((event as ToggleEvent).newState !== 'open') return
   const follow = () => place(menu)
-  if ((event as ToggleEvent).newState !== 'open') return removeEventListener('resize', follow)
   place(menu)
   addEventListener('resize', follow)
+  // The next toggle is the close: the listener goes with it.
   menu.addEventListener('toggle', () => removeEventListener('resize', follow), { once: true })
 }
 

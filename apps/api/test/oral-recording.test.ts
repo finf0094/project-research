@@ -82,6 +82,15 @@ describe('call webhooks', () => {
       { who: 'student', kind: 'left', at: (t + 30) * 1000 },
     ])
   })
+
+  it('puts a drop before the rejoin of the same second, even when its webhook came later', async () => {
+    const { attemptId } = await start()
+    const t = Math.floor(ctx.clock.now / 1000)
+    await webhook(callEvent('EV1', 'participant_joined', attemptId, 'student:x', t))
+    await webhook(callEvent('EV3', 'participant_joined', attemptId, 'student:x', t + 10)) // the rejoin
+    await webhook(callEvent('EV2', 'participant_left', attemptId, 'student:x', t + 10)) // retried
+    expect((await detail(attemptId)).call.map((e) => e.kind)).toEqual(['joined', 'left', 'joined'])
+  })
 })
 
 /** A short WebM chunk with a tone, as a browser's MediaRecorder would produce (audio only is enough here). */
