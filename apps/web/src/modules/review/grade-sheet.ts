@@ -24,6 +24,12 @@ export const outcome = (a: AttemptSummary): Outcome => {
   return p === null ? 'pending' : p ? 'pass' : 'fail'
 }
 
+/** Where a student is on the grade sheet: still writing is not "awaiting review", the result filters say. */
+export type SheetStatus = Outcome | 'writing'
+
+export const sheetStatus = (a: AttemptSummary): SheetStatus =>
+  a.status === 'active' ? 'writing' : outcome(a)
+
 /** Text that a spreadsheet would run as a formula gets a leading apostrophe (CSV injection). */
 const FORMULA = /^[=+\-@\t\r]/
 

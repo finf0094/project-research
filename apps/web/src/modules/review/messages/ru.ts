@@ -64,6 +64,8 @@ export const ru = {
       act: 'Действия',
       actOf: 'Действия: {name}',
       review: 'Разбор →',
+      open: 'Разбор',
+      roomShort: 'Комната',
     },
     command: {
       message: 'Сообщение студенту',
@@ -102,6 +104,7 @@ export const ru = {
       answers: 'Ответы',
       waitAnalysis: 'Решение можно принять, когда анализ записи завершится.',
       saved: 'Решение сохранено',
+      toDecision: 'К решению',
       timeline: 'Метки на шкале экзамена',
     },
     summary: {
@@ -139,6 +142,10 @@ export const ru = {
       dismissed: 'Отклонено',
       confirm: 'Подтвердить',
       dismiss: 'Отклонить',
+      left: 'осталось: {n}',
+      allJudged: 'все просмотрены',
+      dismissAll: 'Отклонить все этого типа ({n})',
+      confirmAll: 'Подтвердить все ({n})',
     },
     player: {
       empty: 'Для этой метки нет записи. Решение — по журналу событий.',

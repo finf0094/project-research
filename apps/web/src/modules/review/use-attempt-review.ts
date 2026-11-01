@@ -2,6 +2,7 @@ import type { AttemptDetail, DecisionBody, UpdateMarkerBody } from '@exam/contra
 import { computed, onMounted, onScopeDispose, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
 import { chunkUrl, decide, getAttempt, judgeMarker, listAttempts } from './api'
+import { judgeEach } from './marker-groups'
 import { queuePlace, type QueuePlace } from './review-queue'
 
 /**
@@ -74,6 +75,19 @@ export function useAttemptReview(attemptId: string) {
         selected.value = nextPending(detail.value)
     })
 
+  /** All pending markers of a kind at once: the same judge API, one marker after another, one reload. */
+  const judgeAll = (ids: string[], status: 'confirmed' | 'dismissed') =>
+    action.run(async () => {
+      saving.error.value = null
+      try {
+        await judgeEach(ids, status, judgeMarker)
+      } finally {
+        await load() // what went through before a failure shows as judged
+      }
+      if (selected.value && ids.includes(selected.value) && detail.value)
+        selected.value = nextPending(detail.value)
+    })
+
   async function save(body: DecisionBody) {
     saved.value = false
     action.error.value = null // only the latest failure is shown
@@ -99,6 +113,7 @@ export function useAttemptReview(attemptId: string) {
     needsScore,
     editable,
     judge,
+    judgeAll,
     save,
   }
 }

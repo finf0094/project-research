@@ -3,7 +3,7 @@ import type { AttemptSummary } from '@exam/contracts'
 import { ChevronRight } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { Avatar, PillTabs, StatusPill } from '@/shared/ui'
-import { outcome, type Outcome } from '../grade-sheet'
+import { sheetStatus, type Outcome } from '../grade-sheet'
 import { finalScore } from '../exam-state'
 
 /** Every student's automatic points, final score, recording verdict and result; filterable and searchable. */
@@ -13,11 +13,15 @@ const filter = ref<Outcome | 'all'>('all')
 const shown = computed(() =>
   props.attempts.filter(
     (a) =>
-      (filter.value === 'all' || outcome(a) === filter.value) &&
+      (filter.value === 'all' || sheetStatus(a) === filter.value) &&
       a.student.name.toLowerCase().includes(query.value.trim().toLowerCase()),
   ),
 )
-const count = (o: Outcome) => props.attempts.filter((a) => outcome(a) === o).length
+// A student still writing counts under "all" only, never as awaiting review.
+const count = (o: Outcome) => props.attempts.filter((a) => sheetStatus(a) === o).length
+/** The result's word: the outcome, or that the student is still writing. */
+const statusLabel = (a: AttemptSummary) =>
+  sheetStatus(a) === 'writing' ? 'hub.results.writing' : `hub.results.verdict.${sheetStatus(a)}`
 const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pending: 'warn' } as const
 </script>
 
@@ -42,6 +46,24 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
         ]"
       />
     </header>
+    <!-- Phones: a native list, one tappable row per student: name, result, score, chevron. -->
+    <ul v-if="shown.length" class="list-group phone-list">
+      <li v-for="a in shown" :key="a.id">
+        <RouterLink :to="`/examiner/attempts/${a.id}`" class="list-row">
+          <Avatar :name="a.student.name" :size="36" />
+          <span class="list-row-text">
+            <span class="name">{{ a.student.name }}</span>
+            <span class="outcome" :class="sheetStatus(a)">{{ $t(statusLabel(a)) }}</span>
+          </span>
+          <span v-if="finalScore(a) !== null" class="score">{{ finalScore(a) }}</span>
+          <span v-else class="muted dash"
+            ><span aria-hidden="true">—</span
+            ><span class="visually-hidden">{{ $t('hub.results.afterReview') }}</span></span
+          >
+          <ChevronRight class="chevron" :size="20" aria-hidden="true" />
+        </RouterLink>
+      </li>
+    </ul>
     <div class="wrap">
       <table role="table">
         <thead role="rowgroup">
@@ -83,12 +105,10 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
             <td
               role="cell"
               class="outcome"
-              :class="outcome(a)"
+              :class="sheetStatus(a)"
               :data-label="$t('hub.results.columns.result')"
             >
-              {{
-                a.status === 'active' ? $t('hub.results.writing') : $t(`hub.results.verdict.${outcome(a)}`)
-              }}
+              {{ $t(statusLabel(a)) }}
             </td>
             <td role="cell" class="actions">
               <RouterLink
@@ -107,4 +127,3 @@ const RECORD_TONE = { clean: 'ok', violation: 'danger', needs_review: 'warn', pe
 </template>
 
 <style scoped src="./grade-sheet.css"></style>
-<style scoped src="@/shared/ui/card-table.css"></style>

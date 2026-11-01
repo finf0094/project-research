@@ -66,6 +66,8 @@ export const kk: typeof ru = {
       act: 'Әрекеттер',
       actOf: 'Әрекеттер: {name}',
       review: 'Талдау →',
+      open: 'Талдау',
+      roomShort: 'Бөлме',
     },
     command: {
       message: 'Студентке хабарлама',
@@ -104,6 +106,7 @@ export const kk: typeof ru = {
       answers: 'Жауаптар',
       waitAnalysis: 'Жазбаны талдау аяқталғанда шешім қабылдауға болады.',
       saved: 'Шешім сақталды',
+      toDecision: 'Шешімге өту',
       timeline: 'Емтихан шкаласындағы белгілер',
     },
     summary: {
@@ -141,6 +144,10 @@ export const kk: typeof ru = {
       dismissed: 'Қабылданбады',
       confirm: 'Растау',
       dismiss: 'Қабылдамау',
+      left: 'қалды: {n}',
+      allJudged: 'барлығы қаралды',
+      dismissAll: 'Осы түрдің барлығын қабылдамау ({n})',
+      confirmAll: 'Барлығын растау ({n})',
     },
     player: {
       empty: 'Бұл белгіге жазба жоқ. Шешім — оқиғалар журналы бойынша.',

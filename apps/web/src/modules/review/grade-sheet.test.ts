@@ -1,6 +1,6 @@
 import type { AttemptSummary } from '@exam/contracts'
 import { describe, expect, it } from 'vitest'
-import { distribution, gradeSheetCsv } from './grade-sheet'
+import { distribution, gradeSheetCsv, sheetStatus } from './grade-sheet'
 
 const attempt = (name: string, result: AttemptSummary['result']) =>
   ({ student: { name }, points: { auto: 6, max: 10, open: false }, result }) as AttemptSummary
@@ -50,5 +50,15 @@ describe('grade sheet', () => {
       ',',
     )
     expect(csv.split('\r\n')[1]).toBe('"\'=HYPERLINK(""x"")","6","10","","w"')
+  })
+
+  it('keeps students still writing out of "awaiting review"', () => {
+    const writing = { ...attempt('Дана', null), status: 'active' } as AttemptSummary
+    const waiting = { ...attempt('Ерик', null), status: 'ready_for_review' } as AttemptSummary
+    const decided = {
+      ...attempt('Жан', { verdict: 'clean', score: 80 }),
+      status: 'decided',
+    } as AttemptSummary
+    expect([writing, waiting, decided].map(sheetStatus)).toEqual(['writing', 'pending', 'pass'])
   })
 })

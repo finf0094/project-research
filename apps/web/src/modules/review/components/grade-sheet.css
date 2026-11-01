@@ -72,6 +72,13 @@ tbody tr {
   &.pending {
     color: var(--warn);
   }
+  &.writing {
+    color: var(--text-2);
+    font-weight: 600;
+  }
+}
+.phone-list {
+  display: none;
 }
 .open {
   display: inline-grid;
@@ -84,16 +91,33 @@ tbody tr {
     background: var(--surface-2);
   }
 }
+/* Phones: the sheet's card steps back, the list is the card; the table gives way to native rows. */
 @media (width < 600px) {
   .sheet {
-    padding: var(--space-4);
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .wrap {
+    display: none;
+  }
+  .phone-list {
+    display: grid;
+    .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .outcome {
+      font-size: var(--text-sm);
+    }
+    .score {
+      min-inline-size: 48px;
+      padding: var(--space-1) var(--space-2);
+    }
   }
   .head input {
     flex: 1 1 200px;
     min-inline-size: 0;
-  }
-  .open {
-    inline-size: var(--tap);
-    block-size: var(--tap);
   }
 }

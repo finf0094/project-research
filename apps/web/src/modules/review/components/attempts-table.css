@@ -66,33 +66,102 @@ tbody tr {
 .actions {
   text-align: end;
 }
-.link {
+/* Every row action looks the same: a soft pill with its word. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-block-size: 32px;
+  padding: 0 var(--space-3);
   border: 0;
-  background: none;
-  color: var(--accent-ink);
-  font-weight: 600;
-}
-.open {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 32px;
-  block-size: 32px;
-  border: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
-  transition: translate var(--dur) var(--ease);
+  color: var(--accent-ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    scale var(--dur-fast) var(--ease);
   &:hover {
-    translate: 2px 0;
+    background: var(--accent-tint);
+  }
+  &:active {
+    scale: 0.96;
+  }
+  & + & {
+    margin-inline-start: var(--space-2);
+  }
+  @media (pointer: coarse) {
+    min-block-size: var(--tap);
   }
 }
 
-/* Phones: thumb-sized targets. */
+/*
+ * Phones: a native list. The name and the action on the first line; status, network, markers and risk
+ * in one quiet line under the name; hairlines start under the text, not under the avatar.
+ */
 @media (width < 600px) {
-  .link {
-    min-block-size: var(--tap);
+  thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
-  .open {
-    inline-size: var(--tap);
-    block-size: var(--tap);
+  table,
+  tbody {
+    display: block;
+  }
+  tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-3) 0 var(--space-3) 48px;
+    border-top: 0;
+    &:hover {
+      background: none;
+    }
+    /* The line break between the name and the details. */
+    &::before {
+      content: '';
+      order: 1;
+      flex-basis: 100%;
+    }
+    & + tr {
+      background: linear-gradient(var(--border), var(--border)) 48px 0 / calc(100% - 48px) 1px no-repeat;
+    }
+  }
+  th,
+  td {
+    padding: 0;
+  }
+  th[scope='row'] {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    margin-inline-start: -48px;
+    .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .who > span:last-child {
+      min-inline-size: 0;
+    }
+  }
+  td {
+    order: 2;
+    font-size: var(--text-xs);
+  }
+  td.actions {
+    order: 0;
+  }
+  td.num::before {
+    content: attr(data-label) ': ';
+    content: attr(data-label) ': ' / '';
+    color: var(--text-2);
+  }
+  .net-cell:has(> .muted),
+  .risk-cell:has(> .muted) {
+    display: none;
   }
 }

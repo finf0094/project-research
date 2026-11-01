@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { AppCard, PageSkeleton } from '@/shared/ui'
 import AnswersList from '../components/AnswersList.vue'
 import AttemptHeader from '../components/AttemptHeader.vue'
 import DecisionForm from '../components/DecisionForm.vue'
+import JumpToDecision from '../components/JumpToDecision.vue'
 import MarkerList from '../components/MarkerList.vue'
 import MarkerSummary from '../components/MarkerSummary.vue'
 import OralRecording from '../components/OralRecording.vue'
@@ -30,8 +32,10 @@ const {
   needsScore,
   editable,
   judge,
+  judgeAll,
   save,
 } = useAttemptReview(String(route.params.attemptId))
+const decisionCard = useTemplateRef<HTMLElement>('decision')
 </script>
 
 <template>
@@ -60,6 +64,7 @@ const {
             :busy="action.busy.value"
             @select="selected = $event"
             @judge="judge"
+            @judge-all="judgeAll"
           />
         </AppCard>
         <OralRecording
@@ -77,19 +82,22 @@ const {
 
       <aside class="side">
         <MarkerSummary v-if="detail.markers.length" :markers="detail.markers" />
-        <AppCard>
-          <DecisionForm
-            v-if="editable"
-            :current="detail.decision"
-            :saving="saving.busy.value"
-            :with-score="needsScore"
-            :saved="saved"
-            @save="save"
-          />
-          <p v-else class="muted">{{ $t('review.attempt.waitAnalysis') }}</p>
-        </AppCard>
+        <div ref="decision" class="decision">
+          <AppCard>
+            <DecisionForm
+              v-if="editable"
+              :current="detail.decision"
+              :saving="saving.busy.value"
+              :with-score="needsScore"
+              :saved="saved"
+              @save="save"
+            />
+            <p v-else class="muted">{{ $t('review.attempt.waitAnalysis') }}</p>
+          </AppCard>
+        </div>
       </aside>
     </div>
+    <JumpToDecision v-if="editable" :target="decisionCard" />
   </main>
   <PageSkeleton v-else-if="!action.error.value" />
 </template>
@@ -124,6 +132,9 @@ const {
 }
 .note {
   font-size: var(--text-sm);
+}
+.decision {
+  scroll-margin-block-start: var(--space-4);
 }
 .error {
   margin-bottom: var(--space-4);

@@ -24,6 +24,8 @@ const MATCH: Record<Filter, (a: AttemptSummary) => boolean> = {
 }
 const shown = computed(() => attempts.value.filter(MATCH[filter.value]))
 const count = (f: Filter) => attempts.value.filter(MATCH[f]).length
+// Highlighted only when someone is actually offline: a dark tile with a zero reads as an alarm.
+const offline = computed(() => attempts.value.filter((a) => a.connection === 'offline').length)
 const filters = computed(() =>
   (['all', 'writing', 'problems', 'submitted'] as const).map((value) => ({
     value,
@@ -69,9 +71,9 @@ const openAttempt = (id: string) => router.push(`/examiner/attempts/${id}`)
       />
       <StatTile
         :label="$t('review.monitoring.offline')"
-        :value="attempts.filter((a) => a.connection === 'offline').length"
+        :value="offline"
         :note="$t('review.monitoring.offlineNote')"
-        tone="ink"
+        :tone="offline > 0 ? 'ink' : 'surface'"
       />
       <StatTile :label="$t('review.monitoring.submitted')" :value="count('submitted')" tone="sky" />
       <StatTile

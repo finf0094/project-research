@@ -47,7 +47,7 @@ const DONE = ['ready_for_review', 'decided']
           <td role="cell" :data-label="$t('review.table.status')">
             <StatusPill :tone="STATUS_TONE[a.status]">{{ $t(`review.status.${a.status}`) }}</StatusPill>
           </td>
-          <td role="cell" :data-label="$t('review.table.network')">
+          <td role="cell" class="net-cell" :data-label="$t('review.table.network')">
             <span v-if="a.connection" class="net" :class="CONNECTION_TONE[a.connection]">
               <span class="dot" :class="{ live: a.connection === 'online' }" aria-hidden="true" />
               {{ $t(`review.connection.${a.connection}`) }}
@@ -55,23 +55,24 @@ const DONE = ['ready_for_review', 'decided']
             <span v-else class="muted">—</span>
           </td>
           <td role="cell" class="num" :data-label="$t('review.table.markers')">{{ a.markerCount }}</td>
-          <td role="cell" :data-label="$t('review.table.risk')">
+          <td role="cell" class="risk-cell" :data-label="$t('review.table.risk')">
             <RiskBar :risk="a.riskScore" />
           </td>
           <td role="cell" class="actions">
+            <!-- One control style for every action: a pill with its word, the student's name for screen readers. -->
             <button
               v-if="oral && a.status === 'active'"
               type="button"
-              class="link"
+              class="action"
               :aria-label="$t('review.table.roomOf', { name: a.student.name })"
               @click="$emit('room', a)"
             >
-              {{ $t('review.table.room') }}
+              {{ $t('review.table.roomShort') }}
             </button>
             <button
               v-if="a.status === 'active'"
               type="button"
-              class="link"
+              class="action"
               :aria-label="$t('review.table.actOf', { name: a.student.name })"
               @click="$emit('act', a)"
             >
@@ -80,11 +81,12 @@ const DONE = ['ready_for_review', 'decided']
             <button
               v-else-if="DONE.includes(a.status)"
               type="button"
-              class="open"
-              :aria-label="`${$t('review.table.review')} ${a.student.name}`"
+              class="action"
+              :aria-label="`${$t('review.table.open')}: ${a.student.name}`"
               @click="$emit('review', a)"
             >
-              <ChevronRight :size="18" />
+              {{ $t('review.table.open') }}
+              <ChevronRight :size="16" aria-hidden="true" />
             </button>
           </td>
         </tr>
@@ -94,4 +96,3 @@ const DONE = ['ready_for_review', 'decided']
 </template>
 
 <style scoped src="./attempts-table.css"></style>
-<style scoped src="@/shared/ui/card-table.css"></style>

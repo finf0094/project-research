@@ -66,6 +66,8 @@ export const en: typeof ru = {
       act: 'Actions',
       actOf: 'Actions: {name}',
       review: 'Review →',
+      open: 'Review',
+      roomShort: 'Room',
     },
     command: {
       message: 'Message to the student',
@@ -104,6 +106,7 @@ export const en: typeof ru = {
       answers: 'Answers',
       waitAnalysis: 'You can decide once the recording has been analysed.',
       saved: 'Decision saved',
+      toDecision: 'To the decision',
       timeline: 'Markers on the exam timeline',
     },
     summary: { title: 'Markers so far', confirmed: 'confirmed', dismissed: 'dismissed', pending: 'left' },
@@ -136,6 +139,10 @@ export const en: typeof ru = {
       dismissed: 'Dismissed',
       confirm: 'Confirm',
       dismiss: 'Dismiss',
+      left: 'left: {n}',
+      allJudged: 'all looked at',
+      dismissAll: 'Dismiss all of this kind ({n})',
+      confirmAll: 'Confirm all ({n})',
     },
     player: {
       empty: 'No recording for this marker. Decide from the event log.',

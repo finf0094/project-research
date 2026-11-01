@@ -1,26 +1,37 @@
 <script setup lang="ts">
-import type { Marker, UpdateMarkerBody } from '@exam/contracts'
-import { formatTime } from '@/shared/lib/format'
+import type { Marker, MarkerKind, UpdateMarkerBody } from '@exam/contracts'
+import { ChevronRight } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
 import { IconTile } from '@/shared/ui'
+import { groupMarkers, type MarkerGroup } from '../marker-groups'
 import { MARKER_ICON, MARKER_TONE } from '../marker-look'
+import MarkerRow from './MarkerRow.vue'
 
 /**
- * The markers of an attempt, each with what it is, when, where it came from and the examiner's judgement.
- * The row opens its fragment on the stage; context markers (offline) explain, they are never judged.
+ * The markers of an attempt, one row per kind: a kind seen once is its marker; a kind seen many times is
+ * a row with a count that opens to its markers and to judging all still pending at once.
  */
 const props = defineProps<{ markers: Marker[]; selected: string | null; editable: boolean; busy: boolean }>()
-const emit = defineEmits<{ select: [id: string]; judge: [id: string, status: UpdateMarkerBody['status']] }>()
-/** Pressing a judgement again takes it back. While one is saving, presses are ignored (focus stays put). */
-const judge = (m: Marker, status: 'confirmed' | 'dismissed') =>
-  !props.busy && emit('judge', m.id, m.status === status ? 'pending' : status)
-const origin = (m: Marker) =>
-  m.discrepancy
-    ? 'discrepancy'
-    : m.status === 'context'
-      ? 'context'
-      : m.source === 'model'
-        ? 'byModel'
-        : 'byDevice'
+const emit = defineEmits<{
+  select: [id: string]
+  judge: [id: string, status: UpdateMarkerBody['status']]
+  judgeAll: [ids: string[], status: 'confirmed' | 'dismissed']
+}>()
+const groups = computed(() => groupMarkers(props.markers))
+
+const open = ref(new Set<MarkerKind>())
+const toggle = (kind: MarkerKind) => (open.value.has(kind) ? open.value.delete(kind) : open.value.add(kind))
+// A marker picked on the stage's timeline shows in the list: its group opens (not on the first load).
+watch(
+  () => props.selected,
+  (id, before) => {
+    const kind = props.markers.find((m) => m.id === id)?.kind
+    if (before && kind) open.value.add(kind)
+  },
+)
+const tone = (g: MarkerGroup) => (g.pending.length ? 'peach' : MARKER_TONE[g.markers[0]!.status])
+const judgeAll = (g: MarkerGroup, status: 'confirmed' | 'dismissed') =>
+  !props.busy && emit('judgeAll', g.pending, status)
 </script>
 
 <template>
@@ -31,168 +42,64 @@ const origin = (m: Marker) =>
     </p>
   </header>
   <TransitionGroup tag="ul" name="list" class="list">
-    <li
-      v-for="m in markers"
-      :key="m.id"
-      class="item"
-      :class="{ selected: m.id === selected, important: m.discrepancy }"
-    >
-      <IconTile :icon="MARKER_ICON[m.kind]" :tone="MARKER_TONE[m.status]" />
-      <button type="button" class="open" :aria-pressed="m.id === selected" @click="emit('select', m.id)">
-        <span class="title">
-          {{ $t(`review.marker.${m.kind}`) }}
-          <span v-if="m.discrepancy" class="flag">{{ $t('review.markers.important') }}</span>
-        </span>
-        <span class="meta">
-          {{ formatTime(m.startAt) }}–{{ formatTime(m.endAt) }} · {{ $t(`review.markers.${origin(m)}`) }} ·
-          {{
-            m.chunks.length
-              ? $t('review.markers.fragments', { n: m.chunks.length })
-              : $t('review.markers.noRecording')
-          }}
-        </span>
-      </button>
-      <span v-if="m.status === 'confirmed' || m.status === 'dismissed'" class="verdict" :class="m.status">
-        {{ $t(`review.markers.${m.status}`) }}
-      </span>
-      <div v-if="editable && m.status !== 'context'" class="judge">
+    <template v-for="g in groups" :key="g.kind">
+      <MarkerRow
+        v-if="g.markers.length === 1"
+        :marker="g.markers[0]!"
+        :selected="g.markers[0]!.id === selected"
+        :editable="editable"
+        :busy="busy"
+        @select="emit('select', $event)"
+        @judge="(id, status) => emit('judge', id, status)"
+      />
+      <li v-else class="group" :class="{ open: open.has(g.kind) }">
         <button
           type="button"
-          class="confirm"
-          :aria-pressed="m.status === 'confirmed'"
-          :aria-disabled="busy"
-          @click="judge(m, 'confirmed')"
+          class="group-toggle"
+          :aria-expanded="open.has(g.kind)"
+          :aria-controls="`markers-${g.kind}`"
+          @click="toggle(g.kind)"
         >
-          {{ $t('review.markers.confirm') }}
+          <IconTile :icon="MARKER_ICON[g.kind]" :tone="tone(g)" />
+          <span class="text">
+            <span class="title">
+              {{ $t(`review.marker.${g.kind}`) }}
+              <span class="count">×{{ g.markers.length }}</span>
+              <span v-if="g.important" class="flag">{{ $t('review.markers.important') }}</span>
+            </span>
+            <span class="meta">{{
+              g.pending.length
+                ? $t('review.markers.left', { n: g.pending.length })
+                : $t('review.markers.allJudged')
+            }}</span>
+          </span>
+          <ChevronRight class="chevron" :size="20" aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          class="dismiss"
-          :aria-pressed="m.status === 'dismissed'"
-          :aria-disabled="busy"
-          @click="judge(m, 'dismissed')"
-        >
-          {{ $t('review.markers.dismiss') }}
-        </button>
-      </div>
-    </li>
+        <div v-if="open.has(g.kind)" :id="`markers-${g.kind}`" class="body">
+          <div v-if="editable && g.pending.length" class="bulk">
+            <button type="button" class="dismiss" :aria-disabled="busy" @click="judgeAll(g, 'dismissed')">
+              {{ $t('review.markers.dismissAll', { n: g.pending.length }) }}
+            </button>
+            <button type="button" class="confirm" :aria-disabled="busy" @click="judgeAll(g, 'confirmed')">
+              {{ $t('review.markers.confirmAll', { n: g.pending.length }) }}
+            </button>
+          </div>
+          <ul class="list">
+            <MarkerRow
+              v-for="m in g.markers"
+              :key="m.id"
+              :marker="m"
+              :selected="m.id === selected"
+              :editable="editable"
+              :busy="busy"
+              @select="emit('select', $event)"
+              @judge="(id, status) => emit('judge', id, status)"
+            />
+          </ul>
+        </div>
+      </li>
+    </template>
   </TransitionGroup>
 </template>
 
-<style scoped>
-.head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-2);
-  h2 {
-    font-size: var(--text-lg);
-  }
-  .note {
-    font-size: var(--text-sm);
-  }
-}
-.list {
-  position: relative;
-  display: grid;
-  gap: var(--space-2);
-  padding: 0;
-  list-style: none;
-}
-.item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius);
-  transition: background-color var(--dur) var(--ease);
-  &:hover {
-    background: var(--surface-2);
-  }
-  &.selected {
-    background: var(--accent-tint);
-    box-shadow: inset 3px 0 0 var(--accent);
-  }
-}
-.open {
-  display: grid;
-  flex: 1;
-  gap: 2px;
-  min-inline-size: 200px;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: start;
-}
-.title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 600;
-}
-.flag {
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--danger);
-  color: var(--on-danger);
-  font-size: var(--text-xs);
-}
-.meta {
-  color: var(--text-2);
-  font-size: var(--text-xs);
-}
-.verdict {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  &.confirmed {
-    color: var(--danger);
-  }
-  &.dismissed {
-    color: var(--ok);
-  }
-}
-.judge {
-  display: flex;
-  gap: var(--space-2);
-  button {
-    min-block-size: 36px;
-    @media (pointer: coarse) {
-      min-block-size: var(--tap);
-    }
-    padding: 0 var(--space-4);
-    border: 0;
-    border-radius: var(--radius-pill);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    transition:
-      background-color var(--dur) var(--ease),
-      color var(--dur) var(--ease),
-      scale var(--dur-fast) var(--ease);
-    &:active {
-      scale: 0.96;
-    }
-    &[aria-disabled='true'] {
-      opacity: 0.6;
-      cursor: progress;
-    }
-  }
-}
-.confirm {
-  background: var(--ink);
-  color: var(--on-ink);
-  &[aria-pressed='true'] {
-    background: var(--danger);
-    color: var(--on-danger);
-  }
-}
-.dismiss {
-  background: var(--surface-2);
-  color: var(--text);
-  &[aria-pressed='true'] {
-    background: var(--ok);
-    color: var(--on-ok);
-  }
-}
-</style>
+<style scoped src="./marker-list.css"></style>
