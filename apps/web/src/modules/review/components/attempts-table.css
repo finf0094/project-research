@@ -160,6 +160,9 @@ tbody tr {
     content: attr(data-label) ': ' / '';
     color: var(--text-2);
   }
+  .risk-cell :deep(.bar) {
+    inline-size: 40px;
+  }
   .net-cell:has(> .muted),
   .risk-cell:has(> .muted) {
     display: none;

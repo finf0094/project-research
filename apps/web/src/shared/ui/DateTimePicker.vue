@@ -2,7 +2,17 @@
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { atTime, monthGrid, onDay, sameDay, startOfDay, timeOf, weekdayNames } from '@/shared/lib/calendar'
+import {
+  atTime,
+  monthGrid,
+  monthTitle as titleOf,
+  onDay,
+  sameDay,
+  startOfDay,
+  timeOf,
+  weekdayDate,
+  weekdayNames,
+} from '@/shared/lib/calendar'
 import { placeNextToOpener } from '@/shared/lib/popover'
 
 /**
@@ -33,17 +43,9 @@ function shiftMonth(by: number) {
 
 const days = computed(() => monthGrid(view.value.year, view.value.month))
 const weekdays = computed(() => weekdayNames(locale.value))
-const monthTitle = computed(() =>
-  new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(
-    new Date(view.value.year, view.value.month, 1),
-  ),
-)
-const dayName = (ms: number) =>
-  new Intl.DateTimeFormat(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }).format(ms)
-const shown = computed(
-  () =>
-    `${new Intl.DateTimeFormat(locale.value, { weekday: 'short', day: 'numeric', month: 'long' }).format(model.value)} · ${timeOf(model.value)}`,
-)
+const monthTitle = computed(() => titleOf(locale.value, view.value.year, view.value.month))
+const dayName = (ms: number) => weekdayDate(locale.value, ms, 'long')
+const shown = computed(() => `${weekdayDate(locale.value, model.value, 'short')} · ${timeOf(model.value)}`)
 const today = startOfDay(Date.now())
 const tooEarly = (day: number) => props.min !== undefined && day < startOfDay(props.min)
 const outside = (day: number) => new Date(day).getMonth() !== view.value.month

@@ -1,4 +1,5 @@
 import { sameDay } from './calendar'
+import { KK_MONTHS } from './kk-names'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -8,21 +9,6 @@ export function formatDuration(ms: number): string {
   return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`
 }
 
-// Browsers report Kazakh as supported but many ship no data for it ("M10 31"), so its months are spelled here.
-const KK_MONTHS = [
-  'қаңтар',
-  'ақпан',
-  'наурыз',
-  'сәуір',
-  'мамыр',
-  'маусым',
-  'шілде',
-  'тамыз',
-  'қыркүйек',
-  'қазан',
-  'қараша',
-  'желтоқсан',
-]
 
 /** A countdown split for display: whole days apart, the rest as "23:12:17". */
 export function countdownParts(ms: number): { days: number; clock: string } {

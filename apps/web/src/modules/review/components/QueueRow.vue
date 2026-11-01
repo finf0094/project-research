@@ -88,6 +88,7 @@ defineProps<{ attempt: AttemptSummary }>()
   color: var(--on-peach);
   font-size: var(--text-xs);
   font-weight: 600;
+  white-space: nowrap;
 }
 .points {
   display: grid;
@@ -105,8 +106,19 @@ defineProps<{ attempt: AttemptSummary }>()
   transition: translate var(--dur) var(--ease);
 }
 @media (width < 700px) {
+  /* The state goes under the name: beside it, a long Kazakh pill squeezes the chips into a column. */
   .row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: var(--space-2);
+    align-items: start;
+    /* StatusPill's root carries this component's scope too. */
+    > .pill {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+  .risk {
+    grid-row: span 2;
   }
   .points,
   .go {

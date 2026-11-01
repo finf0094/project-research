@@ -33,12 +33,15 @@ function jump() {
 </script>
 
 <template>
-  <Transition name="jump">
-    <button v-if="away" type="button" class="jump press" @click="jump">
-      <ArrowDown :size="18" aria-hidden="true" />
-      {{ $t('review.attempt.toDecision') }}
-    </button>
-  </Transition>
+  <!-- On the body: the page's slide-in animation would otherwise pin it to the page, not the screen. -->
+  <Teleport to="body">
+    <Transition name="jump">
+      <button v-if="away" type="button" class="jump press" @click="jump">
+        <ArrowDown :size="18" aria-hidden="true" />
+        {{ $t('review.attempt.toDecision') }}
+      </button>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>

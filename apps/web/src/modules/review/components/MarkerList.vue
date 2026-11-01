@@ -64,7 +64,6 @@ const judgeAll = (g: MarkerGroup, status: 'confirmed' | 'dismissed') =>
           <span class="text">
             <span class="title">
               {{ $t(`review.marker.${g.kind}`) }}
-              <span class="count">×{{ g.markers.length }}</span>
               <span v-if="g.important" class="flag">{{ $t('review.markers.important') }}</span>
             </span>
             <span class="meta">{{
@@ -73,6 +72,7 @@ const judgeAll = (g: MarkerGroup, status: 'confirmed' | 'dismissed') =>
                 : $t('review.markers.allJudged')
             }}</span>
           </span>
+          <span class="count">×{{ g.markers.length }}</span>
           <ChevronRight class="chevron" :size="20" aria-hidden="true" />
         </button>
         <div v-if="open.has(g.kind)" :id="`markers-${g.kind}`" class="body">
