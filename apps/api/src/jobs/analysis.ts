@@ -142,31 +142,28 @@ export function buildMarkers(
   return markers.sort((a, b) => a.startAt - b.startAt)
 }
 
-/**
- * How long a marker counts. A server finding the device also reported confirms it: only its part beyond
- * what the device reported counts on top, so it is neither counted twice nor worth less than alone.
- */
-function scoredMinutes(m: MarkerDraft, markers: MarkerDraft[]) {
-  const minutes = (x: MarkerDraft) => Math.max((x.endAt - x.startAt) / 60_000, 0.25)
-  if (m.source !== 'model' || !confirmedByDevice(m, markers)) return minutes(m)
-  const reported = markers
-    .filter((d) => d.source === 'client' && d.kind === m.kind && overlaps(d, m))
-    .reduce((sum, d) => sum + minutes(d), 0)
-  return Math.max(0, minutes(m) - reported)
-}
-
 /** `calibration`: per-kind factors from the examiner's past decisions (section 25.4), 1 when unknown. */
 export function riskScore(
   markers: MarkerDraft[],
   calibration: Partial<Record<MarkerKind, number>> = {},
 ): number {
-  let score = 0
-  for (const m of markers) {
-    if (m.status === 'context') continue
-    const minutes = scoredMinutes(m, markers)
-    if (minutes === 0) continue
+  const points = (m: MarkerDraft) => {
+    const minutes = Math.max((m.endAt - m.startAt) / 60_000, 0.25)
     const weight = (WEIGHTS[m.kind] ?? 0) * (calibration[m.kind] ?? 1)
-    score += weight * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)
+    return weight * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)
+  }
+  const counted = markers.filter((m) => m.status !== 'context')
+  // Server findings the device also reported confirm it. Per kind, the device's markers and the findings
+  // that confirm them count as the larger of the two sums: never twice, never less than either alone.
+  const confirming = counted.filter((m) => m.source === 'model' && confirmedByDevice(m, counted))
+  let score = counted.filter((m) => !confirming.includes(m)).reduce((sum, m) => sum + points(m), 0)
+  for (const kind of new Set(confirming.map((m) => m.kind))) {
+    const ofKind = confirming.filter((m) => m.kind === kind)
+    const reported = counted.filter(
+      (d) => d.source === 'client' && d.kind === kind && ofKind.some((m) => overlaps(d, m)),
+    )
+    const sum = (list: MarkerDraft[]) => list.reduce((total, m) => total + points(m), 0)
+    score += Math.max(0, sum(ofKind) - sum(reported))
   }
   return Math.min(100, Math.round(score))
 }

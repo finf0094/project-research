@@ -142,4 +142,20 @@ describe("reconciling the server's findings with the device", () => {
     expect(riskScore(confirmed)).toBe(riskScore(reported))
     expect(riskScore(reported)).toBeGreaterThan(0)
   })
+
+  it('never scores a confirmed finding below the same findings alone', () => {
+    const marker = (source: 'client' | 'model', startMin: number, endMin: number) => ({
+      kind: 'face_missing' as const,
+      startAt: startMin * 60_000,
+      endAt: endMin * 60_000,
+      status: 'pending' as const,
+      source,
+      discrepancy: false,
+      chunks: [],
+    })
+    const findings = [marker('model', 0, 3), marker('model', 5, 8)]
+    const device = marker('client', 0, 10)
+    expect(riskScore([device, ...findings])).toBe(riskScore(findings)) // the larger of the two, not both
+    expect(riskScore([device, ...findings])).toBeGreaterThanOrEqual(riskScore([device]))
+  })
 })
