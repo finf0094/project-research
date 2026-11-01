@@ -48,13 +48,14 @@ export function savedNoiseFloor(): number | null {
 
 /**
  * The quietest quarter of the preflight's levels: the student may talk now and then during the check,
- * the room's own hum is there throughout. Nothing is saved while the browser kept the sound off (all zeros).
+ * the room's own hum is there throughout. While the browser keeps the sound off (all zeros) nothing is
+ * known, and a level kept from an earlier check (maybe in another room) is dropped: the default applies.
  */
 export function saveNoiseFloor(levels: number[]) {
   const heard = levels.filter((l) => l > 0)
-  if (heard.length < 4) return
   try {
-    localStorage.setItem(NOISE_KEY, String(quantile(heard, 0.25)))
+    if (heard.length < 4) localStorage.removeItem(NOISE_KEY)
+    else localStorage.setItem(NOISE_KEY, String(quantile(heard, 0.25)))
   } catch {
     /* the default threshold is used */
   }

@@ -109,13 +109,20 @@ export function buildMarkers(
   let previousAt: number | null = null
   for (const e of events) {
     if (e.type === 'session.resumed' && previousAt !== null) {
-      // The page was closed or reloaded: from when it was left (the tab hidden, else its last event) until
-      // it came back. The reopened page starts its signals afresh, so the old ones end here.
-      const leftAt = Math.min(openSignals.get('tab_hidden') ?? previousAt, e.clientAt)
+      // The page was closed or reloaded. The reopened page starts its signals and its network state
+      // afresh, so the old ones end where the old page was last seen.
+      const hiddenAt = openSignals.get('tab_hidden')
+      const leftAt = Math.min(hiddenAt ?? previousAt, e.clientAt)
       // Leaving the tab that closed the page is the page_closed marker itself, not a second one.
       openSignals.delete('tab_hidden')
       closeAll(leftAt)
-      if (e.clientAt - leftAt >= PAGE_CLOSED_MIN_MS) add('page_closed', leftAt, e.clientAt, 'pending')
+      if (offlineSince !== null) add('offline', offlineSince, Math.max(offlineSince, leftAt), 'context')
+      offlineSince = null
+      // From the tab being left until the page came back. A leaving that was not recorded (the page often
+      // closes before it is written) only lies somewhere after the last event, which may be many quiet
+      // minutes back: the marker is then the moment the page came back, not an absence that never was.
+      if (e.clientAt - leftAt >= PAGE_CLOSED_MIN_MS)
+        add('page_closed', hiddenAt === undefined ? e.clientAt : leftAt, e.clientAt, 'pending')
     }
     previousAt = e.clientAt
     if (e.type === 'proctor.signal') {

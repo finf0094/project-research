@@ -1,7 +1,8 @@
 import type { Calibration } from '@exam/contracts'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { markers } from '../src/db/schema.ts'
-import { riskScore, type MarkerDraft } from '../src/jobs/analysis.ts'
+import type { MarkerDraft } from '../src/jobs/analysis.ts'
+import { riskScore } from '../src/jobs/risk-score.ts'
 import { calibrationFactor } from '../src/modules/review/calibration.ts'
 import { createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
 

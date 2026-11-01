@@ -80,8 +80,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
 
   // A pinned fragment goes up at once too: the server's models look at it during the exam.
   const evidence = createEvidence(attemptId, log, () => options.onSignal?.())
-  // Without a recorder (a browser that cannot record) the exam is still watched: the camera stays on,
-  // signals and hints work; the server marks the missing recording on its own.
+  // A browser that cannot record is still watched: camera, signals and hints go on without a recording.
   let recorder: Recorder = { stop: async () => undefined }
   try {
     // Evidence runs everything through one queue, so a full-recording request always follows its chunk.
@@ -94,9 +93,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     console.error('this browser cannot record the camera; watching without a recording', error)
   }
   void log.append('proctoring.mode', { tier })
-
   const showHint = () => hints.show(active)
-
   // Signals the examiner switched off for this student (section 25.3): no hint, no event, no risk.
   const ignored = new Set<SignalKind>(options.ignore)
   function setSignal(kind: SignalKind, on: boolean) {
@@ -193,7 +190,10 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       clearTimeout(timer)
       for (const unwatch of stops) unwatch()
       await recorder.stop()
-      if (!discard) await evidence.finish()
+      if (discard) return sensors.dispose()
+      // What was on ends here: a restarted camera starts afresh, nothing stays open to the exam's end.
+      for (const kind of [...active]) setSignal(kind, false)
+      await evidence.finish()
       sensors.dispose()
     },
   }

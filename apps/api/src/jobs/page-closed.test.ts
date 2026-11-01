@@ -30,11 +30,28 @@ describe('the exam page closed or reloaded', () => {
     expect(riskScore(markers)).toBeGreaterThan(0)
   })
 
-  it('counts from the last event when the closing was not recorded, and not for a quick double start', () => {
-    const closed = buildMarkers([ev(1, 'session.started', {}, 0), ev(2, 'session.resumed', {}, 40_000)], opts)
-    expect(kinds(closed)).toEqual([['page_closed', 0, 40_000, 'pending']])
+  it('is the moment it came back when the closing was not recorded, and none for a quick double start', () => {
+    // Four quiet minutes of reading, then a reload: not a four-minute absence.
+    const closed = buildMarkers([ev(1, 'session.started', {}, 0), ev(2, 'session.resumed', {}, 240_000)], opts)
+    expect(kinds(closed)).toEqual([['page_closed', 240_000, 240_000, 'pending']])
     const quick = buildMarkers([ev(1, 'session.started', {}, 0), ev(2, 'session.resumed', {}, 500)], opts)
     expect(quick).toEqual([])
+  })
+
+  it('ends an offline period at the reload: the reopened page starts online and reports a drop afresh', () => {
+    const markers = buildMarkers(
+      [
+        ev(1, 'session.started', {}, 0),
+        ev(2, 'network.changed', { from: 'online', to: 'offline' }, 10_000),
+        ev(3, 'proctor.signal', { kind: 'tab_hidden', active: true }, 20_000),
+        ev(4, 'session.resumed', {}, 30_000),
+      ],
+      opts,
+    )
+    expect(kinds(markers)).toEqual([
+      ['offline', 10_000, 20_000, 'context'],
+      ['page_closed', 20_000, 30_000, 'pending'],
+    ])
   })
 
   it('shows headphones as context and scores a virtual camera', () => {

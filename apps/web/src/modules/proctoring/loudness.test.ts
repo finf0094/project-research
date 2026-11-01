@@ -41,5 +41,8 @@ describe('noise threshold', () => {
     expect(savedNoiseFloor()).toBeNull()
     saveNoiseFloor([0.002, 0.2, 0.003, 0.002, 0.25, 0.002, 0.003, 0.2])
     expect(savedNoiseFloor()).toBe(0.002)
+    // A later check that heard nothing does not keep the earlier room's level.
+    saveNoiseFloor([0, 0])
+    expect(savedNoiseFloor()).toBeNull()
   })
 })

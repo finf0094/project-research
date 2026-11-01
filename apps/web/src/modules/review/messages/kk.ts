@@ -17,7 +17,7 @@ export const kk: typeof ru = {
       second_screen: 'Екінші монитор',
       headphones: 'Құлаққап',
       virtual_camera: 'Виртуалды камера',
-      page_closed: 'Бет жабылды немесе қайта жүктелді',
+      page_closed: 'Емтихан беті жабылды немесе жаңартылды',
       mic_off: 'Микрофон өшірулі',
       paste: 'Мәтін кірістіру',
       chain_broken: 'Оқиғалар журналы бұзылған',

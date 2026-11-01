@@ -112,6 +112,8 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
 export function requestCamera(): Promise<MediaStream> {
   return navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 15 } },
-    audio: { echoCancellation: true, noiseSuppression: true },
+    // No automatic gain: it would raise a quiet room's level over time, and the noise threshold is
+    // measured against the room's quiet level at preflight.
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
   })
 }
