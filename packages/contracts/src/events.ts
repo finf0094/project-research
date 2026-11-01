@@ -22,6 +22,12 @@ export const SignalKind = z.enum([
   'object_detected',
   /** The face left the oval it was placed in at preflight (moved aside, or too far from the camera). */
   'off_center',
+  /** Text of the exam copied (to look it up elsewhere). */
+  'copy',
+  /** A second screen is connected (where notes or another window may be). */
+  'second_screen',
+  /** The microphone was muted or disconnected. */
+  'mic_off',
 ])
 export type SignalKind = z.infer<typeof SignalKind>
 

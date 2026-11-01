@@ -9,11 +9,12 @@ import { createSensors } from './sensors'
 import {
   ANALYSIS_FPS,
   NOISE_RMS,
-  OBJECTS_EVERY_MS,
   createSignalTracker,
+  objectsEvery,
   observeFrame,
   riskLevel,
   watchBrowser,
+  watchMicrophone,
   type ObservedKind,
 } from './signals'
 
@@ -74,7 +75,8 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   let discarded = false
   let blind = false
 
-  const evidence = createEvidence(attemptId, log)
+  // A pinned fragment goes up at once too: the server's models look at it during the exam.
+  const evidence = createEvidence(attemptId, log, () => options.onSignal?.())
   let recorder: Recorder
   try {
     // Evidence runs everything through one queue, so a full-recording request always follows its chunk.
@@ -102,9 +104,8 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       active.delete(kind)
     }
     if (kind === 'tab_hidden' && !on) hints.returned()
-    void log.append('proctor.signal', { kind, active: on })
-    // A new signal goes to the server at once, not with the next periodic sync.
-    if (on) options.onSignal?.()
+    // A new signal goes to the server at once (once it is in the log), not with the next periodic sync.
+    void log.append('proctor.signal', { kind, active: on }).then(() => on && options.onSignal?.())
     showHint()
     updateRisk()
   }
@@ -133,7 +134,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   }
 
   async function analyze() {
-    const withObjects = tier === 'full' && now() - lastObjects > OBJECTS_EVERY_MS
+    const withObjects = now() - lastObjects > objectsEvery(tier)
     if (withObjects) lastObjects = now()
     const frame = await sensors.analyze(withObjects)
     if (stopped) return
@@ -178,6 +179,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
   }
 
   const unwatchBrowser = watchBrowser(setSignal)
+  const unwatchMicrophone = watchMicrophone(stream, setSignal)
   void tick()
 
   return {
@@ -187,6 +189,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       discarded = discard
       clearTimeout(timer)
       unwatchBrowser()
+      unwatchMicrophone()
       await recorder.stop()
       if (!discard) await evidence.finish()
       sensors.dispose()

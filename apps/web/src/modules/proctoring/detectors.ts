@@ -27,13 +27,15 @@ const fileset = { wasmLoaderPath, wasmBinaryPath }
 
 /**
  * The on-device models (runs inside the detector worker). Every tier checks the face (the weakest one less
- * often, architecture 10.5); `full` also finds phones and books. A model that fails to
+ * often, architecture 10.5); `full` and `lite` also find phones and books (`lite` less often). A model that fails to
  * load is left out, so its signals read "not measured" instead of breaking the exam.
  */
 export async function loadDetectors(tier: DeviceTier) {
   const [landmarker, loadedObjects] = await Promise.all([
     load('face', () => FaceLandmarker.createFromOptions(fileset, FACE_OPTIONS)),
-    tier === 'full' ? load('object', () => ObjectDetector.createFromOptions(fileset, OBJECT_OPTIONS)) : null,
+    tier === 'full' || tier === 'lite'
+      ? load('object', () => ObjectDetector.createFromOptions(fileset, OBJECT_OPTIONS))
+      : null,
   ])
   let objects = loadedObjects
   const canvas = new OffscreenCanvas(SAMPLE_W, SAMPLE_H)
@@ -59,7 +61,7 @@ export async function loadDetectors(tier: DeviceTier) {
       return {
         faces: seen,
         lookingAway: single ? isLookingAway(single, baseline) : null,
-        inOval: single ? isInOval(single.faceLandmarks[0]!) : null,
+        inOval: single ? isInOval(single.faceLandmarks[0]!, frame.width / frame.height) : null,
         pose: single ? headPose(single) : null,
         object,
         brightness: brightness(frame),
@@ -68,7 +70,7 @@ export async function loadDetectors(tier: DeviceTier) {
     },
     /** Lowers the tier: models the new tier does not use are closed. */
     lower(next: DeviceTier) {
-      if (next !== 'full') objects = (objects?.close(), null)
+      if (next !== 'full' && next !== 'lite') objects = (objects?.close(), null)
     },
     close() {
       landmarker?.close()

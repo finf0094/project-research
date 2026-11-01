@@ -4,6 +4,8 @@ import {
   ClipboardPaste,
   EyeOff,
   Focus,
+  MicOff,
+  Monitor,
   Moon,
   PanelTop,
   ScanFace,
@@ -27,6 +29,8 @@ const ICON: Partial<Record<SignalKind, typeof ScanFace>> = {
   looking_away: EyeOff,
   object_detected: Smartphone,
   off_center: Focus,
+  second_screen: Monitor,
+  mic_off: MicOff,
   paste: ClipboardPaste,
 }
 

@@ -15,6 +15,9 @@ const SIGNALS: SignalKind[] = [
   'tab_hidden',
   'object_detected',
   'off_center',
+  'copy',
+  'second_screen',
+  'mic_off',
   'paste',
 ]
 </script>

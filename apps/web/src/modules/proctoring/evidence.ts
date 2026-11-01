@@ -22,7 +22,8 @@ const KEEP_MS = 3 * 60_000
  * sees every chunk and request that came before it. Pinned chunks are hashed, announced in a sealed
  * `evidence.fragment` event, queued for upload and their request removed — all in one transaction.
  */
-export function createEvidence(attemptId: string, log: EventLog) {
+/** `onPinned`: a fragment is in the log with its chunks queued; the caller sends them now. */
+export function createEvidence(attemptId: string, log: EventLog, onPinned: () => void = () => {}) {
   let queue: Promise<void> = Promise.resolve()
   const enqueue = (operation: () => Promise<void>) => {
     const run = queue.then(operation)
@@ -58,6 +59,7 @@ export function createEvidence(attemptId: string, log: EventLog) {
         await deletePin(request.id!)
       },
     )
+    onPinned()
   }
 
   /** Pins every request whose time range the ring already covers (or all of them when `final`). */

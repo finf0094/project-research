@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FrameReport } from './detectors'
-import { createSignalTracker, observeFrame, riskLevel, type ObservedKind } from './signals'
+import { createSignalTracker, observeFrame, riskLevel, watchBrowser, type ObservedKind } from './signals'
 
 describe('signal tracker', () => {
   it('ignores a short glance away and fires after the condition persists', () => {
@@ -61,7 +61,30 @@ describe('observeFrame', () => {
   })
 
   it('does not blame the student for a dark room or a weak device', () => {
-    expect(seen(frame({ faces: 0, brightness: 10 })).get('face_missing')).toBe(false)
+    expect(seen(frame({ faces: 0, brightness: 30 })).get('face_missing')).toBe(false) // a dim room
+  })
+
+  it('takes a black picture for a covered camera, not a dark room', () => {
+    const covered = seen(frame({ faces: 0, brightness: 5 }))
+    expect(covered.get('face_missing')).toBe(true)
+    expect(covered.get('too_dark')).toBe(false)
+  })
+
+  it('measures no gaze on a weak device', () => {
     expect(seen(frame({ lookingAway: true }), 'slow').get('looking_away')).toBe(false)
+  })
+})
+
+describe('watchBrowser', () => {
+  it('reports copied exam text', () => {
+    const changes: string[] = []
+    const stop = watchBrowser((kind, on) => changes.push(`${kind}:${on}`))
+    const selection = document.getSelection
+    document.getSelection = () =>
+      ({ toString: () => 'Какое свойство ACID гарантирует атомарность?' }) as never
+    document.dispatchEvent(new Event('copy'))
+    expect(changes).toEqual(['copy:true', 'copy:false'])
+    document.getSelection = selection
+    stop()
   })
 })

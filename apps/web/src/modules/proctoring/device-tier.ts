@@ -33,7 +33,7 @@ export function saveTier(tier: DeviceTier) {
 /** Signals each tier no longer measures; they are switched off when the tier drops, never left stuck on. */
 export const UNMEASURED: Record<DeviceTier, ObservedKind[]> = {
   full: [],
-  lite: ['object_detected'],
+  lite: [],
   // Weak devices keep the face check, at a slower pace; gaze and objects cost too much.
   slow: ['object_detected', 'looking_away'],
   none: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away', 'off_center'],

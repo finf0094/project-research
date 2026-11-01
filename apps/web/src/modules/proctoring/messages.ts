@@ -13,6 +13,8 @@ export const proctoringMessages = defineMessages({
         looking_away: 'Пожалуйста, смотрите на экран.',
         object_detected: 'Уберите телефон и книги из поля зрения камеры.',
         off_center: 'Вернитесь в центр кадра: лицо должно быть в овале.',
+        second_screen: 'Отключите второй монитор на время экзамена.',
+        mic_off: 'Микрофон выключен. Включите его, чтобы продолжить под наблюдением.',
       },
       camera: {
         on: 'Камера включена',
@@ -68,6 +70,8 @@ export const proctoringMessages = defineMessages({
         looking_away: 'Экранға қараңыз.',
         object_detected: 'Телефон мен кітаптарды камераның көру аймағынан алып тастаңыз.',
         off_center: 'Кадрдың ортасына оралыңыз: бетіңіз сопақтың ішінде болсын.',
+        second_screen: 'Емтихан кезінде екінші мониторды ажыратыңыз.',
+        mic_off: 'Микрофон өшірулі. Бақылаумен жалғастыру үшін оны қосыңыз.',
       },
       camera: {
         on: 'Камера қосулы',
@@ -122,6 +126,8 @@ export const proctoringMessages = defineMessages({
         looking_away: 'Please look at the screen.',
         object_detected: 'Move phones and books out of the camera’s view.',
         off_center: 'Move back to the centre: keep your face in the oval.',
+        second_screen: 'Disconnect the second screen for the exam.',
+        mic_off: 'Your microphone is off. Turn it on to continue under supervision.',
       },
       camera: {
         on: 'Camera on',

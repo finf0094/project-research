@@ -64,16 +64,33 @@ export function isFramed(landmarks: { x: number; y: number }[]): boolean {
   })
 }
 
-/** The preflight oval in picture coordinates (CameraStage draws it from the same numbers). */
+/**
+ * The preflight oval, in coordinates of the picture the student sees: the camera's frame cropped to a
+ * centred 4:3 view (CameraStage shows it so, with object-fit: cover, and draws the oval from these numbers).
+ */
 export const OVAL = { cx: 0.5, cy: 0.46, rx: 0.17, ry: 0.33 }
+export const VIEW_ASPECT = 4 / 3
+
+/** A landmark of the raw frame (`frameAspect` = width / height) placed in the centred 4:3 view. */
+export function inView(p: { x: number; y: number }, frameAspect: number) {
+  if (frameAspect > VIEW_ASPECT) {
+    const shown = VIEW_ASPECT / frameAspect // the share of the width the view keeps
+    return { x: (p.x - (1 - shown) / 2) / shown, y: p.y }
+  }
+  const shown = frameAspect / VIEW_ASPECT // the share of the height (portrait phones)
+  return { x: p.x, y: (p.y - (1 - shown) / 2) / shown }
+}
 /** Room around the oval: a face drifting a little is still "in place". */
 const OVAL_SLACK = 1.35
-/** A face shorter than this share of the picture sits too far away to be seen well. */
+/** A face shorter than this share of the view's height sits too far away to be seen well. */
 const MIN_FACE_HEIGHT = 0.22
 
-/** The face is where preflight placed it: its centre inside the oval and close enough to the camera. */
-export function isInOval(landmarks: { x: number; y: number }[]): boolean {
-  const [top, chin, left, right] = OUTLINE.map((i) => landmarks[i])
+/**
+ * The face is where preflight placed it, as the student sees it: its centre inside the oval and close
+ * enough to the camera, measured in the 4:3 view (the same however the camera's frame is shaped).
+ */
+export function isInOval(landmarks: { x: number; y: number }[], frameAspect: number): boolean {
+  const [top, chin, left, right] = OUTLINE.map((i) => landmarks[i] && inView(landmarks[i], frameAspect))
   if (!top || !chin || !left || !right) return false
   const dx = ((left.x + right.x) / 2 - OVAL.cx) / OVAL.rx
   const dy = ((top.y + chin.y) / 2 - OVAL.cy) / OVAL.ry

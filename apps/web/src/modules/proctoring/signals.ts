@@ -57,6 +57,10 @@ export function createSignalTracker() {
 
 /** Mean frame brightness (0..255) below which the room counts as too dark. */
 export const DARK_BRIGHTNESS = 45
+/** Below this the picture is black: the camera is covered, not the room dim, so a missing face counts. */
+export const COVERED_BRIGHTNESS = 15
+/** The page may lose focus this long (the browser's own menus, a permission prompt) before it counts. */
+const BLUR_GRACE_MS = 2000
 /** Microphone RMS above which the room counts as noisy. */
 export const NOISE_RMS = 0.08
 
@@ -80,6 +84,9 @@ export function riskLevel(active: ReadonlySet<SignalKind>, recentActivations: nu
 
 /** Object detection is the heaviest model: run it every few seconds only (the exam and preflight alike). */
 export const OBJECTS_EVERY_MS = 2000
+/** How often each tier looks for a phone or a book: middle devices too, only less often. */
+export const objectsEvery = (tier: DeviceTier) =>
+  tier === 'full' ? OBJECTS_EVERY_MS : tier === 'lite' ? 5 * OBJECTS_EVERY_MS : Infinity
 
 /** Frames analysed per second at each level. */
 export const ANALYSIS_FPS: Record<RiskLevel, number> = { low: 1, medium: 2, high: 4 }
@@ -94,22 +101,59 @@ export const HINTED: ReadonlySet<SignalKind> = new Set([
   'camera_off',
   'looking_away',
   'object_detected',
+  'off_center',
+  'second_screen',
+  'mic_off',
 ])
 
 /** Browser signals: leaving the tab and pasting. Returns a function that stops watching. */
 export function watchBrowser(setSignal: (kind: SignalKind, on: boolean) => void) {
-  const onVisibility = () => setSignal('tab_hidden', document.visibilityState === 'hidden')
-  const onPaste = (event: ClipboardEvent) => {
-    // Only substantial pastes matter; moving a word around is normal editing.
-    if ((event.clipboardData?.getData('text') ?? '').length < 20) return
-    setSignal('paste', true)
-    setSignal('paste', false)
-  }
-  document.addEventListener('visibilitychange', onVisibility)
+  // Away from the exam: its tab hidden, or another window or app in front while the tab stays visible.
+  const away = () => setSignal('tab_hidden', document.visibilityState === 'hidden' || !document.hasFocus())
+  // Clicking the browser's own controls blurs the page for a moment; only staying away counts.
+  let blurred: ReturnType<typeof setTimeout> | undefined
+  const onBlur = () => (clearTimeout(blurred), (blurred = setTimeout(away, BLUR_GRACE_MS)))
+  const onFocus = () => (clearTimeout(blurred), away())
+  // Only substantial text matters; moving a word around is normal editing.
+  const substantial = (text: string | undefined) => (text ?? '').trim().length >= 20
+  const pulse = (kind: SignalKind) => (setSignal(kind, true), setSignal(kind, false))
+  const onPaste = (event: ClipboardEvent) =>
+    substantial(event.clipboardData?.getData('text')) && pulse('paste')
+  const onCopy = () => substantial(document.getSelection()?.toString()) && pulse('copy')
+  // A second screen (Chromium tells; elsewhere this stays unknown and silent).
+  const display = screen as unknown as EventTarget & { isExtended?: boolean }
+  const onScreen = () => display.isExtended !== undefined && setSignal('second_screen', display.isExtended)
+  onScreen()
+  document.addEventListener('visibilitychange', away)
+  window.addEventListener('blur', onBlur)
+  window.addEventListener('focus', onFocus)
   document.addEventListener('paste', onPaste)
+  document.addEventListener('copy', onCopy)
+  display.addEventListener('change', onScreen)
   return () => {
-    document.removeEventListener('visibilitychange', onVisibility)
+    clearTimeout(blurred)
+    document.removeEventListener('visibilitychange', away)
+    window.removeEventListener('blur', onBlur)
+    window.removeEventListener('focus', onFocus)
     document.removeEventListener('paste', onPaste)
+    document.removeEventListener('copy', onCopy)
+    display.removeEventListener('change', onScreen)
+  }
+}
+
+/** A muted or disconnected microphone (the system's mute, an unplugged headset) is a signal of its own. */
+export function watchMicrophone(stream: MediaStream, setSignal: (kind: SignalKind, on: boolean) => void) {
+  const tracks = stream.getAudioTracks()
+  const update = () =>
+    setSignal(
+      'mic_off',
+      tracks.some((t) => t.muted || t.readyState === 'ended'),
+    )
+  for (const track of tracks)
+    for (const type of ['mute', 'unmute', 'ended']) track.addEventListener(type, update)
+  return () => {
+    for (const track of tracks)
+      for (const type of ['mute', 'unmute', 'ended']) track.removeEventListener(type, update)
   }
 }
 
@@ -119,7 +163,8 @@ export function observeFrame(
   tier: DeviceTier,
   observe: (kind: ObservedKind, present: boolean) => void,
 ) {
-  const dark = frame.brightness < DARK_BRIGHTNESS
+  // A black picture is a covered camera, not a dim room: then a missing face is the student's doing.
+  const dark = frame.brightness < DARK_BRIGHTNESS && frame.brightness >= COVERED_BRIGHTNESS
   observe('too_dark', dark)
   if (frame.faces != null) {
     // In the dark the detector misses faces; that is the room's fault, not the student's behaviour.

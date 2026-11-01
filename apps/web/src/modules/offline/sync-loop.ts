@@ -155,6 +155,9 @@ export function startSync(options: SyncOptions): SyncHandle {
         delay = retryDelay(connection.failures + 1)
       }
       if (!running()) break
+      // Woken while this tick ran (a signal arrived mid-sync): go again at once, the wake is not lost.
+      if (woken) delay = 0
+      woken = false
       if (delay > 0) {
         await new Promise<void>((resolve) => {
           const timer = setTimeout(resolve, delay)
@@ -168,7 +171,8 @@ export function startSync(options: SyncOptions): SyncHandle {
     }
   }
 
-  const wake = () => wakeUp?.()
+  let woken = false
+  const wake = () => (wakeUp ? wakeUp() : (woken = true))
   // The browser noticing the network is back is a good moment to try at once, not after the backoff.
   window.addEventListener('online', wake)
   void publish()
