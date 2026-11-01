@@ -66,7 +66,23 @@ export function isNetworkError(error: unknown): boolean {
   return error instanceof TypeError || (error instanceof DOMException && error.name === 'TimeoutError')
 }
 
-function withTimeout(timeoutMs: number, signal?: AbortSignal) {
-  const timeout = AbortSignal.timeout(timeoutMs)
-  return signal ? AbortSignal.any([timeout, signal]) : timeout
+/**
+ * The caller's signal plus a timeout. `AbortSignal.any` came in Safari 17.4 and `AbortSignal.timeout` in 16:
+ * where missing they are built by hand, or every request would throw and the exam would look offline for good.
+ */
+export function withTimeout(timeoutMs: number, signal?: AbortSignal): AbortSignal {
+  if (typeof AbortSignal.timeout === 'function' && (!signal || typeof AbortSignal.any === 'function')) {
+    const timeout = AbortSignal.timeout(timeoutMs)
+    return signal ? AbortSignal.any([timeout, signal]) : timeout
+  }
+  const controller = new AbortController()
+  const timer = setTimeout(
+    () => controller.abort(new DOMException('The operation timed out.', 'TimeoutError')),
+    timeoutMs,
+  )
+  const follow = () => (clearTimeout(timer), controller.abort(signal?.reason))
+  if (signal?.aborted) follow()
+  else signal?.addEventListener('abort', follow, { once: true })
+  controller.signal.addEventListener('abort', () => clearTimeout(timer), { once: true })
+  return controller.signal
 }
