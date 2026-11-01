@@ -48,6 +48,11 @@ export const SyncResponse = z.object({
   /** The chain failed verification: the server accepts no more events, but the attempt can still be submitted. */
   chainBroken: z.boolean(),
   commands: z.array(Command),
+  /**
+   * Set by a classroom hub answering while the cloud is away: it holds the events up to here. They are not in
+   * the cloud yet (`ackedSeq` stays the cloud's), so the device keeps them, but needs not send them again.
+   */
+  relayedSeq: z.number().int().nonnegative().optional(),
 })
 export type SyncResponse = z.infer<typeof SyncResponse>
 

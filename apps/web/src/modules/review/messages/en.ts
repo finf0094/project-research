@@ -71,6 +71,8 @@ export const en: typeof ru = {
       terminateConfirm: 'Yes, end it',
     },
     attempt: {
+      hub: 'Via a classroom hub',
+      hubHint: 'Some events came through a classroom hub, which vouched for when they were received.',
       offline: 'Started offline',
       offlineHint: 'The start time comes from the student’s device (kept within the exam window).',
       backToQueue: 'Back to the review queue',

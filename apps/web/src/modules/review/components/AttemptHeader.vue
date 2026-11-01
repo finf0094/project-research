@@ -43,6 +43,9 @@ defineProps<{ detail: AttemptDetail; queue: QueuePlace | null }>()
           :title="$t('review.attempt.offlineHint')"
           >{{ $t('review.attempt.offline') }}</StatusPill
         >
+        <StatusPill v-if="detail.summary.relayedByHub" tone="warn" :title="$t('review.attempt.hubHint')">{{
+          $t('review.attempt.hub')
+        }}</StatusPill>
         <StatusPill v-if="detail.summary.riskScore !== null" tone="danger">{{
           $t('review.attempt.risk', { n: detail.summary.riskScore })
         }}</StatusPill>

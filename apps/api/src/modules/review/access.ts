@@ -50,5 +50,6 @@ export function toSummary(
     markerCount,
     riskScore: attempt.riskScore,
     startedOffline: attempt.startedOffline,
+    relayedByHub: attempt.relayedByHub,
   }
 }

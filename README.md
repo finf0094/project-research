@@ -155,3 +155,9 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   cloud may add to it, and the cloud verifies every relayed event with keys the hub never holds, so a hub cannot
   alter anything; the hub's receipt times are believed only between the event's own time and the cloud's now.
   Starting an exam needs the cloud (or a downloaded package, see offline start); uploads of recordings wait.
+  The hub answers within 3 s and then treats the cloud as away for a while, since a stalling link is the usual
+  case; it reports how far it holds the events (`relayedSeq`) while the cloud's acknowledgement stays the cloud's,
+  so a device keeps its events until the cloud has them and can send them directly if it leaves the room.
+  Attempts with relayed events are marked for the examiner, as the hub's receipt times are taken on trust (its
+  `HUB_TOKEN` must be guarded like a server secret). Devices must reach the hub under the exam's usual address
+  (room DNS and a certificate for it): cookies and on-device data belong to that address.

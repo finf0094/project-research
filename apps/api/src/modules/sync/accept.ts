@@ -79,6 +79,7 @@ export async function acceptEvents(
         lastHash: head.hash,
         // A hub's delivery says nothing about whether the student is online now.
         lastSeenAt: relayedAt ? attempt.lastSeenAt : new Date(now),
+        relayedByHub: attempt.relayedByHub || (!!relayedAt && head.seq > attempt.lastSeq),
         connection,
         chainBrokenAt,
       })

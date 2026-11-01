@@ -1,0 +1,1 @@
+ALTER TABLE "attempts" ADD COLUMN "relayed_by_hub" boolean DEFAULT false NOT NULL;

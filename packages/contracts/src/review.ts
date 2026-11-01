@@ -45,6 +45,8 @@ export const AttemptBase = z.object({
   riskScore: z.number().int().min(0).max(100).nullable(),
   /** Begun without network from a downloaded package; its start time comes from the device. */
   startedOffline: z.boolean(),
+  /** Some events came through a classroom hub, whose receipt times the server took on trust. */
+  relayedByHub: z.boolean(),
 })
 export type AttemptBase = z.infer<typeof AttemptBase>
 

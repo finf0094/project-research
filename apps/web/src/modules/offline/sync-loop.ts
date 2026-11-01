@@ -48,6 +48,8 @@ export function startSync(options: SyncOptions): SyncHandle {
   let connection = initialConnection
   let wakeUp: (() => void) | null = null
   let accepting = true
+  // How far a classroom hub holds the events while the cloud is away (kept here until the cloud has them).
+  let relayedSeq = 0
   const running = () => !aborter.signal.aborted
 
   async function report(outcome: SyncOutcome) {
@@ -76,7 +78,7 @@ export function startSync(options: SyncOptions): SyncHandle {
     const pending = accepting
       ? await db.events
           .where('[attemptId+seq]')
-          .between([attemptId, attempt.ackedSeq + 1], [attemptId, Dexie.maxKey])
+          .between([attemptId, Math.max(attempt.ackedSeq, relayedSeq) + 1], [attemptId, Dexie.maxKey])
           .limit(BATCH_SIZE)
           .toArray()
       : []
@@ -123,6 +125,8 @@ export function startSync(options: SyncOptions): SyncHandle {
     clock.sync(response.serverTime, performance.now() - startedAt)
     accepting = OPEN.includes(response.status) && !response.chainBroken
     const ackedSeq = Math.max(attempt.ackedSeq, response.ackedSeq)
+    const relayedBefore = relayedSeq
+    relayedSeq = response.relayedSeq ?? 0
     await db.attempts.update(attemptId, {
       ackedSeq,
       deadline: response.deadline,
@@ -137,7 +141,7 @@ export function startSync(options: SyncOptions): SyncHandle {
       await uploadChunks(attemptId, aborter.signal, running)
     if (allAcked) return IDLE_MS
     // Not everything acknowledged: continue at once if the server moved forward, otherwise back off.
-    return ackedSeq > attempt.ackedSeq ? 0 : retryDelay(2)
+    return ackedSeq > attempt.ackedSeq || relayedSeq > relayedBefore ? 0 : retryDelay(2)
   }
 
   async function loop() {

@@ -20,4 +20,10 @@ await app.listen({ port: env.HUB_PORT, host: '0.0.0.0' })
 console.log(`hub on :${env.HUB_PORT}, cloud ${env.HUB_UPSTREAM}`)
 
 // What the room collected goes up as soon as the cloud answers again.
-setInterval(() => void forwardAll(store, upstream), 10_000)
+// A pass waits for the previous one: during a stalling outage they would pile up otherwise.
+let forwarding = false
+setInterval(() => {
+  if (forwarding) return
+  forwarding = true
+  void forwardAll(store, upstream).finally(() => (forwarding = false))
+}, 10_000)

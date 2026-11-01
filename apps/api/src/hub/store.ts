@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
+import { mkdir, open, readFile, readdir, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Event, SyncResponse } from '@exam/contracts'
 
@@ -25,15 +25,25 @@ export function fileStore(dir: string): HubStore {
 
   const store: HubStore = {
     async get(id) {
+      let text: string
       try {
-        return JSON.parse(await readFile(path(id), 'utf8')) as HubAttempt
+        text = await readFile(path(id), 'utf8')
       } catch {
-        return null
+        return null // no file: nothing kept for it
       }
+      // A damaged file must never read as "nothing kept": acknowledged events would be lost silently.
+      return JSON.parse(text) as HubAttempt
     },
     async put(id, state) {
       await mkdir(dir, { recursive: true })
-      await writeFile(`${path(id)}.tmp`, JSON.stringify(state))
+      // Written and flushed to disk before it replaces the old file: a power cut leaves one or the other.
+      const file = await open(`${path(id)}.tmp`, 'w')
+      try {
+        await file.writeFile(JSON.stringify(state))
+        await file.sync()
+      } finally {
+        await file.close()
+      }
       await rename(`${path(id)}.tmp`, path(id))
     },
     async list() {

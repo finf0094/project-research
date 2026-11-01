@@ -1,7 +1,7 @@
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { AttemptSession, SyncResponse } from '@exam/contracts'
+import type { AttemptSession } from '@exam/contracts'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { attempts, events } from '../src/db/schema.ts'
@@ -71,7 +71,8 @@ describe('classroom hub', () => {
       await chain.next('answer', { questionId: seeded.single.id, value: 'b' }, t + 20_000),
     ]
     const kept = await sync(student, session.attemptId, offline)
-    expect((kept.json() as SyncResponse).ackedSeq).toBe(3)
+    // The hub holds them (relayedSeq); the cloud's ack is unchanged, so the device keeps them too.
+    expect(kept.json()).toMatchObject({ ackedSeq: 1, relayedSeq: 3 })
     expect(await cloudHead(session.attemptId)).toBe(1)
     // Nobody else can add to it, and anything but an event sync says the cloud is away.
     const neighbour = { cookie: 'sid=someone-else' }
@@ -84,11 +85,16 @@ describe('classroom hub', () => {
     expect(await cloudHead(session.attemptId)).toBe(3)
     const rows = await ctx.deps.db.select().from(events).where(eq(events.attemptId, session.attemptId))
     expect(rows.every((e) => e.receivedAt.getTime() <= ctx.clock.now)).toBe(true) // never later than the cloud's now
-    // And the device simply carries on.
+    expect(
+      (await ctx.deps.db.select().from(attempts).where(eq(attempts.id, session.attemptId)))[0]!.relayedByHub,
+    ).toBe(true)
+    // The hub still treats the cloud as away for a moment; what comes meanwhile follows on the next pass.
     const next = await sync(student, session.attemptId, [
       await chain.next('session.submitted', {}, t + 30_000),
     ])
-    expect((next.json() as SyncResponse).ackedSeq).toBe(4)
+    expect(next.json()).toMatchObject({ relayedSeq: 4 })
+    await forwardAll(store, upstream)
+    expect(await cloudHead(session.attemptId)).toBe(4)
   })
 
   it('cannot alter what it relays: the cloud checks the chain and the token', async () => {

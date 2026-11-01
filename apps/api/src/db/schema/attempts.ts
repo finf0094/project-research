@@ -47,6 +47,8 @@ export const attempts = pgTable(
     riskScore: integer('risk_score'),
     /** Begun without network from a downloaded package (its start time came from the device). */
     startedOffline: boolean('started_offline').notNull().default(false),
+    /** Some events came through a classroom hub, whose receipt times were taken on trust. */
+    relayedByHub: boolean('relayed_by_hub').notNull().default(false),
     /** A worker took the attempt for analysis at this time (a lease: a crashed worker's claim expires). */
     analysisClaimedAt: timestamp('analysis_claimed_at', { withTimezone: true }),
     /** Whether the server's own models checked the recordings; null until analysis. */
