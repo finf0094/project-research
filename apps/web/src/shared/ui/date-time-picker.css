@@ -170,3 +170,22 @@
   color: var(--on-ink);
   font-weight: 600;
 }
+
+/* Phones: a little wider, so days, times and buttons are all thumb-sized (44 px). */
+@media (width < 700px) {
+  .panel {
+    width: min(360px, calc(100vw - 16px));
+  }
+  .nav {
+    width: var(--tap);
+    height: var(--tap);
+  }
+  .chip {
+    min-height: var(--tap);
+    padding-inline: var(--space-3);
+  }
+  .custom,
+  .done {
+    min-height: var(--tap);
+  }
+}

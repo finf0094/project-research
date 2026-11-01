@@ -14,10 +14,13 @@ watch(
   () => props.target,
   (el) => {
     observer?.disconnect()
+    away.value = false
     if (!el || typeof IntersectionObserver === 'undefined') return
-    observer = new IntersectionObserver(([entry]) => {
-      away.value = !!entry && !entry.isIntersecting && entry.boundingClientRect.top > 0
-    })
+    // A decision only peeking out under the phone's tab bar is not on screen yet.
+    observer = new IntersectionObserver(
+      ([entry]) => (away.value = !!entry && !entry.isIntersecting && entry.boundingClientRect.top > 0),
+      { rootMargin: '0px 0px -96px 0px' },
+    )
     observer.observe(el)
   },
   { immediate: true },

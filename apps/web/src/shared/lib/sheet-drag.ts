@@ -12,17 +12,31 @@ export function shouldDismiss(dragged: number, height: number, speed: number) {
 
 /**
  * A bottom sheet follows the finger down and closes past a threshold, as in a native app; let go earlier it
- * springs back. Phones only (the sheet layout of AppDialog), by touch.
+ * springs back. Phones only (the sheet layout of AppDialog), by touch. Its `close` event (a <dialog>) ends a drag.
  */
 export function useSheetDrag(sheet: Ref<HTMLElement | undefined>, dismiss: () => void) {
   const phone = matchMedia('(width < 700px)')
   let start: { y: number; t: number } | null = null
   let dragged = 0
 
+  /** Back in place with no drag going on (also when the dialog closes in the middle of one). */
+  function reset() {
+    start = null
+    const el = sheet.value
+    el?.removeEventListener('transitionend', slidOut)
+    if (el) el.style.transition = el.style.translate = ''
+  }
+  /** The sheet has slid out of sight (not a transition of something inside it). */
+  function slidOut(e: Event) {
+    if (e.target !== sheet.value) return
+    sheet.value?.removeEventListener('transitionend', slidOut)
+    dismiss()
+  }
   function down(e: TouchEvent) {
     const el = sheet.value
     const touch = e.touches[0]
-    if (!el || !touch || e.touches.length > 1 || !phone.matches) return
+    if (!el || !touch || !phone.matches) return
+    if (e.touches.length > 1) return reset() // a second finger: not a swipe any more
     const fromTop = touch.clientY - el.getBoundingClientRect().top
     if (fromTop > HANDLE_PX && el.scrollTop > 0) return
     start = { y: touch.clientY, t: performance.now() }
@@ -32,6 +46,8 @@ export function useSheetDrag(sheet: Ref<HTMLElement | undefined>, dismiss: () =>
     const el = sheet.value
     const touch = e.touches[0]
     if (!start || !el || !touch) return
+    // The content scrolled first: the finger reads it, not the sheet, until it is let go.
+    if (dragged === 0 && el.scrollTop > 0) return void (start = null)
     dragged = Math.max(0, touch.clientY - start.y)
     if (dragged === 0) return
     e.preventDefault() // the sheet moves, not the page or its own content
@@ -46,7 +62,7 @@ export function useSheetDrag(sheet: Ref<HTMLElement | undefined>, dismiss: () =>
     el.style.transition = 'translate var(--dur) var(--ease)'
     if (dragged > 0 && shouldDismiss(dragged, el.offsetHeight, speed)) {
       el.style.translate = '0 100%'
-      el.addEventListener('transitionend', () => (dismiss(), (el.style.translate = '')), { once: true })
+      el.addEventListener('transitionend', slidOut) // the dialog's close event puts it back in place
     } else {
       el.style.translate = ''
     }
@@ -58,6 +74,7 @@ export function useSheetDrag(sheet: Ref<HTMLElement | undefined>, dismiss: () =>
     ['touchmove', move],
     ['touchend', up],
     ['touchcancel', up],
+    ['close', reset],
   ] as const
   const stop = watch(
     sheet,

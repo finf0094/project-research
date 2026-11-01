@@ -78,8 +78,10 @@ const status = computed(() =>
 <style scoped>
 .room {
   position: relative;
+  /* Picture and message share one cell; a long message makes the box taller (clip, not hidden, allows it). */
+  display: grid;
   aspect-ratio: 16 / 9;
-  overflow: hidden;
+  overflow: clip;
   border-radius: var(--radius-lg);
   background: var(--ink);
   color: var(--on-ink);
@@ -91,13 +93,14 @@ const status = computed(() =>
   }
 }
 .remote {
+  grid-area: 1 / 1;
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
 }
 .overlay {
-  position: absolute;
-  inset: 0;
+  grid-area: 1 / 1;
+  position: relative;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -108,6 +111,10 @@ const status = computed(() =>
   &.dim {
     background: color-mix(in oklab, var(--ink) 72%, transparent);
   }
+  /* Phones: it clears the chips (two rows) above and the own picture below. */
+  @media (width < 700px) {
+    padding-block: calc(var(--space-12) + var(--space-8)) calc(72px + 2 * var(--space-3));
+  }
 }
 .icon {
   display: grid;
@@ -116,6 +123,9 @@ const status = computed(() =>
   block-size: 64px;
   border-radius: var(--radius-lg);
   background: var(--on-ink-tint);
+  @media (width < 700px) {
+    display: none; /* the chip on top shows the state */
+  }
 }
 .message {
   color: var(--on-ink);
