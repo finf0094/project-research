@@ -63,12 +63,18 @@ export const attempts = pgTable(
     audioTries: integer('audio_tries').notNull().default(0),
     /** New signals or recordings arrived during the exam: the worker rebuilds its markers live then. */
     liveDueAt: timestamp('live_due_at', { withTimezone: true }),
+    /** The last event the live markers were built from: an older rebuild never overwrites a newer one. */
+    liveSeq: integer('live_seq').notNull().default(0),
   },
   (t) => [
     unique().on(t.examId, t.userId),
     index('attempts_waiting_analysis_idx')
       .on(t.submittedAt)
       .where(sql`status = 'submitted'`),
+    // The live analysis looks for due attempts every few seconds; only those few are in this index.
+    index('attempts_live_due_idx')
+      .on(t.liveDueAt)
+      .where(sql`live_due_at is not null`),
   ],
 )
 

@@ -1,0 +1,2 @@
+ALTER TABLE "attempts" ADD COLUMN "live_seq" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX "attempts_live_due_idx" ON "attempts" USING btree ("live_due_at") WHERE live_due_at is not null;

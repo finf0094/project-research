@@ -52,6 +52,8 @@ export async function analyzeRecordings(
   uploaded: ReadonlySet<string>,
   /** Called after every chunk, so a long analysis can keep its claim on the attempt. */
   heartbeat: () => Promise<void> = async () => undefined,
+  /** Chunks the live analysis already looked at during the exam: not decoded twice. */
+  known: ReadonlyMap<string, Observation[]> = new Map(),
 ): Promise<RecordingsReport> {
   const checked = new Set<string>()
   try {
@@ -63,7 +65,10 @@ export async function analyzeRecordings(
     const observations: Observation[] = []
     for (const [hash, chunkStart] of starts) {
       if (!uploaded.has(hash)) continue
-      const seen = await observeChunk(models, storage, attemptId, hash, chunkStart)
+      // An empty entry is a chunk that could not be decoded live: tried again here.
+      const seen = known.get(hash)?.length
+        ? known.get(hash)!
+        : await observeChunk(models, storage, attemptId, hash, chunkStart)
       if (seen) {
         observations.push(...seen)
         checked.add(hash)

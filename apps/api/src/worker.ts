@@ -26,6 +26,7 @@ const deps: Deps = {
 
 /** Short, so signals of a running exam turn into markers within seconds (live analysis). */
 const POLL_MS = 3_000
+const LIVE_BUDGET_MS = 10_000
 const RETENTION_EVERY_MS = 3_600_000
 let stopping = false
 let lastRetention = 0
@@ -34,7 +35,10 @@ let wake = () => {}
 
 async function tick() {
   await closeExpired(deps)
-  while (!stopping && (await analyzeLiveNext(deps))) {
+  // Live markers get a time budget per tick: during a big exam something is always due, and the other
+  // jobs (closing, final analysis, audio) must still run.
+  const liveUntil = Date.now() + LIVE_BUDGET_MS
+  while (!stopping && Date.now() < liveUntil && (await analyzeLiveNext(deps))) {
     /* rebuild the markers of running exams that got new signals or recordings */
   }
   while (!stopping && (await analyzeNext(deps))) {

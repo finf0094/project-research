@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto'
 import type { AttemptSession } from '@exam/contracts'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { attempts, markers } from '../src/db/schema.ts'
+import { attempts, examParticipants, markers } from '../src/db/schema.ts'
 import { analyzeLiveNext } from '../src/jobs/jobs.ts'
 import { clientChain, createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
 
@@ -67,5 +68,59 @@ describe('live analysis', () => {
     ctx.clock.now += 3_000
     expect(await analyzeLiveNext(ctx.deps)).toBe(false)
     expect(await markersOf(session.attemptId)).toEqual([])
+  })
+
+  it('puts no marker for a signal switched off for this student', async () => {
+    await ctx.deps.db
+      .update(examParticipants)
+      .set({ disabledSignals: ['face_missing'] })
+      .where(eq(examParticipants.examId, seeded.exam.id))
+    const { session, chain } = await startedChain()
+    await sync(session.attemptId, [
+      await chain.next('session.started', {}, ctx.clock.now),
+      await chain.next('proctor.signal', { kind: 'face_missing', active: true }, ctx.clock.now),
+    ])
+    ctx.clock.now += 3_000
+    expect(await analyzeLiveNext(ctx.deps)).toBe(true)
+    expect(await markersOf(session.attemptId)).toEqual([])
+  })
+
+  it('never lets an older rebuild overwrite markers built from a newer log', async () => {
+    const { session, chain } = await startedChain()
+    await sync(session.attemptId, [
+      await chain.next('session.started', {}, ctx.clock.now),
+      await chain.next('proctor.signal', { kind: 'face_missing', active: true }, ctx.clock.now),
+    ])
+    // Another worker already wrote markers from a later event.
+    await ctx.deps.db.update(attempts).set({ liveSeq: 99 }).where(eq(attempts.id, session.attemptId))
+    ctx.clock.now += 3_000
+    expect(await analyzeLiveNext(ctx.deps)).toBe(true)
+    expect(await markersOf(session.attemptId)).toEqual([])
+  })
+
+  it('is due again when a recording of the running exam arrives', async () => {
+    const { session, chain } = await startedChain()
+    const chunk = Buffer.from('a recorded chunk')
+    const hash = createHash('sha256').update(chunk).digest('hex')
+    const t = ctx.clock.now
+    await sync(session.attemptId, [
+      await chain.next('session.started', {}, t),
+      await chain.next(
+        'evidence.fragment',
+        { reason: 'risk', tStart: t, tEnd: t + 10_000, chunks: [hash], chunkStarts: [t] },
+        t,
+      ),
+    ])
+    ctx.clock.now += 3_000
+    expect(await analyzeLiveNext(ctx.deps)).toBe(true) // the announcement
+    const put = await ctx.app.inject({
+      method: 'PUT',
+      url: `/api/attempts/${session.attemptId}/chunks/${hash}`,
+      headers: { ...student, 'content-type': 'video/webm' },
+      payload: chunk,
+    })
+    expect(put.statusCode).toBe(204)
+    ctx.clock.now += 3_000
+    expect(await analyzeLiveNext(ctx.deps)).toBe(true) // the upload: its models run now
   })
 })

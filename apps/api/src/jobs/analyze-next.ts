@@ -9,7 +9,7 @@ import { calibrationFactors } from '../modules/review/calibration.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
 import { analyzeRecordings, type RecordingsReport } from '../ml/recordings.ts'
 import { buildMarkers, riskScore } from './analysis.ts'
-import { fragmentsOf, uploadedOf } from './attempt-data.ts'
+import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
 
 /** A claim older than this belongs to a worker that died; another worker may take the attempt. */
 const CLAIM_LEASE_MS = 15 * 60_000
@@ -30,6 +30,7 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
       await uploadedOf(deps.db, attempt.id),
       // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
       () => renewClaim(deps, attempt.id),
+      await observationsOf(deps.db, attempt.id),
     )
     // The examiner's past decisions weigh the kinds (25.4), read outside the lock; a failed read is neutral.
     const [owner] = await deps.db

@@ -8,12 +8,25 @@ import { markLiveDue } from '../modules/attempts/live-due.ts'
 import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
 import { buildMarkers, riskScore } from './analysis.ts'
-import { fragmentsOf, uploadedOf } from './attempt-data.ts'
+import { fragmentsOf, observationsOf, uploadedOf } from './attempt-data.ts'
 
 /** A burst of signals settles this long before the markers are rebuilt (one rebuild, not one per event). */
 const SETTLE_MS = 2000
 /** New chunks looked at per run, so one busy attempt cannot hold the worker; the rest come next run. */
 const CHUNKS_PER_RUN = 6
+/** A failed rebuild is tried again after this (not at once: a persistent failure must not spin). */
+const RETRY_MS = 30_000
+/** The examiner's calibration changes with their decisions, not by the second: read once a minute. */
+const CALIBRATION_TTL_MS = 60_000
+const calibrations = new Map<string, { at: number; factors: Partial<Record<MarkerKind, number>> }>()
+
+async function calibrationOf(deps: Deps, ownerId: string) {
+  const cached = calibrations.get(ownerId)
+  if (cached && deps.now() - cached.at < CALIBRATION_TTL_MS) return cached.factors
+  const factors = await calibrationFactors(deps.db, ownerId).catch(() => ({}))
+  calibrations.set(ownerId, { at: deps.now(), factors })
+  return factors
+}
 
 /**
  * Markers while the exam is still running: when a student's device reports a signal or uploads a
@@ -39,7 +52,8 @@ export async function analyzeLiveNext(deps: Deps): Promise<boolean> {
   try {
     await rebuild(deps, attempt)
   } catch (error) {
-    console.error(`live analysis of attempt ${attempt.id} failed`, error)
+    console.error(`live analysis of attempt ${attempt.id} failed; trying again shortly`, error)
+    await markLiveDue(deps.db, attempt.id, deps.now() + RETRY_MS).catch(() => undefined)
   }
   return true
 }
@@ -64,16 +78,18 @@ async function rebuild(deps: Deps, attempt: typeof attempts.$inferSelect) {
   const disabled = new Set<MarkerKind>(await disabledSignalsOf(db, attempt.examId, attempt.userId))
   const kept = drafts.filter((m) => !disabled.has(m.kind))
   const [exam] = await db.select({ ownerId: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
-  const calibration = exam ? await calibrationFactors(db, exam.ownerId).catch(() => ({})) : {}
+  const calibration = exam ? await calibrationOf(deps, exam.ownerId) : {}
+  const builtFrom = log.at(-1)?.seq ?? 0
 
   await db.transaction(async (tx) => {
     const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')
     if (current?.status !== 'active') return // finished meanwhile: the final analysis takes over
+    if (current.liveSeq > builtFrom) return // another worker already wrote markers from a newer log
     await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
     if (kept.length) await tx.insert(markers).values(kept.map((m) => ({ ...m, attemptId: attempt.id })))
     await tx
       .update(attempts)
-      .set({ riskScore: riskScore(kept, calibration) })
+      .set({ riskScore: riskScore(kept, calibration), liveSeq: builtFrom })
       .where(eq(attempts.id, attempt.id))
   })
 }
@@ -86,11 +102,7 @@ async function observeNewChunks(
   uploaded: ReadonlySet<string>,
 ) {
   const { db, storage } = deps
-  const stored = await db
-    .select({ hash: chunkObservations.hash, observations: chunkObservations.observations })
-    .from(chunkObservations)
-    .where(eq(chunkObservations.attemptId, attemptId))
-  const known = new Map(stored.map((row) => [row.hash, row.observations]))
+  const known = await observationsOf(db, attemptId)
   const starts = new Map<string, number>()
   for (const f of fragments) f.chunks.forEach((hash, i) => starts.set(hash, f.chunkStarts[i]!))
   const fresh = [...starts]

@@ -141,6 +141,13 @@
       "when": 1793528527744,
       "tag": "0019_live_analysis",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793529005949,
+      "tag": "0020_live_seq_index",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { and, eq, inArray, lt, sql } from 'drizzle-orm'
-import { attempts, blobs, decisions, sessions } from '../db/schema.ts'
+import { attempts, blobs, chunkObservations, decisions, sessions } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { blobKey } from '../shared/storage.ts'
 
@@ -44,6 +44,10 @@ export async function removeExpiredRecordings({ db, storage, config, now }: Deps
     for (const row of rows) {
       await storage.remove(blobKey(row.attemptId, row.hash))
       await db.delete(blobs).where(and(eq(blobs.attemptId, row.attemptId), eq(blobs.hash, row.hash)))
+      // What the models saw in it is derived from the recording and goes with it.
+      await db
+        .delete(chunkObservations)
+        .where(and(eq(chunkObservations.attemptId, row.attemptId), eq(chunkObservations.hash, row.hash)))
     }
     removed += rows.length
     // Deleted rows drop out of the query, so the next batch starts where this one ended.
