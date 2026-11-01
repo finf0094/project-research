@@ -11,14 +11,33 @@ import { liveKitOf, roomOf, studentIdentity } from './service.ts'
  * process made it: the student's submit, the examiner's terminate command, the worker closing an overdue
  * attempt. Listening there is the one place that sees all of them. Returns the function that stops it.
  */
-export function watchEndedCalls(deps: Deps, log: FastifyBaseLogger) {
-  return deps.listen('attempt_updates', (payload) => {
-    const attemptId = payload.split(':')[1]
-    if (attemptId)
-      void endCall(deps, attemptId).catch((error: unknown) =>
-        log.error({ err: error, attemptId }, 'could not remove the student from the oral exam room'),
-      )
-  })
+export async function watchEndedCalls(deps: Deps, log: FastifyBaseLogger) {
+  if (!liveKitOf(deps)) return undefined // no calls without LiveKit: nothing to watch
+  const end = (attemptId: string) =>
+    void endCall(deps, attemptId).catch((error: unknown) =>
+      log.error({ err: error, attemptId }, 'could not remove the student from the oral exam room'),
+    )
+  return deps.listen(
+    'attempt_updates',
+    (payload) => {
+      const attemptId = payload.split(':')[1]
+      if (attemptId) end(attemptId)
+    },
+    // Announcements made while the connection was down are lost: end every call that may have ended then.
+    () => void endedOralAttempts(deps).then((ids) => ids.forEach(end)),
+  )
+}
+
+/** Oral attempts in the statuses an attempt ends in (before analysis moves them on): few at any time. */
+async function endedOralAttempts(deps: Deps) {
+  const rows = await deps.db
+    .select({ id: attempts.id })
+    .from(attempts)
+    .innerJoin(exams, eq(exams.id, attempts.examId))
+    .where(
+      and(inArray(attempts.status, ['terminated', 'submitted']), sql`${exams.profile}->>'mode' = 'oral'`),
+    )
+  return rows.map((r) => r.id)
 }
 
 /**

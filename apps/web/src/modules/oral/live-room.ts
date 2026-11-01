@@ -33,13 +33,11 @@ const FINAL = new Set<DisconnectReason | undefined>([
 
 /**
  * One live video call (student ↔ examiner) through LiveKit.
- * - The local camera is published as clones of its tracks, so the call never stops the camera that
- *   proctoring and the local recording still use. `setLocal` may be called at any time (before joining,
- *   after a camera restart); publishing runs one step at a time and always ends with what was asked last.
- * - The other side's video is exposed as a stream for a muted <video>; its audio is played by LiveKit's
- *   own elements, and `audioBlocked` says when the browser wants a click first (autoplay rules).
- * - After a lost connection (a server restart, a network drop) the call rejoins a few times with growing
- *   pauses, and whenever the browser is back online. It ends with its component.
+ * - The camera is published as clones of its tracks, so the call never stops the camera proctoring uses.
+ *   `setLocal` may come at any time; publishing runs one step at a time and ends with what was asked last.
+ * - The other side's video is a stream for a muted <video>; LiveKit's own elements play its audio, and
+ *   `audioBlocked` says when the browser wants a click first.
+ * - A lost call (server restart, network drop) rejoins with growing pauses and when back online.
  */
 export function useLiveRoom() {
   const state = ref<RoomState>('idle')
@@ -166,12 +164,14 @@ export function useLiveRoom() {
   }
 
   function retryLater() {
+    if (retry !== undefined) return // one drop can be reported twice (a failed join, then its disconnect)
     const wait = RETRY_MS[tries++]
-    if (wait !== undefined) retry = setTimeout(rejoin, wait)
+    if (wait !== undefined) retry = setTimeout(() => ((retry = undefined), rejoin()), wait)
   }
 
   async function leave() {
     clearTimeout(retry)
+    retry = undefined
     const current = room
     room = null
     sent.tracks.forEach((t) => t.stop())
