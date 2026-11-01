@@ -1,0 +1,142 @@
+import type { ru } from './ru'
+
+export const en: typeof ru = {
+  exam: {
+    list: {
+      title: 'My exams',
+      loadFailed: 'Could not load the list.',
+      empty: 'No exams assigned yet.',
+      minutes: '{n} minute | {n} minutes',
+      questions: 'Questions: {n}',
+      start: 'Start →',
+      continue: 'Continue →',
+      state: {
+        open: 'Open now',
+        running: 'In progress',
+        done: 'Submitted',
+        upcoming: 'Coming up',
+        closed: 'Closed',
+      },
+    },
+    unavailable: {
+      loadFailed: 'Could not open the exam',
+      needsInternet: 'Opening it on this device for the first time needs internet. Check your connection.',
+      oralNeedsInternet: 'An oral exam needs internet. Check your connection.',
+      elsewhere: 'The exam is open in another tab',
+      elsewhereHint: 'Continue there. Close this tab so the answers do not get mixed up.',
+    },
+    header: { submit: 'Submit', focus: 'Focus', step: 'Question {n} of {total}', oral: 'Oral exam' },
+    page: {
+      previous: 'Previous question',
+      next: 'Next question',
+      finish: 'Submit the exam',
+      examiner: 'Examiner',
+      oralHint: 'Answer out loud. When the examiner says your answer is accepted, press “Submit”.',
+    },
+    notices: {
+      saveFailed: 'Could not save the answer on this device. Free up disk space and choose the answer again.',
+      signedOut: 'Your sign-in session has ended. Answers are kept on this device — {link} to send them.',
+      signIn: 'sign in again',
+      chainBroken:
+        'The server could not confirm part of the saved data. Carry on — the examiner will check your work by hand.',
+    },
+    timer: { label: 'Time left', low: 'Less than 5 minutes left' },
+    finish: {
+      title: 'Submit the exam?',
+      unanswered: 'Questions without an answer: {n}. You cannot change answers after submitting.',
+      allAnswered: 'You have answered every question. You cannot change answers after submitting.',
+      offline: 'No internet right now? No problem: the answers are saved and will be sent automatically.',
+      back: 'Go back',
+      submit: 'Submit',
+    },
+    nav: {
+      label: 'Questions',
+      all: 'Every question is answered',
+      flagged: 'marked',
+      legend: { answered: 'Answered', empty: 'No answer', flagged: 'Marked' },
+      answered: 'Answered',
+      nextUnanswered: 'Next unanswered →',
+      question: 'Question {n}',
+      questionAnswered: 'Question {n}, answered',
+    },
+    tools: {
+      size: 'Text size',
+      sizes: { s: 'Small text', m: 'Normal text', l: 'Large text' },
+      flag: 'Mark',
+      flagged: 'Marked',
+    },
+    answer: {
+      saved: 'Answer saved',
+      savedAt: 'Answer saved · {at}',
+      failed: 'Could not save the answer on this device',
+      clear: 'Clear answer',
+    },
+    question: {
+      type: { single: 'One option', multiple: 'Several options', text: 'Written answer' },
+      points: '{n} pts',
+      chooseOne: 'Choose one answer',
+      chooseMany: 'Choose one or more answers',
+      placeholder: 'Your answer',
+    },
+    done: {
+      saved: 'Answers saved',
+      byExaminer: 'The examiner ended the exam',
+      byTime: 'Time is up',
+      submitted: 'Exam submitted',
+      savedHint:
+        'The answers are saved on this device and will be sent as soon as there is internet. Keep this page open.',
+      countedHint:
+        'Every answer given before the end counts. The result appears after the examiner has reviewed it.',
+      signedOut: 'Your sign-in session has ended. {link} to send the answers.',
+      signIn: 'Sign in again',
+      uploading:
+        'Sending the recording: {n} fragments left. No need to wait: the upload continues next time you sign in.',
+      allSent: 'Everything is sent. You can close this page.',
+      back: 'Back to my exams',
+    },
+    preflight: {
+      needChecks: 'Pass the check first',
+      needConsent: 'Confirm your consent',
+      steps: { label: 'Preparation steps', check: 'Check', consent: 'Consent', start: 'Start' },
+      status: { ok: 'fine', bad: 'needs fixing', pending: 'checking' },
+      online: {
+        title: 'Internet',
+        ok: 'Connected',
+        hint: 'No network: starting the exam needs the internet, after that it works without.',
+      },
+      title: 'Getting ready for the exam',
+      checks: 'Checks',
+      checking: 'Checking…',
+      timerHint: 'The exam time is not running yet: the timer starts only when you begin.',
+      dataTitle: 'What happens to your data',
+      answers: 'Answers',
+      answersText:
+        'are saved on your device and sent when there is internet. Losing the network is not a violation.',
+      video: 'Video and sound',
+      videoText: 'are recorded only on your computer; only the last few minutes are kept.',
+      server: 'The server',
+      serverText:
+        'receives short fragments only — at disputed moments and a few random checks. Not the whole recording.',
+      decision: 'The decision',
+      decisionText: 'is made only by the examiner. Recordings are deleted after the review.',
+      consent: 'I understand and agree',
+      start: 'Start the exam',
+      notOpen: 'The exam is not open right now. Check the start time.',
+      browser: {
+        title: 'Browser',
+        ok: 'Supported',
+        hint: 'Open the exam in a recent version of Chrome, Edge, Firefox or Safari.',
+      },
+      storage: {
+        title: 'Space for answers on this device',
+        ok: 'Enough space',
+        hint: 'Free up disk space: answers and the recording stay on the device until they are sent.',
+      },
+      persist: {
+        title: 'Reliable storage',
+        ok: 'Your data will not be wiped',
+        hint: 'The browser may clear data when space runs low — keep the tab open until everything is sent.',
+      },
+    },
+  },
+}

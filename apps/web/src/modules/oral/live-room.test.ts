@@ -2,72 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 import { useLiveRoom } from './live-room'
+import { FakeTrack, rooms } from './livekit.fake'
 
-type Handler = (...args: unknown[]) => void
-type Publication = { track?: { mediaStreamTrack: unknown }; isMuted?: boolean }
-
-const { FakeRoom, rooms } = vi.hoisted(() => {
-  const rooms: InstanceType<typeof FakeRoom>[] = []
-  /** Just enough of livekit-client's Room: events, connect (which reports "connected") and publishing. */
-  class FakeRoom {
-    handlers = new Map<string, Handler[]>()
-    remoteParticipants = new Map<string, { videoTrackPublications: Map<string, Publication> }>()
-    canPlaybackAudio = true
-    localParticipant = {
-      publishTrack: vi.fn(async (_track: unknown, _options?: unknown) => undefined),
-      unpublishTrack: vi.fn(async (track: { stop(): void }) => track.stop()),
-    }
-    connect = vi.fn(async () => this.emit('state', 'connected'))
-    disconnect = vi.fn(async () => undefined)
-    startAudio = vi.fn(async () => undefined)
-    constructor() {
-      rooms.push(this)
-    }
-    on(event: string, handler: Handler) {
-      this.handlers.set(event, [...(this.handlers.get(event) ?? []), handler])
-      return this
-    }
-    emit(event: string, ...args: unknown[]) {
-      this.handlers.get(event)?.forEach((h) => h(...args))
-    }
-  }
-  return { FakeRoom, rooms }
-})
-
-vi.mock('livekit-client', () => ({
-  Room: FakeRoom,
-  RoomEvent: {
-    ConnectionStateChanged: 'state',
-    TrackSubscribed: 'subscribed',
-    TrackUnsubscribed: 'unsubscribed',
-    AudioPlaybackStatusChanged: 'audio',
-    TrackMuted: 'muted',
-    TrackUnmuted: 'unmuted',
-    ParticipantDisconnected: 'left',
-  },
-  ConnectionState: {
-    Connecting: 'connecting',
-    Connected: 'connected',
-    Reconnecting: 'reconnecting',
-    SignalReconnecting: 'signalReconnecting',
-    Disconnected: 'disconnected',
-  },
-  Track: { Source: { Camera: 'camera', Microphone: 'microphone' }, Kind: { Audio: 'audio', Video: 'video' } },
-}))
-
-class FakeTrack {
-  stopped = false
-  readonly kind: 'video' | 'audio'
-  constructor(kind: 'video' | 'audio') {
-    this.kind = kind
-  }
-  clone() {
-    return new FakeTrack(this.kind)
-  }
-  stop() {
-    this.stopped = true
-  }
-}
+vi.mock('livekit-client', () => import('./livekit.fake'))
 
 const access = async () => ({ url: 'wss://live.test', token: 't', room: 'attempt-1' })
 const camera = () => new MediaStream([new FakeTrack('video'), new FakeTrack('audio')] as never)
