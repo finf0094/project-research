@@ -8,8 +8,11 @@
 #   BRANCH        which branch to run (default feat/exam-platform)
 set -euo pipefail
 # The log holds the demo password: readable by root only.
-touch /var/log/exam-install.log && chmod 600 /var/log/exam-install.log
-exec > >(tee -a /var/log/exam-install.log) 2>&1
+LOG=/var/log/exam-install.log
+touch $LOG && chmod 600 $LOG
+# Bounded: every run would add a build's output to it.
+tail -n 3000 $LOG >$LOG.tmp && cat $LOG.tmp >$LOG && rm -f $LOG.tmp
+exec > >(tee -a $LOG) 2>&1
 # One run at a time (a manual run waits for the updater's); update.sh already holds the lock.
 if [ -z "${EXAM_LOCKED:-}" ]; then exec 9>/var/lock/exam-install.lock && flock 9; fi
 
@@ -46,7 +49,8 @@ cd "$DIR/infra"
 mkdir -p status
 COMMIT=$(git rev-parse --short HEAD)
 echo "deploying $COMMIT since $(date -u +%FT%TZ)" >status/deploy-status.txt
-trap 'code=$?; [ $code -eq 0 ] || { echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; tail -n 40 /var/log/exam-install.log | grep -iv password; } >status/deploy-status.txt' EXIT
+# (The log is written through tee: a moment lets its last lines land before they are read.)
+trap 'code=$?; [ $code -eq 0 ] || { sleep 1; echo "FAILED $COMMIT at $(date -u +%FT%TZ), exit $code"; tail -n 40 $LOG | grep -iv password; } >status/deploy-status.txt' EXIT
 
 # Updates by themselves: the owner asked for every push to the branch to reach this server (infra/update.sh).
 cat >/etc/systemd/system/exam-update.service <<EOF

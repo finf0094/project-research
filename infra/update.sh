@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Run by the exam-update timer every 2 minutes: when the branch has new commits, the server takes them and
-# runs install.sh again (rebuild, migrations, restart). Changes reach the server by a push alone.
+# Run by the exam-update timer every 2 minutes: when the branch has a commit not yet deployed, the server
+# takes it and runs install.sh again (rebuild, migrations, restart). Changes reach the server by a push.
 set -euo pipefail
-# Busy with a run already: the next tick checks again (the commit is compared, not consumed, until a run).
+# Busy with a run already: the next tick checks again.
 exec 9>/var/lock/exam-install.lock
 flock -n 9 || exit 0
 cd /opt/exam
 git fetch -q origin
-# Compared with the last successful run, so a failed one (a network blip) is tried again on the next tick.
-deployed=$(sed -n 's/^ok \([0-9a-f]*\).*/\1/p' infra/status/deploy-status.txt 2>/dev/null || true)
-[ -n "$deployed" ] && [ "$(git rev-parse --short '@{u}')" = "$deployed" ] && exit 0
+target=$(git rev-parse --short '@{u}')
+status=infra/status/deploy-status.txt
+first=$(head -n 1 "$status" 2>/dev/null || true)
+# Deployed already: nothing to do.
+[ "$first" = "${first#ok $target }" ] || exit 0
+# The same commit failed lately: tried again every 30 minutes (a network blip), not every tick.
+if [ "$first" != "${first#FAILED $target }" ] && [ -n "$(find "$status" -mmin -30)" ]; then exit 0; fi
+# The new commit's own install.sh runs, not the one on disk before the fetch.
+git reset -q --hard '@{u}'
 EXAM_LOCKED=1 exec bash infra/install.sh
