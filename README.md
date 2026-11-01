@@ -130,13 +130,14 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   oral ticket size) and choose participants by email. Once a student has started, questions and settings are
   frozen (answers, tickets and sealed logs refer to them); participants can still change. The administrator's
   role is user management (no self sign-up); the seed has `admin@example.edu`.
-- Offline start (stage 6): from a day before an exam opens, the student's device downloads the written exam
-  sealed with AES-256-GCM under a key stretched (PBKDF2-SHA-256, 300 000 rounds) from the exam's 10-character
-  start code, together with the attempt id and chain key reserved for that student. With no network at the
-  start, the student types the code the examiner reads out (shown on the exam's overview), and the attempt
-  begins on the device; the first sync creates it on the server, which accepts the claimed start time only with
-  a package and within the attempt's duration plus the offline window. Editing an exam changes its code, so an
-  outdated package no longer opens. Oral exams need the call and are not offered offline.
+- Offline start (stage 6), for sittings (a written exam whose window is at most its length plus an hour): from a
+  day before a sitting opens, the student's device downloads the exam sealed with AES-256-GCM under a key
+  stretched (PBKDF2-SHA-256, 300 000 rounds) from the sitting's 10-character start code, together with the
+  attempt id and chain key reserved for that student (kept as a non-extractable key). The examiner sees the code
+  on the exam's overview once the sitting opens; with no network in the room, students type it and the attempt
+  begins on the device. The first sync creates it on the server, marked "started offline": the device's start
+  time is pulled into the window, and the deadline never passes the window's close, so decrypting early gains
+  nothing. Editing an exam changes its code, and devices download the new package. Oral exams need the call.
 - Students see their score and a question-by-question review once the examiner has decided and published;
   publishing waits until the exam and its offline window are over, since the review shows correct answers.
 - Interface: two shells (a top bar for students, a sidebar for staff), design tokens with a dark theme, and a
