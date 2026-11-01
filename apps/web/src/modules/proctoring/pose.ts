@@ -44,3 +44,27 @@ function gazeOff(iris: number, cornerA: number, cornerB: number) {
   const ratio = (iris - Math.min(cornerA, cornerB)) / Math.abs(cornerB - cornerA || 1)
   return ratio < GAZE_BAND[0] || ratio > GAZE_BAND[1]
 }
+
+/** Forehead top, chin, and the two cheeks (MediaPipe face mesh indices): the face's outline. */
+const OUTLINE = [10, 152, 234, 454]
+/** How far past the picture's edge a point may lie (the model estimates hidden points slightly outside). */
+const EDGE_SLACK = 0.02
+
+/**
+ * The whole face is in the picture: a face cut off at the chin or the forehead (the camera tilted, the
+ * student leaning out) is found by the model but is not someone the proctor can see.
+ */
+export function isFramed(landmarks: { x: number; y: number }[]): boolean {
+  return OUTLINE.every((i) => {
+    const p = landmarks[i]
+    return !!p && p.x >= -EDGE_SLACK && p.x <= 1 + EDGE_SLACK && p.y >= -EDGE_SLACK && p.y <= 1 + EDGE_SLACK
+  })
+}
+
+/**
+ * How many people are seen: faces wholly in the picture; any second face, even cut off, still counts as
+ * someone else being there.
+ */
+export function countFaces(faces: { x: number; y: number }[][]): number {
+  return faces.length >= 2 ? faces.length : faces.filter(isFramed).length
+}

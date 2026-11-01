@@ -34,12 +34,14 @@ export function saveTier(tier: DeviceTier) {
 export const UNMEASURED: Record<DeviceTier, ObservedKind[]> = {
   full: [],
   lite: ['object_detected'],
-  minimal: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'],
+  // The weakest devices keep the face check, at a slower pace; gaze and objects cost too much.
+  minimal: ['object_detected', 'looking_away'],
+  none: ['object_detected', 'face_missing', 'multiple_faces', 'looking_away'],
 }
 
 /** One step down when analysis gets too slow during the exam: the exam itself must stay smooth. */
 export function lowerTier(tier: DeviceTier): DeviceTier {
-  return tier === 'full' ? 'lite' : 'minimal'
+  return tier === 'full' ? 'lite' : tier === 'lite' ? 'minimal' : tier
 }
 
 /** Average analysis time above which the tier is lowered one step. */

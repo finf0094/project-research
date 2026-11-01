@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { headPose, isLookingAway } from './pose'
+import { countFaces, headPose, isFramed, isLookingAway } from './pose'
 
 /** A face result with a head rotated by `yawDeg` around the vertical axis and eyes centred. */
 function face(yawDeg: number, irisShift = 0) {
@@ -35,5 +35,27 @@ describe('head pose and gaze', () => {
   it('flags eyes turned to the side even with the head straight', () => {
     expect(isLookingAway(face(0, 0.045), neutral)).toBe(true)
     expect(isLookingAway(face(0, 0.01), neutral)).toBe(false)
+  })
+})
+
+describe('a face in the picture', () => {
+  const outline = (chinY: number) => {
+    const points = Array.from({ length: 478 }, () => ({ x: 0.5, y: 0.5 }))
+    points[10] = { x: 0.5, y: 0.2 }
+    points[152] = { x: 0.5, y: chinY }
+    points[234] = { x: 0.3, y: 0.5 }
+    points[454] = { x: 0.7, y: 0.5 }
+    return points
+  }
+
+  it('counts only a face wholly in the picture', () => {
+    expect(isFramed(outline(0.8))).toBe(true)
+    expect(isFramed(outline(1.25))).toBe(false) // the chin below the picture: only the forehead is seen
+    expect(countFaces([outline(1.25)])).toBe(0)
+    expect(countFaces([outline(0.8)])).toBe(1)
+  })
+
+  it('still counts a second person even when cut off', () => {
+    expect(countFaces([outline(0.8), outline(1.25)])).toBe(2)
   })
 })

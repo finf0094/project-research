@@ -45,6 +45,8 @@ const RECENT_MS = 2 * 60_000
 /** Evidence kept around a risky moment: short at medium risk, longer at high risk (review, section 10.1). */
 const FRAGMENT_MS: Record<'medium' | 'high', number> = { medium: 10_000, high: 30_000 }
 const FRAGMENT_COOLDOWN_MS = 60_000
+/** The weakest devices check the face this often (architecture 10.5: every 2–3 s), never not at all. */
+const MINIMAL_EVERY_MS = 2500
 /** Offline the server cannot ask for control fragments, so the client takes one after a random 10-20 min. */
 const selfControlDelay = () => (10 + Math.random() * 10) * 60_000
 const CONTROL_SECONDS = 20
@@ -133,8 +135,8 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     if (stopped) return
     if (options.listen) observe('noise', sensors.loudness() > NOISE_RMS)
     if (sensors.dead()) {
-      // A dead detector worker sees nothing more: like the weakest tier, but without brightness either.
-      if (!blind) dropTier('minimal', [...UNMEASURED.minimal, 'too_dark'])
+      // A dead detector worker sees nothing more, brightness included: recorded as analysing nothing.
+      if (!blind) dropTier('none', [...UNMEASURED.none, 'too_dark'])
       blind = true
       return
     }
@@ -150,7 +152,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     }
     if (frame.object != null) observe('object_detected', frame.object)
     // Keeps the exam smooth on weak computers: lowers the tier when analysis is consistently slow.
-    if (tier === 'minimal' || !tooSlow(frame.ms)) return
+    if (tier === 'minimal' || tier === 'none' || !tooSlow(frame.ms)) return
     sensors.lower(lowerTier(tier))
     dropTier(lowerTier(tier), UNMEASURED[lowerTier(tier)])
   }
@@ -172,7 +174,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     updateRisk()
     showHint()
     if (now() > controlDue) capture(CONTROL_SECONDS)
-    timer = setTimeout(tick, 1000 / ANALYSIS_FPS[tier === 'minimal' ? 'low' : risk])
+    timer = setTimeout(tick, tier === 'minimal' ? MINIMAL_EVERY_MS : 1000 / ANALYSIS_FPS[risk])
   }
 
   function capture(seconds: number) {

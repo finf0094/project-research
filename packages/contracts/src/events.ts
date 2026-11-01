@@ -35,7 +35,8 @@ export const FragmentReason = z.enum(['risk', 'control', 'full'])
 export type FragmentReason = z.infer<typeof FragmentReason>
 
 /** How much on-device analysis this computer can afford; chosen at preflight and lowered automatically. */
-export const DeviceTier = z.enum(['full', 'lite', 'minimal'])
+/** How much the device analyses: `none` when its analysis stopped working (a crashed detector). */
+export const DeviceTier = z.enum(['full', 'lite', 'minimal', 'none'])
 export type DeviceTier = z.infer<typeof DeviceTier>
 
 // Every schema here is strict: the server verifies hashes over exactly what the client sealed,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createTierWatch, lowerTier, tierFromTiming } from './device-tier'
+import { UNMEASURED, createTierWatch, lowerTier, tierFromTiming } from './device-tier'
 
 describe('createTierWatch', () => {
   it('ignores the slow warm-up frames and a single slow frame', () => {
@@ -22,5 +22,12 @@ describe('device tiers', () => {
     expect(tierFromTiming(500)).toBe('minimal')
     expect(lowerTier('full')).toBe('lite')
     expect(lowerTier('lite')).toBe('minimal')
+    expect(lowerTier('minimal')).toBe('minimal') // the face check is never given up
+  })
+
+  it('keeps the face check on the weakest devices', () => {
+    expect(UNMEASURED.minimal).not.toContain('face_missing')
+    expect(UNMEASURED.minimal).not.toContain('multiple_faces')
+    expect(UNMEASURED.none).toContain('face_missing')
   })
 })

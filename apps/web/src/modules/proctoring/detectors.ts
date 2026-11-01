@@ -4,7 +4,7 @@ import { FaceLandmarker, ObjectDetector } from '@mediapipe/tasks-vision'
 import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_module_internal.js?url'
 import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_module_internal.wasm?url'
 import type { Pose } from './calibration'
-import { headPose, isLookingAway } from './pose'
+import { countFaces, headPose, isLookingAway } from './pose'
 
 /** What one analysed frame says. Fields are null when the tier does not measure them. */
 export interface FrameReport {
@@ -24,15 +24,16 @@ const SAMPLE_H = 18
 const fileset = { wasmLoaderPath, wasmBinaryPath }
 
 /**
- * The on-device models (runs inside the detector worker). The `minimal` tier loads none and only measures
- * brightness; `lite` adds the face landmarker; `full` also finds phones and books. A model that fails to
+ * The on-device models (runs inside the detector worker). Every tier checks the face (the weakest one less
+ * often, architecture 10.5); `full` also finds phones and books. A model that fails to
  * load is left out, so its signals read "not measured" instead of breaking the exam.
  */
 export async function loadDetectors(tier: DeviceTier) {
-  let [landmarker, objects] = await Promise.all([
-    tier === 'minimal' ? null : load('face', () => FaceLandmarker.createFromOptions(fileset, FACE_OPTIONS)),
+  const [landmarker, loadedObjects] = await Promise.all([
+    load('face', () => FaceLandmarker.createFromOptions(fileset, FACE_OPTIONS)),
     tier === 'full' ? load('object', () => ObjectDetector.createFromOptions(fileset, OBJECT_OPTIONS)) : null,
   ])
+  let objects = loadedObjects
   const canvas = new OffscreenCanvas(SAMPLE_W, SAMPLE_H)
   const context = canvas.getContext('2d', { willReadFrequently: true })!
 
@@ -49,11 +50,12 @@ export async function loadDetectors(tier: DeviceTier) {
     analyze(frame: ImageBitmap, timestamp: number, withObjects: boolean, baseline: Pose): FrameReport {
       const started = performance.now()
       const face = landmarker?.detectForVideo(frame, timestamp)
-      const single = face?.faceLandmarks.length === 1 ? face : null
+      const seen = face ? countFaces(face.faceLandmarks) : null
+      const single = seen === 1 ? face : null
       const object =
         withObjects && objects ? objects.detectForVideo(frame, timestamp).detections.length > 0 : null
       return {
-        faces: face ? face.faceLandmarks.length : null,
+        faces: seen,
         lookingAway: single ? isLookingAway(single, baseline) : null,
         pose: single ? headPose(single) : null,
         object,
@@ -64,7 +66,6 @@ export async function loadDetectors(tier: DeviceTier) {
     /** Lowers the tier: models the new tier does not use are closed. */
     lower(next: DeviceTier) {
       if (next !== 'full') objects = (objects?.close(), null)
-      if (next === 'minimal') landmarker = (landmarker?.close(), null)
     },
     close() {
       landmarker?.close()

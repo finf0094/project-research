@@ -7,7 +7,9 @@ import type { MarkerDraft, StoredEvent } from './analysis.ts'
 const MEASURED: Record<DeviceTier, ReadonlySet<MarkerKind>> = {
   full: new Set(['face_missing', 'multiple_faces', 'object_detected']),
   lite: new Set(['face_missing', 'multiple_faces']),
-  minimal: new Set(),
+  // The weakest devices still check for a face, only less often (architecture 10.5).
+  minimal: new Set(['face_missing', 'multiple_faces']),
+  none: new Set(),
 }
 
 type Span = { startAt: number; endAt: number }
