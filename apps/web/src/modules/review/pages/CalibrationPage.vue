@@ -2,7 +2,7 @@
 import { CALIBRATION_MIN_DECISIONS, type Calibration, type CalibrationRow } from '@exam/contracts'
 import { computed, onMounted, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
-import { IconTile, PageSkeleton } from '@/shared/ui'
+import { AppButton, IconTile, PageSkeleton } from '@/shared/ui'
 import { getCalibration } from '../api'
 import { MARKER_ICON } from '../marker-look'
 
@@ -12,7 +12,8 @@ import { MARKER_ICON } from '../marker-look'
  */
 const data = ref<Calibration | null>(null)
 const load = useAction()
-onMounted(() => load.run(async () => (data.value = await getCalibration())))
+const fetchData = () => load.run(async () => (data.value = await getCalibration()))
+onMounted(fetchData)
 const rows = computed(() => data.value?.kinds ?? null)
 const sorted = computed(() =>
   (rows.value ?? []).toSorted((a, b) => b.confirmed + b.dismissed - (a.confirmed + a.dismissed)),
@@ -33,7 +34,10 @@ const missRate = computed(() => {
       <h1>{{ $t('calibration.title') }}</h1>
       <p class="muted lead">{{ $t('calibration.lead') }}</p>
     </header>
-    <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
+    <p v-if="load.error.value" class="error" role="alert">
+      {{ $t(load.error.value) }}
+      <AppButton variant="ghost" @click="fetchData">{{ $t('common.retry') }}</AppButton>
+    </p>
     <PageSkeleton v-else-if="load.busy.value" :head="false" :cards="4" />
     <p v-else-if="rows && !rows.length" class="empty">{{ $t('calibration.empty') }}</p>
     <ul v-else class="rows stagger">

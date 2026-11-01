@@ -2,7 +2,7 @@
 import type { UserListItem } from '@exam/contracts'
 import { onMounted, ref } from 'vue'
 import { useAction } from '@/shared/lib/use-action'
-import { AppCard, StatusPill } from '@/shared/ui'
+import { AppButton, AppCard, StatusPill } from '@/shared/ui'
 import { listUsers } from '../api'
 import NewUserForm from '../components/NewUserForm.vue'
 
@@ -18,7 +18,10 @@ const TONE = { student: 'off', examiner: 'accent', admin: 'warn' } as const
 <template>
   <main class="page">
     <h1>{{ $t('admin.title') }}</h1>
-    <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
+    <p v-if="load.error.value" class="error" role="alert">
+      {{ $t(load.error.value) }}
+      <AppButton variant="ghost" @click="refresh">{{ $t('common.retry') }}</AppButton>
+    </p>
     <div class="layout">
       <AppCard class="table-card">
         <!-- Explicit roles: older WebKit forgets table semantics once the phone layout changes `display`. -->

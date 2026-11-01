@@ -17,7 +17,8 @@ const load = useAction()
 const now = ref(Date.now())
 const clock = setInterval(() => (now.value = Date.now()), 30_000)
 onUnmounted(() => clearInterval(clock))
-onMounted(() => load.run(async () => (exams.value = await listExams())))
+const fetchExams = () => load.run(async () => (exams.value = await listExams()))
+onMounted(fetchExams)
 
 const withState = computed(() =>
   (exams.value ?? []).map((exam) => ({ exam, state: examState(exam, now.value) })),
@@ -44,13 +45,16 @@ const filters = computed(() => [
     <header class="head">
       <div>
         <h1>{{ $t('review.exams.title') }}</h1>
-        <p class="muted">
+        <p v-if="exams" class="muted">
           {{ $t('hub.list.subtitle', { running: count('running'), review: count('review') }) }}
         </p>
       </div>
       <AppButton icon="plus" to="/examiner/exams/new">{{ $t('review.exams.create') }}</AppButton>
     </header>
-    <p v-if="load.error.value" class="error" role="alert">{{ $t(load.error.value) }}</p>
+    <p v-if="load.error.value" class="error" role="alert">
+      {{ $t(load.error.value) }}
+      <AppButton variant="ghost" @click="fetchExams">{{ $t('common.retry') }}</AppButton>
+    </p>
 
     <template v-if="exams">
       <PillTabs
