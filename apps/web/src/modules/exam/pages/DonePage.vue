@@ -117,6 +117,11 @@ const pending = computed(() => sync.status.pendingEvents + sync.status.pendingCh
   }
 }
 .badge {
+  /* The check draws itself once the badge has popped in. */
+  :deep(path) {
+    stroke-dasharray: 40;
+    animation: draw 500ms var(--ease) 450ms both;
+  }
   display: grid;
   place-items: center;
   inline-size: 72px;
@@ -125,6 +130,11 @@ const pending = computed(() => sync.status.pendingEvents + sync.status.pendingCh
   background: var(--lime);
   color: var(--on-lime);
   animation: pop 600ms var(--ease-spring) 120ms both;
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 40;
+  }
 }
 @keyframes pop {
   from {
@@ -173,6 +183,7 @@ h1 {
   &.done {
     border-color: var(--ok);
     background: var(--ok);
+    animation: pop 400ms var(--ease-spring) both;
   }
   /* Sending: a ring that spins until the last fragment is on the server. */
   &.busy {

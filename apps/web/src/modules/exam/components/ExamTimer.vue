@@ -37,5 +37,15 @@ const announcement = computed(() => (low.value ? t('exam.timer.low') : ''))
 .low {
   background: var(--warn-tint);
   color: var(--warn);
+  /* The last minutes: a calm ring every two seconds — noticed, not alarming. */
+  animation: urge 2s var(--ease) infinite;
+}
+@keyframes urge {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--warn) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
 }
 </style>
