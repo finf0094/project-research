@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { AppButton } from '@/shared/ui'
 import type { ProbeState } from '../device-probe'
 import { OVAL } from '../pose'
+import { DARK_BRIGHTNESS } from '../signals'
 import LightMeter from './LightMeter.vue'
 
 /**
@@ -30,9 +31,13 @@ watchEffect(() => {
 })
 
 /** What the chip says: seen well, out of the oval, turned away, nobody, or too many people. */
+// "Seen well" needs light too: a face found in a dark picture is not one the examiner can see.
 const seen = computed(() => {
-  if (props.faces === 1)
-    return props.placed === false ? 'center' : props.facing === false ? 'straight' : 'good'
+  if (props.faces === 1) {
+    if (props.placed === false) return 'center'
+    if (props.facing === false) return 'straight'
+    return props.brightness !== null && props.brightness < DARK_BRIGHTNESS ? 'dark' : 'good'
+  }
   return props.faces && props.faces > 1 ? 'many' : props.faces === 0 ? 'none' : null
 })
 const OVERLAY = {

@@ -41,6 +41,7 @@ export const proctoringMessages = defineMessages({
         many: 'В кадре должны быть только вы',
         center: 'Поместите лицо в овал',
         straight: 'Смотрите прямо в экран',
+        dark: 'Слишком темно — вас плохо видно',
         light: { dark: 'Темно', ok: 'Нормальное', good: 'Хорошее' },
       },
       check: {
@@ -112,6 +113,7 @@ export const proctoringMessages = defineMessages({
         many: 'Кадрда тек сіз болуыңыз керек',
         center: 'Бетіңізді сопақтың ішіне орналастырыңыз',
         straight: 'Экранға тура қараңыз',
+        dark: 'Тым қараңғы — сіз нашар көрінесіз',
         light: { dark: 'Қараңғы', ok: 'Қалыпты', good: 'Жақсы' },
       },
       check: {
@@ -182,6 +184,7 @@ export const proctoringMessages = defineMessages({
         many: 'Only you should be in view',
         center: 'Place your face in the oval',
         straight: 'Look straight at the screen',
+        dark: 'Too dark — you are hard to see',
         light: { dark: 'Dark', ok: 'Fine', good: 'Good' },
       },
       check: {
