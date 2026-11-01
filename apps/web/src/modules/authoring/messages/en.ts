@@ -57,6 +57,13 @@ export const en: typeof ru = {
       up: 'Up',
       down: 'Down',
     },
+    exceptions: {
+      title: 'Special arrangements',
+      hint: 'For a student with special needs, single signals can be left unwatched: no hints and no markers for them.',
+      none: 'Add participants first.',
+      count: 'not watched: {n}',
+      for: 'Signals not watched for {email}',
+    },
     participants: {
       title: 'Participants',
       hint: 'Student emails, one per line. A student who has already started stays on the list.',

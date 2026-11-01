@@ -22,8 +22,9 @@ export async function forwardAttempt(
       body: JSON.stringify({ events: state.pending.slice(0, 100) }),
       signal: AbortSignal.timeout(timeoutMs),
     })
-    // The cloud has no such attempt (removed): nothing to deliver it to, ever.
-    if (response.status === 404) return { ...state, pending: [] }
+    // 410: the cloud has no such attempt (removed), so nothing can ever be delivered for it. (A 404 may be a
+    // misconfigured cloud or proxy: the events are kept.)
+    if (response.status === 410) return { ...state, pending: [] }
     if (!response.ok) throw new Error(`cloud refused the relay: ${response.status}`)
     const last = SyncResponse.parse(await response.json())
     // A closed attempt or a broken chain takes nothing more: what is left would only be sent again forever.

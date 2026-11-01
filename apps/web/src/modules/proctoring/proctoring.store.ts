@@ -16,6 +16,8 @@ export interface StartOptions {
   recording: RecordingMode
   /** Watch the noise level; off for oral exams, where the student talks the whole time. */
   listen: boolean
+  /** Signals not watched for this student (an individual exception, section 25.3). */
+  ignore: SignalKind[]
   now: () => number
 }
 

@@ -2,7 +2,7 @@ import type { AttemptSummary, ExaminerExam } from '@exam/contracts'
 import { inject, onScopeDispose, provide, ref, type InjectionKey, type Ref } from 'vue'
 import { ApiError } from '@/shared/lib/http'
 import { alertsBetween, type Alert } from './alerts'
-import { withinBudget } from './attention-budget'
+import { addToFeed, withinBudget } from './attention-budget'
 import { getExam, listAttempts } from './api'
 import { useLiveUpdates } from './live-updates'
 
@@ -55,7 +55,7 @@ export function provideExamHub(examId: string): ExamHub {
         if (changes.length) {
           const budgeted = withinBudget(changes, shownAt, Date.now())
           shownAt = budgeted.shownAt
-          alerts.value = [...budgeted.alerts.reverse(), ...alerts.value].slice(0, ALERTS_KEPT)
+          alerts.value = addToFeed(alerts.value, budgeted.alerts, Date.now(), ALERTS_KEPT)
         }
       }
       exam.value = freshExam

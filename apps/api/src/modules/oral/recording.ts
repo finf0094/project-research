@@ -39,9 +39,8 @@ type OralAudio = NonNullable<AttemptDetail['audio']>
 function audioState(attempt: OralAttempt, stored: boolean, now: number): OralAudio {
   if (attempt.audioHash)
     return stored ? { state: 'ready', hash: attempt.audioHash } : { state: 'removed', hash: null }
-  // Out of tries without a result: given up (each try counts when the worker takes it; attempts given up by
-  // an earlier version have audioMergedAt set too).
+  // Merged with nothing to hear; otherwise out of tries with no worker on it is given up.
+  if (attempt.audioMergedAt) return { state: 'empty', hash: null }
   const working = attempt.audioClaimedAt && now - attempt.audioClaimedAt.getTime() < AUDIO_LEASE_MS
-  if (attempt.audioTries >= MAX_AUDIO_TRIES && !working) return { state: 'failed', hash: null }
-  return { state: attempt.audioMergedAt ? 'empty' : 'pending', hash: null }
+  return { state: attempt.audioTries >= MAX_AUDIO_TRIES && !working ? 'failed' : 'pending', hash: null }
 }

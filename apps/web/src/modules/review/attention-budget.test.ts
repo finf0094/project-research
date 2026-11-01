@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Alert, AlertKind } from './alerts'
-import { withinBudget } from './attention-budget'
+import { addToFeed, withinBudget } from './attention-budget'
 
 const alert = (kind: AlertKind, name: string = kind): Alert => ({
   id: name,
@@ -16,9 +16,29 @@ describe('attention budget', () => {
     const { alerts, shownAt } = withinBudget(fresh, [], 1000)
     expect(alerts.map((a) => a.kind)).toEqual(['risk', 'offline', 'more'])
     expect(alerts[2]!.count).toBe(2)
-    // Within the same minute nothing more gets through on its own…
-    expect(withinBudget([alert('risk', 'r2')], shownAt, 30_000).alerts.map((a) => a.kind)).toEqual(['more'])
-    // …and a minute later it does again.
-    expect(withinBudget([alert('risk', 'r2')], shownAt, 62_000).alerts.map((a) => a.kind)).toEqual(['risk'])
+    // Within the same minute only high risk still gets through on its own…
+    expect(withinBudget([alert('offline', 'o2')], shownAt, 30_000).alerts.map((a) => a.kind)).toEqual([
+      'more',
+    ])
+    expect(withinBudget([alert('risk', 'r2')], shownAt, 30_000).alerts.map((a) => a.kind)).toEqual(['risk'])
+    // …and a minute later the rest does again.
+    expect(withinBudget([alert('offline', 'o2')], shownAt, 62_000).alerts.map((a) => a.kind)).toEqual([
+      'offline',
+    ])
+  })
+
+  it('adds folded changes to the last minute’s "more" line instead of a new line each time', () => {
+    const more = (n: number, at: number): Alert => ({
+      id: `m${at}`,
+      kind: 'more',
+      name: '',
+      attemptId: '',
+      at,
+      count: n,
+    })
+    const feed = addToFeed([], [more(2, 1000)], 1000, 30)
+    const next = addToFeed(feed, [more(1, 20_000)], 20_000, 30)
+    expect(next).toHaveLength(1)
+    expect(next[0]!.count).toBe(3)
   })
 })

@@ -7,6 +7,7 @@ import { answers, attempts, exams } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
+import { disabledSignalsOf } from '../exams/exceptions.ts'
 import { examQuestions, isParticipant, studentExam } from '../exams/service.ts'
 import { reservationOf } from '../preload/service.ts'
 
@@ -164,6 +165,7 @@ async function toSession(deps: Deps, tx: Tx, attempt: AttemptRow): Promise<Attem
     ackedSeq: attempt.lastSeq,
     lastHash: attempt.lastHash,
     answers: Object.fromEntries(saved.map((a) => [a.questionId, a.value])),
+    disabledSignals: await disabledSignalsOf(tx, attempt.examId, attempt.userId),
   }
 }
 

@@ -1,4 +1,4 @@
-import { ExamDefinition } from '@exam/contracts'
+import { ExamDefinition, type SignalException } from '@exam/contracts'
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -17,6 +17,7 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
   const { t } = useI18n()
   const draft = ref<ExamDefinition | null>(null)
   const participants = ref<string[]>([])
+  const exceptions = ref<SignalException[]>([])
   const locked = ref(false)
   const saved = ref(false)
   const invalid = ref<string[]>([])
@@ -36,6 +37,7 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
         const exam = await getExam(id)
         draft.value = exam.definition
         participants.value = exam.participants
+        exceptions.value = exam.exceptions
         locked.value = exam.locked
       })
     },
@@ -69,5 +71,5 @@ export function useExamDraft(examId: Ref<string | null>, onReset: () => void) {
     return null
   }
 
-  return { draft, participants, locked, saved, invalid, load, save, submit }
+  return { draft, participants, exceptions, locked, saved, invalid, load, save, submit }
 }

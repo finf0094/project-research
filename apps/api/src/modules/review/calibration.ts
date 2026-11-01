@@ -1,24 +1,24 @@
-import type { CalibrationRow, MarkerKind } from '@exam/contracts'
-import { and, count, eq, inArray } from 'drizzle-orm'
+import type { Calibration, CalibrationRow, MarkerKind } from '@exam/contracts'
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Db, Tx } from '../../db/client.ts'
-import { attempts, exams, markers } from '../../db/schema.ts'
+import { attempts, decisions, exams, markers } from '../../db/schema.ts'
 
 /** Below this many decisions a kind keeps its usual weight: a few judgements say little. */
 export const MIN_DECISIONS = 5
 
 /**
- * Section 25.4: the examiner's confirmations and dismissals as a weight factor per marker kind. The share
- * confirmed (smoothed towards one half) times two: a kind confirmed as often as dismissed keeps its weight,
- * a noisy kind (mostly dismissed) counts less in the review priority, a reliable one more (0.25…2).
+ * Section 25.4: "the thresholds of noisy kinds are raised". The share of a kind's markers the examiner
+ * confirmed (smoothed towards one half), times two, capped at 1: a kind confirmed at least as often as
+ * dismissed keeps its weight; a noisy kind counts less in the review priority, down to a quarter.
  */
 export function calibrationFactor(confirmed: number, dismissed: number): number {
   if (confirmed + dismissed < MIN_DECISIONS) return 1
   const precision = (confirmed + 1) / (confirmed + dismissed + 2)
-  return Math.min(2, Math.max(0.25, Math.round(precision * 2 * 100) / 100))
+  return Math.min(1, Math.max(0.25, Math.round(precision * 2 * 100) / 100))
 }
 
 /** Decisions on markers across the examiner's exams, by kind. */
-export async function calibration(db: Db | Tx, ownerId: string): Promise<CalibrationRow[]> {
+export async function kindDecisions(db: Db | Tx, ownerId: string): Promise<CalibrationRow[]> {
   const rows = await db
     .select({ kind: markers.kind, status: markers.status, n: count() })
     .from(markers)
@@ -37,7 +37,39 @@ export async function calibration(db: Db | Tx, ownerId: string): Promise<Calibra
 
 /** The factors only, for the analysis. */
 export async function calibrationFactors(db: Db | Tx, ownerId: string) {
-  return Object.fromEntries((await calibration(db, ownerId)).map((r) => [r.kind, r.factor])) as Partial<
+  return Object.fromEntries((await kindDecisions(db, ownerId)).map((r) => [r.kind, r.factor])) as Partial<
     Record<MarkerKind, number>
   >
+}
+
+/**
+ * The control sample: decided attempts of the examiner's exams that had no markers to judge, and how many
+ * of them the latest decision still called a violation — an estimate of what the markers miss.
+ */
+async function controlSample(db: Db | Tx, ownerId: string) {
+  const latest = db
+    .selectDistinctOn([decisions.attemptId], { attemptId: decisions.attemptId, verdict: decisions.verdict })
+    .from(decisions)
+    .orderBy(decisions.attemptId, desc(decisions.seq))
+    .as('latest')
+  const [row] = await db
+    .select({
+      unmarked: count(),
+      missed: count(sql`case when ${latest.verdict} = 'violation' then 1 end`),
+    })
+    .from(attempts)
+    .innerJoin(exams, eq(exams.id, attempts.examId))
+    .innerJoin(latest, eq(latest.attemptId, attempts.id))
+    .where(
+      and(
+        eq(exams.ownerId, ownerId),
+        eq(attempts.status, 'decided'),
+        sql`not exists (select 1 from ${markers} m where m.attempt_id = ${attempts.id} and m.status <> 'context')`,
+      ),
+    )
+  return { unmarked: row?.unmarked ?? 0, missed: row?.missed ?? 0 }
+}
+
+export async function calibration(db: Db | Tx, ownerId: string): Promise<Calibration> {
+  return { kinds: await kindDecisions(db, ownerId), control: await controlSample(db, ownerId) }
 }

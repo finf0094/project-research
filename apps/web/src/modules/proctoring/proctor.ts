@@ -21,6 +21,8 @@ export interface ProctorOptions {
   recording: RecordingMode
   /** Watch the noise level (off for oral exams). */
   listen: boolean
+  /** Signals not watched for this student (an individual exception, section 25.3): never raised. */
+  ignore: SignalKind[]
   tier: DeviceTier
   /** Neutral head pose from preflight calibration. */
   baseline: Pose
@@ -107,7 +109,9 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     }
   }
 
+  const ignored = new Set<string>(options.ignore)
   function observe(kind: ObservedKind, present: boolean) {
+    if (ignored.has(kind)) return
     const transition = tracker.observe(kind, present, now())
     if (transition) setSignal(transition.kind, transition.active)
   }

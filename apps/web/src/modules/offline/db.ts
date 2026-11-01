@@ -1,4 +1,11 @@
-import type { AnswerValue, AttemptStatus, ExamPackage, FragmentReason, StudentExam } from '@exam/contracts'
+import type {
+  AnswerValue,
+  AttemptStatus,
+  ExamPackage,
+  FragmentReason,
+  SignalKind,
+  StudentExam,
+} from '@exam/contracts'
 import type { ChainHead, SealedEvent } from '@exam/integrity'
 import Dexie, { type EntityTable, type Table } from 'dexie'
 
@@ -21,6 +28,8 @@ export interface LocalAttempt {
   endedBy: EndReason | null
   /** Begun without network from a downloaded package: the server hears of it at the first sync. */
   offlineStart?: { examId: string; startedAt: number } | null
+  /** Signals not watched for this student (an individual exception, section 25.3). */
+  disabledSignals?: SignalKind[]
 }
 
 /**

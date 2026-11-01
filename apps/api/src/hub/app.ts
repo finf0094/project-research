@@ -41,6 +41,7 @@ export function buildHub({ store, upstream }: { store: HubStore; upstream: Upstr
     if (attemptId && health.down()) return keep(request, reply, attemptId)
     try {
       // The cloud first gets what the hub collected, so events arrive in order.
+      // Brief and best effort: a slow delivery is left to the forwarder's passes, never taken for an outage.
       if (attemptId) await forwardAttempt(store, upstream, attemptId, INLINE_FORWARD_MS).catch(logRefusal)
       const stream = request.url.endsWith('/stream')
       const response = await pass(request, upstream, stream ? null : attemptId ? SYNC_BUDGET_MS : 60_000)
@@ -93,8 +94,7 @@ export function buildHub({ store, upstream }: { store: HubStore; upstream: Upstr
   return app
 }
 
-/** The cloud answered but refused the relay (a wrong token, a removed attempt): logged, never an outage. */
+/** The inline relay failed: whatever the reason, the device's own sync still goes to the cloud. */
 function logRefusal(error: unknown) {
-  if (isNetworkError(error)) throw error
-  console.error('relay refused', error)
+  if (!isNetworkError(error)) console.error('relay refused', error)
 }

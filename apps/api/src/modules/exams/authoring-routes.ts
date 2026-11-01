@@ -1,9 +1,16 @@
-import { AuthoredExam, ExamDefinition, ParticipantsBody, ParticipantsResult } from '@exam/contracts'
+import {
+  AuthoredExam,
+  ExamDefinition,
+  ParticipantsBody,
+  ParticipantsResult,
+  SignalException,
+} from '@exam/contracts'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import type { ModuleOptions } from '../../deps.ts'
 import { currentUser, requireRole } from '../auth/guard.ts'
 import { authoredExam, createExam, setParticipants, updateExam } from './authoring.ts'
+import { setException } from './exceptions.ts'
 
 const IdParams = z.object({ id: z.uuid() })
 
@@ -29,6 +36,15 @@ export const authoringRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app,
     { schema: { params: IdParams, body: ExamDefinition } },
     async (request, reply) => {
       await updateExam(deps.db, me(request), request.params.id, request.body)
+      return reply.code(204).send()
+    },
+  )
+
+  app.put(
+    '/examiner/exams/:id/exceptions',
+    { schema: { params: IdParams, body: SignalException } },
+    async (request, reply) => {
+      await setException(deps.db, me(request), request.params.id, request.body)
       return reply.code(204).send()
     },
   )

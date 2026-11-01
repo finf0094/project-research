@@ -1,4 +1,4 @@
-import { AuthoredExam, ParticipantsResult, type ExamDefinition } from '@exam/contracts'
+import { AuthoredExam, ParticipantsResult, type ExamDefinition, type SignalException } from '@exam/contracts'
 import { z } from 'zod'
 import { request } from '@/shared/lib/http'
 
@@ -12,3 +12,6 @@ export const updateExam = (examId: string, definition: ExamDefinition) =>
 
 export const setParticipants = (examId: string, emails: string[]) =>
   request(`/examiner/exams/${examId}/participants`, { method: 'PUT', body: { emails } }, ParticipantsResult)
+
+export const setException = (examId: string, exception: SignalException) =>
+  request(`/examiner/exams/${examId}/exceptions`, { method: 'PUT', body: exception })

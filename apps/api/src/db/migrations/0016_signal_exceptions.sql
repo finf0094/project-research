@@ -1,0 +1,1 @@
+ALTER TABLE "exam_participants" ADD COLUMN "disabled_signals" text[] DEFAULT '{}' NOT NULL;

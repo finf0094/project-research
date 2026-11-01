@@ -31,8 +31,14 @@ export function fileStore(dir: string): HubStore {
       } catch {
         return null // no file: nothing kept for it
       }
-      // A damaged file must never read as "nothing kept": acknowledged events would be lost silently.
-      return JSON.parse(text) as HubAttempt
+      try {
+        return JSON.parse(text) as HubAttempt
+      } catch {
+        // Damaged: set aside for a person (it may hold events a device no longer has), then start afresh.
+        console.error(`hub: ${path(id)} is damaged; set aside as .damaged for recovery`)
+        await rename(path(id), `${path(id)}.damaged-${Date.now()}`)
+        return null
+      }
     },
     async put(id, state) {
       await mkdir(dir, { recursive: true })

@@ -28,6 +28,7 @@ export async function startOffline(pkg: StoredPackage, code: string): Promise<Lo
     clockOffset: pkg.clockOffset,
     endedBy: null,
     offlineStart: { examId: pkg.examId, startedAt: now },
+    disabledSignals: pkg.disabledSignals,
   }
   await saveAttempt(attempt, {})
   // The key is in the attempt now; the package is not needed (nor wanted) any longer.

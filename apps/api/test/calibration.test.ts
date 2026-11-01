@@ -1,4 +1,4 @@
-import type { CalibrationRow } from '@exam/contracts'
+import type { Calibration } from '@exam/contracts'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { markers } from '../src/db/schema.ts'
 import { riskScore, type MarkerDraft } from '../src/jobs/analysis.ts'
@@ -10,7 +10,7 @@ describe('calibration factor (section 25.4)', () => {
     expect(calibrationFactor(0, 3)).toBe(1) // too few to say
     expect(calibrationFactor(5, 5)).toBe(1) // right as often as wrong
     expect(calibrationFactor(0, 20)).toBe(0.25) // noise: counts far less
-    expect(calibrationFactor(20, 0)).toBe(1.91) // reliable: counts more
+    expect(calibrationFactor(20, 0)).toBe(1) // reliable: keeps its weight (only noise is turned down)
   })
 
   it('lowers a noisy kind in the review priority', () => {
@@ -52,7 +52,10 @@ describe('GET /examiner/calibration', () => {
     ])
     const examiner = await signIn(ctx.app, 'teacher@test.edu')
     const res = await ctx.app.inject({ method: 'GET', url: '/api/examiner/calibration', headers: examiner })
-    const rows: CalibrationRow[] = res.json()
-    expect(rows).toEqual([{ kind: 'noise', confirmed: 1, dismissed: 6, factor: calibrationFactor(1, 6) }])
+    const result: Calibration = res.json()
+    expect(result.kinds).toEqual([
+      { kind: 'noise', confirmed: 1, dismissed: 6, factor: calibrationFactor(1, 6) },
+    ])
+    expect(result.control).toEqual({ unmarked: 0, missed: 0 }) // that attempt had markers and is not decided
   })
 })

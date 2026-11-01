@@ -1,26 +1,40 @@
-import { integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
-import type { ExamProfile, QuestionType } from '@exam/contracts'
+import {
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core'
+import type { ExamProfile, QuestionType, SignalKind } from '@exam/contracts'
 import { createdAt } from './columns.ts'
 import { users } from './auth.ts'
 
 // Exams, their questions and who may take them.
 
-export const exams = pgTable('exams', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  title: text('title').notNull(),
-  durationMin: integer('duration_min').notNull(),
-  opensAt: timestamp('opens_at', { withTimezone: true }).notNull(),
-  closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
-  profile: jsonb('profile').$type<ExamProfile>().notNull(),
-  ownerId: uuid('owner_id')
-    .notNull()
-    .references(() => users.id),
-  /** When the examiner let students see their results (scores and per-question review). */
-  publishedAt: timestamp('published_at', { withTimezone: true }),
-  /** The start code that unlocks downloaded packages (offline start), encrypted with MASTER_KEY. */
-  startCodeEnc: text('start_code_enc'),
-  createdAt: createdAt(),
-})
+export const exams = pgTable(
+  'exams',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: text('title').notNull(),
+    durationMin: integer('duration_min').notNull(),
+    opensAt: timestamp('opens_at', { withTimezone: true }).notNull(),
+    closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
+    profile: jsonb('profile').$type<ExamProfile>().notNull(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id),
+    /** When the examiner let students see their results (scores and per-question review). */
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    /** The start code that unlocks downloaded packages (offline start), encrypted with MASTER_KEY. */
+    startCodeEnc: text('start_code_enc'),
+    createdAt: createdAt(),
+  },
+  (t) => [index().on(t.ownerId)],
+)
 
 export const questions = pgTable(
   'questions',
@@ -49,6 +63,8 @@ export const examParticipants = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    /** Section 25.3: signals not watched for this student. */
+    disabledSignals: text('disabled_signals').array().$type<SignalKind[]>().notNull().default([]),
   },
   (t) => [primaryKey({ columns: [t.examId, t.userId] })],
 )

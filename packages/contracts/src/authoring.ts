@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Id, safeText, Timestamp } from './common.ts'
 import { ExamProfile, Option, QuestionType } from './exams.ts'
 import { Role } from './auth.ts'
+import { SignalKind } from './events.ts'
 
 /** Text that must say something: whitespace alone does not count. */
 const filled = (max: number) => safeText(max).refine((s) => s.trim().length > 0, 'must not be empty')
@@ -72,6 +73,7 @@ export const AuthoredExam = z.object({
   /** Students have started it: questions and settings are frozen, only participants can change. */
   locked: z.boolean(),
   participants: z.array(z.string()),
+  exceptions: z.array(z.lazy(() => SignalException)),
 })
 export type AuthoredExam = z.infer<typeof AuthoredExam>
 
@@ -85,6 +87,17 @@ export const ParticipantsResult = z.object({
   unknown: z.array(z.string()),
 })
 export type ParticipantsResult = z.infer<typeof ParticipantsResult>
+
+/**
+ * Section 25.3: an individual exception — signals not watched for one student (special needs, e.g. a student
+ * who reads aloud or cannot keep their head still). The device does not raise them, the server sets no
+ * markers for them.
+ */
+export const SignalException = z.strictObject({
+  email: z.email(),
+  disabledSignals: z.array(SignalKind).max(12),
+})
+export type SignalException = z.infer<typeof SignalException>
 
 export const UserListItem = z.object({ id: Id, email: z.string(), name: z.string(), role: Role })
 export type UserListItem = z.infer<typeof UserListItem>

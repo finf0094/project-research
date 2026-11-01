@@ -6,7 +6,7 @@ import {
   ExaminerExam,
   Sha256,
   UpdateMarkerBody,
-  CalibrationRow,
+  Calibration,
 } from '@exam/contracts'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
@@ -42,10 +42,8 @@ export const reviewRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { 
     return reply.code(204).send()
   })
 
-  app.get(
-    '/examiner/calibration',
-    { schema: { response: { 200: z.array(CalibrationRow) } } },
-    async (request) => calibration(deps.db, me(request)),
+  app.get('/examiner/calibration', { schema: { response: { 200: Calibration } } }, async (request) =>
+    calibration(deps.db, me(request)),
   )
 
   app.get(

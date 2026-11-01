@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router'
 import { AppCard } from '@/shared/ui'
 import EditorHeader from '../components/EditorHeader.vue'
 import ExamSettingsForm from '../components/ExamSettingsForm.vue'
+import ExceptionsEditor from '../components/ExceptionsEditor.vue'
 import ParticipantsEditor from '../components/ParticipantsEditor.vue'
 import QuestionsWorkspace from '../components/QuestionsWorkspace.vue'
 import SaveBar from '../components/SaveBar.vue'
@@ -23,10 +24,13 @@ const examId = computed(() => (route.params.examId ? String(route.params.examId)
 type Step = 'settings' | 'questions' | 'participants'
 const step = ref<Step>('settings')
 const selected = ref(0)
-const { draft, participants, locked, saved, invalid, load, save, submit } = useExamDraft(examId, () => {
-  step.value = 'settings'
-  selected.value = 0
-})
+const { draft, participants, exceptions, locked, saved, invalid, load, save, submit } = useExamDraft(
+  examId,
+  () => {
+    step.value = 'settings'
+    selected.value = 0
+  },
+)
 const { t } = useI18n()
 
 // Questions that would fail the check, marked in the outline as the examiner goes.
@@ -107,6 +111,12 @@ async function send() {
             :exam-id="examId"
             :initial="participants"
             @saved="participants = $event"
+          />
+          <ExceptionsEditor
+            v-if="examId"
+            :exam-id="examId"
+            :participants="participants"
+            :exceptions="exceptions"
           />
         </AppCard>
       </Transition>

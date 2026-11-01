@@ -113,6 +113,20 @@
       "when": 1793495016337,
       "tag": "0015_relayed_by_hub",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793495604180,
+      "tag": "0016_signal_exceptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793495806086,
+      "tag": "0017_owner_index_audio_backfill",
+      "breakpoints": true
     }
   ]
 }

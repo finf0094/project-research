@@ -20,6 +20,7 @@ async function saveSession(session: AttemptSession): Promise<LocalAttempt> {
     status: session.status,
     clockOffset: session.serverTime - Date.now(),
     endedBy: null,
+    disabledSignals: session.disabledSignals,
   }
   await saveAttempt(attempt, session.answers)
   return attempt

@@ -48,13 +48,13 @@ export const syncRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
       if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw unauthorized()
       const { events } = request.body
       const relayedAt = new Map(events.map((e) => [e.event.seq, e.receivedAt]))
-      return acceptEvents(
-        deps,
-        null,
-        request.params.id,
-        events.map((e) => e.event),
-        relayedAt,
-      )
+      // 410 tells the hub the attempt is gone for good (a plain 404 could also be a misconfiguration).
+      const batch = events.map((e) => e.event)
+      return acceptEvents(deps, null, request.params.id, batch, relayedAt).catch((error: unknown) => {
+        if (error instanceof HttpError && error.statusCode === 404)
+          throw new HttpError(410, 'Attempt removed')
+        throw error
+      })
     },
   )
 }

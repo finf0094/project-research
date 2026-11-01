@@ -1,8 +1,9 @@
 import { and, asc, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
-import type { ServerAnalysis } from '@exam/contracts'
+import type { MarkerKind, ServerAnalysis } from '@exam/contracts'
 import type { Db, Tx } from '../db/client.ts'
 import { answers, attempts, blobs, commands, events, exams, markers } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
+import { disabledSignalsOf } from '../modules/exams/exceptions.ts'
 import { attemptQuestions } from '../modules/exams/service.ts'
 import { calibrationFactors } from '../modules/review/calibration.ts'
 import { projectAnswers, type AnswerEvent } from '../modules/sync/projection.ts'
@@ -31,11 +32,14 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
     // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
     () => renewClaim(deps, attempt.id),
   )
+  // The examiner's past decisions weigh the kinds (section 25.4); read before the row lock, not under it.
+  const [owner] = await deps.db.select({ id: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
+  const calibration = await calibrationFactors(deps.db, owner!.id)
   await deps.db.transaction(async (tx) => {
     const [current] = await tx.select().from(attempts).where(eq(attempts.id, attempt.id)).for('update')
     if (current?.status !== 'submitted') return
     try {
-      await tx.transaction((savepoint) => analyze(deps, savepoint, current, report))
+      await tx.transaction((savepoint) => analyze(deps, savepoint, current, report, calibration))
     } catch (error) {
       console.error(`analysis of attempt ${attempt.id} failed; sending it to manual review`, error)
       await tx
@@ -111,6 +115,7 @@ async function analyze(
   tx: Tx,
   attempt: typeof attempts.$inferSelect,
   recordings: RecordingsReport,
+  calibration: Partial<Record<MarkerKind, number>>,
 ) {
   const log = await tx
     .select({
@@ -167,15 +172,16 @@ async function analyze(
     captureRequests: captures.map((c) => c.at.getTime()).filter((at) => at < finishedAt),
     serverFindings: recordings.findings,
   })
-  // The examiner's past decisions weigh the kinds (section 25.4): noisy ones count less in the priority.
-  const [owner] = await tx.select({ id: exams.ownerId }).from(exams).where(eq(exams.id, attempt.examId))
+  // An individual exception (section 25.3): no markers for the signals not watched for this student.
+  const disabled = new Set<string>(await disabledSignalsOf(tx, attempt.examId, attempt.userId))
+  const kept = drafts.filter((m) => !disabled.has(m.kind))
   await tx.delete(markers).where(eq(markers.attemptId, attempt.id))
-  if (drafts.length) await tx.insert(markers).values(drafts.map((m) => ({ ...m, attemptId: attempt.id })))
+  if (kept.length) await tx.insert(markers).values(kept.map((m) => ({ ...m, attemptId: attempt.id })))
   await tx
     .update(attempts)
     .set({
       status: 'ready_for_review',
-      riskScore: riskScore(drafts, await calibrationFactors(tx, owner!.id)),
+      riskScore: riskScore(kept, calibration),
       serverAnalysis: analysisStatus(recordings, uploadedSet),
     })
     .where(eq(attempts.id, attempt.id))

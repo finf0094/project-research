@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { Id, Timestamp } from './common.ts'
+import { SignalKind } from './events.ts'
 
 /**
  * An exam downloaded ahead of time so it can start without network (written exams). The questions are
@@ -19,6 +20,8 @@ export const ExamPackage = z.object({
   /** The sealed StudentExam (questions and settings), see @exam/integrity's openPackage. */
   sealed: z.object({ iv: z.string(), data: z.string() }),
   serverTime: Timestamp,
+  /** This student's individual exception: signals not watched (not sealed: it is not about the questions). */
+  disabledSignals: z.array(SignalKind),
   /** Matches StudentExamListItem.offline.version while the package is current. */
   version: z.string(),
 })

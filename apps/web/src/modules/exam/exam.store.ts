@@ -100,6 +100,7 @@ export const useExamStore = defineStore('exam', () => {
         recording: local.exam.profile.recording,
         // In an oral exam the student talks the whole time: sound says nothing there.
         listen: local.exam.profile.mode !== 'oral',
+        ignore: local.disabledSignals ?? [],
         now: () => clock.now(),
       })
     }

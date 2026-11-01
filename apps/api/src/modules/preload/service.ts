@@ -13,6 +13,7 @@ import { attempts, examPreloads, exams } from '../../db/schema.ts'
 import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
+import { disabledSignalsOf } from '../exams/exceptions.ts'
 import { offlineCapable, packageVersion } from '../exams/offline.ts'
 import { isParticipant, studentExam } from '../exams/service.ts'
 
@@ -51,6 +52,7 @@ export async function examPackage(deps: Deps, userId: string, examId: string): P
     iterations: PACKAGE_ITERATIONS,
     sealed: await sealedFor(deps, exam),
     serverTime: now,
+    disabledSignals: await disabledSignalsOf(deps.db, examId, userId),
     version: packageVersion(exam)!,
   }
 }
