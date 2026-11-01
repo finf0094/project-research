@@ -8,4 +8,5 @@ test-results/
 playwright-report/
 
 infra/.seeded
+infra/.reset-done
 infra/status/

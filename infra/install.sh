@@ -109,6 +109,18 @@ elif [ -n "${SITE_ADDRESS:-}" ]; then
   sed -i "s|^SITE_ADDRESS=.*|SITE_ADDRESS=$SITE_ADDRESS|; s|^LIVEKIT_URL=.*|LIVEKIT_URL=wss://$SITE_ADDRESS|" .env
 fi
 
+# A full data reset the owner asked for: a new id in infra/reset-id wipes the database and the recordings once,
+# and the demo data is seeded again. Certificates and .env (keys, demo password) stay. The id is remembered.
+if [ -f reset-id ] && [ "$(cat reset-id)" != "$(cat .reset-done 2>/dev/null || true)" ]; then
+  echo "resetting all data ($(cat reset-id))"
+  docker compose --profile oral down --remove-orphans
+  for volume in pgdata recordings; do
+    docker volume ls -q --filter "label=com.docker.compose.volume=$volume" | xargs -r docker volume rm
+  done
+  rm -f .seeded
+  cp reset-id .reset-done
+fi
+
 docker compose --profile oral up -d --build
 # -T and </dev/null: when this script is piped into bash, a container must not read the rest of it as input.
 docker compose run -T --rm api node src/db/migrate.ts </dev/null
