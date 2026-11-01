@@ -1,8 +1,10 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import type { AttemptDetail, AttemptSession } from '@exam/contracts'
+import { eq } from 'drizzle-orm'
 import { AccessToken } from 'livekit-server-sdk'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { attempts } from '../src/db/schema.ts'
 import { analyzeNext, mergeNextAudio } from '../src/jobs/jobs.ts'
 import { decodeAudio } from '../src/media/audio.ts'
 import { clientChain, createTestContext, seedExam, signIn, type TestContext } from './helpers.ts'
@@ -146,6 +148,10 @@ describe('merge-audio', () => {
 
     expect(await mergeNextAudio(ctx.deps)).toBe(false) // not analysed yet: uploads may still be coming
     expect(await analyzeNext(ctx.deps)).toBe(true)
+    // A stopping worker interrupts the merge and gives the claim and the try back: it runs again at once.
+    expect(await mergeNextAudio(ctx.deps, AbortSignal.abort())).toBe(false)
+    const [held] = await ctx.deps.db.select().from(attempts).where(eq(attempts.id, session.attemptId))
+    expect(held).toMatchObject({ audioTries: 0, audioClaimedAt: null, audioMergedAt: null })
     expect(await mergeNextAudio(ctx.deps)).toBe(true)
     expect(await mergeNextAudio(ctx.deps)).toBe(false) // done once
 

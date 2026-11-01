@@ -36,7 +36,11 @@ export function ffmpeg(
       reject(error)
     }
     const timer = setTimeout(() => fail(new FfmpegTimeout()), limits.timeoutMs)
-    limits.signal?.addEventListener('abort', () => fail(new Error('stopped')), { once: true })
+    // Stopping: ended at once (also when it was asked before the run began); the listener goes with the run.
+    const stop = () => fail(new Error('stopped'))
+    if (limits.signal?.aborted) stop()
+    limits.signal?.addEventListener('abort', stop, { once: true })
+    child.once('close', () => limits.signal?.removeEventListener('abort', stop))
     child.stdout.on('data', (d: Buffer) => {
       size += d.length
       if (size > limits.maxBytes) return fail(new Error('ffmpeg output too large'))

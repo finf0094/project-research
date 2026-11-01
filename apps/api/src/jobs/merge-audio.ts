@@ -30,7 +30,7 @@ export async function mergeNextAudio(deps: Deps, signal?: AbortSignal): Promise<
   const attempt = await claimNext(deps)
   if (!attempt) return false
   try {
-    const audioHash = await merge(deps, attempt.id, signal)
+    const audioHash = await merge(deps, attempt.id, attempt.claim, signal)
     await deps.db
       .update(attempts)
       .set({ audioHash, audioMergedAt: new Date(deps.now()), audioClaimedAt: null })
@@ -41,7 +41,9 @@ export async function mergeNextAudio(deps: Deps, signal?: AbortSignal): Promise<
       await deps.db
         .update(attempts)
         .set({ audioClaimedAt: null, audioTries: sql`${attempts.audioTries} - 1` })
-        .where(eq(attempts.id, attempt.id))
+        // Only while the claim is still ours: after a lapsed lease another worker may hold it.
+        .where(and(eq(attempts.id, attempt.id), eq(attempts.audioClaimedAt, new Date(attempt.claim.at))))
+        .catch((e: unknown) => console.error('could not give the audio claim back', e))
       return false
     }
     console.error(`audio of attempt ${attempt.id} could not be merged`, error)
@@ -77,11 +79,13 @@ async function claimNext({ db, now }: Deps) {
       .limit(1)
       .for('update', { of: attempts, skipLocked: true })
     if (!row) return null
+    // `claim.at`: our latest stamp on the row (renewals move it), to tell our claim from a later one.
+    const claim = { at: now() }
     await tx
       .update(attempts)
-      .set({ audioClaimedAt: new Date(now()), audioTries: sql`${attempts.audioTries} + 1` })
+      .set({ audioClaimedAt: new Date(claim.at), audioTries: sql`${attempts.audioTries} + 1` })
       .where(eq(attempts.id, row.id))
-    return row
+    return { ...row, claim }
   })
 }
 
@@ -91,6 +95,7 @@ const RENEW_EVERY_MS = 5 * 60_000
 async function merge(
   { db, storage, now }: Deps,
   attemptId: string,
+  claim: { at: number },
   signal?: AbortSignal,
 ): Promise<string | null> {
   const chunks = await chunksInOrder(db, attemptId)
@@ -98,6 +103,7 @@ async function merge(
   const renew = async () => {
     if (now() - renewedAt < RENEW_EVERY_MS) return
     renewedAt = now()
+    claim.at = renewedAt
     await db
       .update(attempts)
       .set({ audioClaimedAt: new Date(renewedAt) })
