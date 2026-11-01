@@ -1,12 +1,14 @@
 import { LoginBody, User } from '@exam/contracts'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type { ModuleOptions } from '../../deps.ts'
-import { unauthorized } from '../../shared/errors.ts'
+import { HttpError, unauthorized } from '../../shared/errors.ts'
+import { failedLogins } from './failed-logins.ts'
 import { SESSION_COOKIE, currentUser } from './guard.ts'
 import { login, logout } from './service.ts'
 
 export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { deps }) => {
   const { db, config, now } = deps
+  const failures = failedLogins(now)
 
   app.post(
     '/auth/login',
@@ -14,14 +16,11 @@ export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
       schema: { body: LoginBody, response: { 200: User } },
       // Per address, loose: a classroom behind one address signs in at once, password spraying is slowed.
       config: { rateLimit: { max: 300, timeWindow: '1 minute' } },
-      // Per account, tight, from any address: guessing one student's password is slowed.
-      preHandler: app.rateLimit({
-        max: 10,
-        timeWindow: '1 minute',
-        keyGenerator: (request) => `login:${(request.body as LoginBody).email.toLowerCase()}`,
-      }),
     },
     async (request, reply) => {
+      const { email } = request.body
+      if (failures.blocked(request.ip, email))
+        throw new HttpError(429, 'Too many failed sign-ins, wait a minute')
       const result = await login(
         db,
         request.body.email,
@@ -29,7 +28,10 @@ export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
         config.SESSION_TTL_HOURS,
         now(),
       )
-      if (!result) throw unauthorized()
+      if (!result) {
+        failures.record(request.ip, email)
+        throw unauthorized()
+      }
       reply.setCookie(SESSION_COOKIE, result.token, {
         httpOnly: true,
         secure: config.COOKIE_SECURE,

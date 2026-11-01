@@ -28,8 +28,11 @@ export function ffmpeg(
     const out: Buffer[] = []
     let size = 0
     let stderr = ''
+    // A streamed input is closed however ffmpeg ends, so its file handle never outlives the run.
+    const closeInput = () => Buffer.isBuffer(input) || input.destroy()
     const fail = (error: Error) => {
       child.kill('SIGKILL')
+      closeInput()
       reject(error)
     }
     const timer = setTimeout(() => fail(new FfmpegTimeout()), limits.timeoutMs)
@@ -39,9 +42,10 @@ export function ffmpeg(
       out.push(d)
     })
     child.stderr.on('data', (d: Buffer) => (stderr = (stderr + d).slice(-2000)))
-    child.on('error', (error) => (clearTimeout(timer), reject(error)))
+    child.on('error', (error) => (clearTimeout(timer), closeInput(), reject(error)))
     child.on('close', (code) => {
       clearTimeout(timer)
+      closeInput()
       if (code !== 0) return reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`))
       resolve(Buffer.concat(out))
     })

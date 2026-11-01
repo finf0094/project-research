@@ -11,7 +11,8 @@ export const BYTES_PER_SECOND = RATE * 2
 const CHUNK_SECONDS = 12
 /**
  * An oral answer is cut after this, the longest an exam can last (10 h; longer is a recording left
- * running). The merge streams it through a temporary file, so memory holds one chunk, not the answer.
+ * running). The merge streams it through a temporary file (up to ~1.2 GB in TMPDIR, which should be a disk,
+ * not tmpfs), so memory holds one chunk, not the answer.
  */
 export const MAX_AUDIO_BYTES = 10 * 3600 * BYTES_PER_SECOND
 
@@ -35,8 +36,13 @@ function decodeRaw(chunk: Buffer): Promise<Buffer> {
 
 /** Transient failures (storage, a stuck ffmpeg) are retried this many times, then the merge is given up. */
 export const MAX_AUDIO_TRIES = 3
-/** A worker's claim on a merge lasts this long; a failed try waits it out before the next one. */
-export const AUDIO_LEASE_MS = 15 * 60_000
+/** Encoding the longest answer takes minutes; a run beyond this is stuck. */
+const ENCODE_TIMEOUT_MS = 30 * 60_000
+/**
+ * A worker's claim on a merge lasts this long (longer than any encode, so a slow one is never taken over);
+ * a failed try waits it out before the next one.
+ */
+export const AUDIO_LEASE_MS = 45 * 60_000
 
 /** Silence of the given length, to keep a gap in the recording as long as it was (written a minute at a time); its size in bytes. */
 export async function appendSilence(append: (pcm: Buffer) => Promise<void>, ms: number) {
@@ -71,7 +77,7 @@ export async function encodeOpus(write: (append: (pcm: Buffer) => Promise<void>)
     await ffmpeg(
       ['-c:a', 'libopus', '-b:a', '32k', '-f', 'webm'],
       createReadStream(pcm),
-      { maxBytes: 1, timeoutMs: 30 * 60_000 },
+      { maxBytes: 1, timeoutMs: ENCODE_TIMEOUT_MS },
       ['-f', 's16le', '-ar', String(RATE), '-ac', '1'],
       out,
     )
