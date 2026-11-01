@@ -21,7 +21,9 @@ export interface MarkerDraft {
 }
 
 /** Signals that describe the environment, not behaviour; they explain the timeline but are never violations. */
-const CONTEXT_SIGNALS: ReadonlySet<SignalKind> = new Set(['too_dark'])
+// A second screen or a muted microphone is shown on the timeline and left to the examiner, not scored:
+// a monitor left connected all exam would otherwise outweigh everything else.
+const CONTEXT_SIGNALS: ReadonlySet<SignalKind> = new Set(['too_dark', 'second_screen', 'mic_off'])
 
 /** Weight per minute of an open signal; the score only orders the review queue. */
 const WEIGHTS: Partial<Record<MarkerKind, number>> = {
@@ -33,8 +35,6 @@ const WEIGHTS: Partial<Record<MarkerKind, number>> = {
   looking_away: 10,
   off_center: 10,
   copy: 15,
-  second_screen: 15,
-  mic_off: 15,
   object_detected: 30,
   noise: 10,
   chain_broken: 40,

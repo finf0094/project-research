@@ -3,14 +3,17 @@ import type { Fragment } from '../ml/recordings.ts'
 import type { Interval } from '../ml/observations.ts'
 import type { MarkerDraft, StoredEvent } from './analysis.ts'
 
-/** What the device measures at each tier: silence about anything else is not a discrepancy. */
+/**
+ * What the device measures at each tier, as reliably as the server: silence about anything else is not a
+ * discrepancy. Not here: noise (the device samples moments, the server averages each second, so speech
+ * between pauses is heard by one only) and objects on `lite` (looked for every 10 s, the server sees 2 s).
+ * Those server findings still become markers, only never "the device kept silent".
+ */
 const MEASURED: Record<DeviceTier, ReadonlySet<MarkerKind>> = {
-  // Noise only in written exams (an oral one does not listen), but oral noise findings are dropped before
-  // reconciliation (analysis.ts findingsFor), so listing it here is safe.
-  full: new Set(['face_missing', 'multiple_faces', 'object_detected', 'noise']),
-  lite: new Set(['object_detected', 'face_missing', 'multiple_faces', 'noise']),
+  full: new Set(['face_missing', 'multiple_faces', 'object_detected']),
+  lite: new Set(['face_missing', 'multiple_faces']),
   // Weak devices still check for a face, only less often (architecture 10.5).
-  slow: new Set(['face_missing', 'multiple_faces', 'noise']),
+  slow: new Set(['face_missing', 'multiple_faces']),
   minimal: new Set(), // older clients: no face check at all
   none: new Set(),
 }
