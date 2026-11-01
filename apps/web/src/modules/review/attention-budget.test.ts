@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { Alert, AlertKind } from './alerts'
 import { withinBudget } from './attention-budget'
 
-const alert = (kind: AlertKind, name: string = kind): Alert => ({ id: name, kind, name, attemptId: name, at: 0 })
+const alert = (kind: AlertKind, name: string = kind): Alert => ({
+  id: name,
+  kind,
+  name,
+  attemptId: name,
+  at: 0,
+})
 
 describe('attention budget', () => {
   it('shows the most important two a minute and folds the rest into one line', () => {
