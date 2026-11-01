@@ -42,6 +42,8 @@ export const useProctoringStore = defineStore('proctoring', () => {
   const camera = ref<CameraState>('off')
   /** Why the camera is off, for the advice next to "Turn on the camera". */
   const problem = ref<CameraProblem | null>(null)
+  /** The browser's own words for an unexpected failure: shown small, so a screenshot tells the cause. */
+  const problemDetail = ref('')
   const hint = ref<SignalKind | null>(null)
   const risk = ref<RiskLevel>('low')
   const recording = ref<RecordingMode>('adaptive')
@@ -74,6 +76,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
     launching = abort
     camera.value = 'starting'
     problem.value = null
+    problemDetail.value = ''
     let media: MediaStream | null = null
     try {
       media = await abortable(requestCamera(), abort.signal, (m) => stopTracks(m))
@@ -119,6 +122,7 @@ export const useProctoringStore = defineStore('proctoring', () => {
     } catch (error) {
       console.error('proctoring could not start', error)
       problem.value = cameraProblem(error)
+      problemDetail.value = error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 160) : String(error)
       // Whatever was acquired is released, so the camera light goes off and a retry does not open a second one.
       if (running?.media !== media) release(media)
       if (!abort.signal.aborted) await cameraLost(opts)
@@ -176,5 +180,5 @@ export const useProctoringStore = defineStore('proctoring', () => {
     return enqueue(shutdown)
   }
 
-  return { stream, camera, problem, hint, risk, recording, start, retry, capture, stop }
+  return { stream, camera, problem, problemDetail, hint, risk, recording, start, retry, capture, stop }
 })

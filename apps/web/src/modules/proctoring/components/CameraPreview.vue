@@ -29,6 +29,9 @@ watchEffect(() => {
       <template v-else-if="proctoring.camera === 'blocked'">
         <p class="title">{{ $t('proctoring.camera.off') }}</p>
         <p class="muted">{{ $t(`proctoring.camera.why.${proctoring.problem ?? 'other'}`) }}</p>
+        <p v-if="proctoring.problem === 'other' && proctoring.problemDetail" class="detail">
+          {{ proctoring.problemDetail }}
+        </p>
         <AppButton variant="ink" @click="proctoring.retry">{{ $t('proctoring.camera.enable') }}</AppButton>
       </template>
       <p v-else class="muted">{{ $t('proctoring.camera.starting') }}</p>
@@ -66,5 +69,11 @@ video {
 }
 .title {
   font-weight: 600;
+}
+.detail {
+  color: var(--text-2);
+  font-family: ui-monospace, monospace;
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
 }
 </style>

@@ -79,7 +79,7 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     window.addEventListener('keydown', resume, { once: true })
   }
   const analyser = audio.createAnalyser()
-  analyser.fftSize = 2048 // ~43 ms at 48 kHz: sampled every 50 ms, the samples cover the whole second
+  analyser.fftSize = 2048 // ~43 ms at 48 kHz: sampled every 50 ms, the samples cover most of the second
   audio.createMediaStreamSource(stream).connect(analyser)
   const meter = createLoudnessMeter(analyser)
 

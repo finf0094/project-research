@@ -1,4 +1,4 @@
-import type { SignalKind } from '@exam/contracts'
+import type { SetSignal } from './signals'
 
 /** Names of headphones and headsets (as systems label them, English and Russian). */
 const HEADPHONES = /head(phone|set)|ear(phone|bud)|airpods|\bbuds\b|hands-?free|наушник|гарнитур/i
@@ -14,7 +14,7 @@ export const isVirtualCamera = (stream: MediaStream) => VIRTUAL.test(stream.getV
  * browser gives, so a device with an unusual name goes unnoticed: that is a hint for the examiner, not a
  * proof. Returns a function that stops watching.
  */
-export function watchDevices(stream: MediaStream, setSignal: (kind: SignalKind, on: boolean) => void) {
+export function watchDevices(stream: MediaStream, setSignal: SetSignal) {
   const media = navigator.mediaDevices
   let stopped = false
   const check = async () => {
@@ -31,5 +31,22 @@ export function watchDevices(stream: MediaStream, setSignal: (kind: SignalKind, 
   return () => {
     stopped = true
     media.removeEventListener('devicechange', check)
+  }
+}
+
+const TRACK_EVENTS = ['mute', 'unmute', 'ended']
+
+/** A muted or disconnected microphone (the system's mute, an unplugged headset) is a signal of its own. */
+export function watchMicrophone(stream: MediaStream, setSignal: SetSignal) {
+  const tracks = stream.getAudioTracks()
+  const update = () =>
+    setSignal(
+      'mic_off',
+      tracks.some((t) => t.muted || t.readyState === 'ended'),
+    )
+  for (const track of tracks) for (const type of TRACK_EVENTS) track.addEventListener(type, update)
+  update() // muted already when the exam starts
+  return () => {
+    for (const track of tracks) for (const type of TRACK_EVENTS) track.removeEventListener(type, update)
   }
 }

@@ -6,6 +6,7 @@ import { isVirtualCamera } from './devices'
 import { saveTier, tierFromTiming } from './device-tier'
 import { createSensors, requestCamera, type Sensors } from './sensors'
 import { DARK_BRIGHTNESS, OBJECTS_EVERY_MS } from './signals'
+import { median } from './stats'
 
 /** `blocked`: no permission or the device went away; `failed`: the analysis could not start here. */
 export type ProbeState = 'idle' | 'starting' | 'running' | 'blocked' | 'failed'
@@ -180,9 +181,4 @@ export function useDeviceProbe() {
     release()
   })
   return { state, denied, stream, faces, placed, facing, brightness, checks, ready, start }
-}
-
-function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b)
-  return sorted[Math.floor(sorted.length / 2)]!
 }

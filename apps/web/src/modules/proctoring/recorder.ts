@@ -10,7 +10,8 @@ export interface Recorder {
 }
 
 const CHUNK_MS = 10_000
-const MIME_CANDIDATES = ['video/webm;codecs=vp8,opus', 'video/webm']
+/** WebM where the browser has it; Safari (iPhone) records MP4. The server decodes both. */
+const MIME_CANDIDATES = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
 
 /**
  * Records the camera in 10 s chunks and hands each one over (the caller keeps the ring).
@@ -27,11 +28,7 @@ export function startRecorder(
   let current: { recorder: MediaRecorder; done: Promise<void> } | null = null
 
   function cycle() {
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: 150_000,
-      audioBitsPerSecond: 24_000,
-    })
+    const recorder = createRecorder(stream, mimeType)
     const parts: Blob[] = []
     const tStart = now()
     recorder.ondataavailable = (e) => e.data.size && parts.push(e.data)
@@ -55,5 +52,15 @@ export function startRecorder(
       if (current?.recorder.state === 'recording') current.recorder.stop()
       await current?.done
     },
+  }
+}
+
+/** A browser that refuses the requested format or bitrates (some Safari versions) records with its defaults. */
+function createRecorder(stream: MediaStream, mimeType: string | undefined) {
+  try {
+    return new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 150_000, audioBitsPerSecond: 24_000 })
+  } catch (error) {
+    console.warn('recording with the browser defaults', error)
+    return new MediaRecorder(stream)
   }
 }

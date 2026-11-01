@@ -1,6 +1,9 @@
 import type { DeviceTier, RiskLevel, SignalKind } from '@exam/contracts'
 import type { FrameReport } from './detectors'
 
+/** Turns a signal on or off; watchers report through it (proctor.ts). */
+export type SetSignal = (kind: SignalKind, on: boolean) => void
+
 /** Signals measured continuously from camera and microphone; the rest are browser events. */
 export type ObservedKind =
   'face_missing' | 'multiple_faces' | 'too_dark' | 'noise' | 'looking_away' | 'object_detected' | 'off_center'
@@ -121,8 +124,8 @@ export const HINTED: ReadonlySet<SignalKind> = new Set([
   'headphones',
 ])
 
-/** Browser signals: leaving the tab and pasting. Returns a function that stops watching. */
-export function watchBrowser(setSignal: (kind: SignalKind, on: boolean) => void) {
+/** Browser signals: leaving the tab, pasting or copying text, a second screen. Returns a stop function. */
+export function watchBrowser(setSignal: SetSignal) {
   // Away from the exam: its tab hidden, or another window or app in front while the tab stays visible.
   const away = () => setSignal('tab_hidden', document.visibilityState === 'hidden' || !document.hasFocus())
   // Clicking the browser's own controls blurs the page for a moment; only staying away counts.
@@ -157,23 +160,6 @@ export function watchBrowser(setSignal: (kind: SignalKind, on: boolean) => void)
     document.removeEventListener('paste', onPaste)
     document.removeEventListener('copy', onCopy)
     display.removeEventListener('change', onScreen)
-  }
-}
-
-/** A muted or disconnected microphone (the system's mute, an unplugged headset) is a signal of its own. */
-export function watchMicrophone(stream: MediaStream, setSignal: (kind: SignalKind, on: boolean) => void) {
-  const tracks = stream.getAudioTracks()
-  const update = () =>
-    setSignal(
-      'mic_off',
-      tracks.some((t) => t.muted || t.readyState === 'ended'),
-    )
-  for (const track of tracks)
-    for (const type of ['mute', 'unmute', 'ended']) track.addEventListener(type, update)
-  update() // muted already when the exam starts
-  return () => {
-    for (const track of tracks)
-      for (const type of ['mute', 'unmute', 'ended']) track.removeEventListener(type, update)
   }
 }
 

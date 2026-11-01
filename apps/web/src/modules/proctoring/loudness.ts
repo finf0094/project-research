@@ -1,3 +1,5 @@
+import { median } from './stats'
+
 /** How often the microphone is sampled, and how many samples make up "now" (one second). */
 const SAMPLE_MS = 50
 const WINDOW = 20
@@ -20,9 +22,4 @@ export function createLoudnessMeter(analyser: AnalyserNode) {
     level: () => median(recent),
     stop: () => clearInterval(timer),
   }
-}
-
-export function median(values: readonly number[]): number {
-  if (!values.length) return 0
-  return values.toSorted((a, b) => a - b)[Math.floor(values.length / 2)]!
 }

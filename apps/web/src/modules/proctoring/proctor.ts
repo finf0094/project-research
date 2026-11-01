@@ -3,7 +3,7 @@ import type { EventLog } from '@/modules/offline'
 import type { Pose } from './calibration'
 import { UNMEASURED, createTierWatch, lowerTier } from './device-tier'
 import { createEvidence } from './evidence'
-import { watchDevices } from './devices'
+import { watchDevices, watchMicrophone } from './devices'
 import { createHinter } from './hints'
 import { startRecorder, type Recorder } from './recorder'
 import { createSensors } from './sensors'
@@ -15,7 +15,6 @@ import {
   observeFrame,
   riskLevel,
   watchBrowser,
-  watchMicrophone,
   type ObservedKind,
 } from './signals'
 
@@ -81,7 +80,9 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
 
   // A pinned fragment goes up at once too: the server's models look at it during the exam.
   const evidence = createEvidence(attemptId, log, () => options.onSignal?.())
-  let recorder: Recorder
+  // Without a recorder (a browser that cannot record) the exam is still watched: the camera stays on,
+  // signals and hints work; the server marks the missing recording on its own.
+  let recorder: Recorder = { stop: async () => undefined }
   try {
     // Evidence runs everything through one queue, so a full-recording request always follows its chunk.
     recorder = startRecorder(stream, now, (chunk) => {
@@ -90,8 +91,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       if (recording === 'full') void evidence.request('full', chunk.tStart, chunk.tEnd)
     })
   } catch (error) {
-    sensors.dispose() // the recorder cannot run here: free the worker and audio already started
-    throw error
+    console.error('this browser cannot record the camera; watching without a recording', error)
   }
   void log.append('proctoring.mode', { tier })
 
@@ -182,9 +182,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
     void evidence.request('control', now(), now() + seconds * 1000)
   }
 
-  const unwatchBrowser = watchBrowser(setSignal)
-  const unwatchMicrophone = watchMicrophone(stream, setSignal)
-  const unwatchDevices = watchDevices(stream, setSignal)
+  const stops = [watchBrowser(setSignal), watchMicrophone(stream, setSignal), watchDevices(stream, setSignal)]
   void tick()
 
   return {
@@ -193,9 +191,7 @@ export async function startProctor(stream: MediaStream, options: ProctorOptions)
       stopped = true
       discarded = discard
       clearTimeout(timer)
-      unwatchBrowser()
-      unwatchMicrophone()
-      unwatchDevices()
+      for (const unwatch of stops) unwatch()
       await recorder.stop()
       if (!discard) await evidence.finish()
       sensors.dispose()

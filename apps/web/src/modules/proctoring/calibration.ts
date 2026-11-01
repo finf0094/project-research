@@ -1,3 +1,5 @@
+import { median, quantile } from './stats'
+
 export interface Pose {
   yaw: number
   pitch: number
@@ -21,7 +23,6 @@ export function savedBaseline(): Pose {
 
 export function saveBaseline(poses: Pose[]) {
   if (!poses.length) return
-  const median = (values: number[]) => values.toSorted((a, b) => a - b)[Math.floor(values.length / 2)]!
   try {
     localStorage.setItem(
       KEY,
@@ -37,8 +38,9 @@ const NOISE_KEY = 'exam.noiseFloor'
 /** The room's quiet level (microphone RMS) measured at preflight; null when it was not measured here. */
 export function savedNoiseFloor(): number | null {
   try {
-    const value = Number(localStorage.getItem(NOISE_KEY))
-    return localStorage.getItem(NOISE_KEY) !== null && Number.isFinite(value) && value > 0 ? value : null
+    const stored = localStorage.getItem(NOISE_KEY)
+    const value = Number(stored)
+    return stored !== null && Number.isFinite(value) && value > 0 ? value : null
   } catch {
     return null
   }
@@ -52,7 +54,7 @@ export function saveNoiseFloor(levels: number[]) {
   const heard = levels.filter((l) => l > 0)
   if (heard.length < 4) return
   try {
-    localStorage.setItem(NOISE_KEY, String(heard.toSorted((a, b) => a - b)[Math.floor(heard.length / 4)]))
+    localStorage.setItem(NOISE_KEY, String(quantile(heard, 0.25)))
   } catch {
     /* the default threshold is used */
   }
