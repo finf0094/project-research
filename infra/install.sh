@@ -8,13 +8,13 @@
 #   BRANCH        which branch to run (default feat/exam-platform)
 set -euo pipefail
 # The log holds the demo password: readable by root only.
-LOG=/var/log/exam-install.log
-touch $LOG && chmod 600 $LOG
-# Bounded: every run would add a build's output to it.
-tail -n 3000 $LOG >$LOG.tmp && cat $LOG.tmp >$LOG && rm -f $LOG.tmp
-exec > >(tee -a $LOG) 2>&1
 # One run at a time (a manual run waits for the updater's); update.sh already holds the lock.
 if [ -z "${EXAM_LOCKED:-}" ]; then exec 9>/var/lock/exam-install.lock && flock 9; fi
+LOG=/var/log/exam-install.log
+touch $LOG && chmod 600 $LOG
+# Bounded: every run would add a build's output to it. (umask: the copy is root's only, like the log.)
+(umask 077 && tail -n 3000 $LOG >$LOG.tmp && cat $LOG.tmp >$LOG && rm -f $LOG.tmp)
+exec > >(tee -a $LOG) 2>&1
 
 REPO=https://github.com/finf0094/project-research.git
 BRANCH=${BRANCH:-feat/exam-platform}
