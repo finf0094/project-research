@@ -20,9 +20,11 @@ export interface MarkerDraft {
   chunks: string[]
 }
 
-/** Signals that describe the environment, not behaviour; they explain the timeline but are never violations. */
-// A second screen or a muted microphone is shown on the timeline and left to the examiner, not scored:
-// a monitor left connected all exam would otherwise outweigh everything else.
+/**
+ * Signals that describe the environment, not behaviour; they explain the timeline but are never scored.
+ * A second screen or a muted microphone is left to the examiner: a monitor connected all exam would
+ * otherwise outweigh everything else.
+ */
 const CONTEXT_SIGNALS: ReadonlySet<SignalKind> = new Set(['too_dark', 'second_screen', 'mic_off'])
 
 /** Weight per minute of an open signal; the score only orders the review queue. */
