@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { atTime, daysBetween, monthGrid, monthTitle, onDay, sameDay, timeOf, weekdayDate, weekdayNames } from './calendar'
+import {
+  atTime,
+  daysBetween,
+  monthGrid,
+  monthTitle,
+  onDay,
+  sameDay,
+  timeOf,
+  weekdayDate,
+  weekdayNames,
+} from './calendar'
 
 describe('calendar', () => {
   it('lays a month out in six weeks starting on Monday', () => {

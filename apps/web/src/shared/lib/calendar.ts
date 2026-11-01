@@ -58,7 +58,8 @@ export function monthTitle(locale: string, year: number, month: number): string 
 
 /** "Monday, November 2" (long) or "Mon, November 2" (short), with Kazakh spelled by the app. */
 export function weekdayDate(locale: string, ms: number, weekday: 'long' | 'short'): string {
-  if (locale !== 'kk') return new Intl.DateTimeFormat(locale, { weekday, day: 'numeric', month: 'long' }).format(ms)
+  if (locale !== 'kk')
+    return new Intl.DateTimeFormat(locale, { weekday, day: 'numeric', month: 'long' }).format(ms)
   const d = new Date(ms)
   const names = weekday === 'long' ? KK_WEEKDAYS : KK_WEEKDAYS_SHORT
   return `${d.getDate()} ${KK_MONTHS[d.getMonth()]}, ${names[d.getDay()]}`

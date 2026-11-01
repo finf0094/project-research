@@ -38,7 +38,9 @@ export function sectionsFor(role: Role | null): Section[] {
 export const TABS = [
   ...new Set(
     (['student', 'examiner', 'admin'] as const).flatMap((r) =>
-      sectionsFor(r).filter((s) => s !== PROFILE).map((s) => s.to),
+      sectionsFor(r)
+        .filter((s) => s !== PROFILE)
+        .map((s) => s.to),
     ),
   ),
   PROFILE.to,

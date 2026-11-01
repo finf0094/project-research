@@ -9,7 +9,6 @@ export function formatDuration(ms: number): string {
   return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`
 }
 
-
 /** A countdown split for display: whole days apart, the rest as "23:12:17". */
 export function countdownParts(ms: number): { days: number; clock: string } {
   const total = Math.max(0, Math.floor(ms / 1000))
