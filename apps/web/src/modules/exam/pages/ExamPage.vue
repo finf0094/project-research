@@ -133,4 +133,27 @@ const last = computed(() => exam.current === exam.questions.length - 1)
     position: static;
   }
 }
+/*
+ * Phones: back and next stay at the thumb, on a frosted bar above the home indicator, as in an app;
+ * the answer scrolls under it.
+ */
+@media (width < 700px) {
+  .main {
+    padding: var(--space-4);
+  }
+  .pager {
+    position: sticky;
+    z-index: 5;
+    inset-block-end: 0;
+    margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+    padding: var(--space-3) var(--space-4) max(var(--space-3), env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    background: color-mix(in oklab, var(--surface) 86%, transparent);
+    backdrop-filter: blur(16px) saturate(1.5);
+    & > :last-child {
+      flex: 1;
+    }
+  }
+}
 </style>

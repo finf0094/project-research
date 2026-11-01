@@ -1,61 +1,19 @@
 <script setup lang="ts">
 import type { StudentExamListItem } from '@exam/contracts'
-import { computed, onMounted, onScopeDispose, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
-import { useAction } from '@/shared/lib/use-action'
 import { AppButton } from '@/shared/ui'
-import { listPackages } from '@/modules/offline'
-import { isNetworkError } from '@/shared/lib/http'
-import { useStored } from '@/shared/lib/stored'
-import { listExams } from '../api'
-import { preloadPackages } from '../preload'
-import FinishedList from '../components/FinishedList.vue'
 import HomeHero from '../components/HomeHero.vue'
 import UpcomingCard from '../components/UpcomingCard.vue'
 import { attemptPath } from '../paths'
+import { useStudentExams } from '../use-student-exams'
 
-/** The student's home: a greeting, the exam to take now, what comes next and what is done. */
+/** The student's home: a greeting, the exam to take now and what comes next (what is done: Results). */
 const router = useRouter()
 const auth = useAuthStore()
-const exams = ref<StudentExamListItem[] | null>(null)
-const load = useAction()
-const now = ref(Date.now())
-const clock = setInterval(() => (now.value = Date.now()), 1000)
-onScopeDispose(() => clearInterval(clock))
-// The last list is kept on the device: with no network the student still finds the exam and starts it
-// from its downloaded package. `ready`: exams that can start without network here.
-const userId = auth.user!.id // the route requires a signed-in student
-const cached = useStored<StudentExamListItem[] | null>(`exams:list:${userId}`, null)
-const fromCache = ref(false)
-const ready = ref(new Set<string>())
-const refresh = () =>
-  load.run(async () => {
-    try {
-      exams.value = await listExams()
-      cached.value = exams.value
-      fromCache.value = false
-      ready.value = await preloadPackages(userId, exams.value)
-    } catch (error) {
-      if (!isNetworkError(error) || !cached.value) throw error
-      exams.value = cached.value
-      fromCache.value = true
-      ready.value = new Set((await listPackages(userId)).map((p) => p.examId))
-    }
-  })
-onMounted(refresh)
-
+const { exams, load, now, fromCache, ready, refresh, open, upcoming, finished } = useStudentExams()
 const firstName = computed(() => auth.user?.name.split(' ')[0] ?? '')
-const running = (e: StudentExamListItem) => e.attempt && ['active', 'terminated'].includes(e.attempt.status)
-const open = computed(() =>
-  (exams.value ?? []).filter(
-    (e) => running(e) || (!e.attempt && e.opensAt <= now.value && now.value < e.closesAt),
-  ),
-)
-const upcoming = computed(() => (exams.value ?? []).filter((e) => !e.attempt && now.value < e.opensAt))
-const finished = computed(() =>
-  (exams.value ?? []).filter((e) => (e.attempt && !running(e)) || (!e.attempt && now.value >= e.closesAt)),
-)
 
 function go(exam: StudentExamListItem) {
   void router.push(exam.attempt ? attemptPath(exam.attempt.id, exam.mode) : `/exams/${exam.id}/preflight`)
@@ -87,7 +45,7 @@ function go(exam: StudentExamListItem) {
           @go="go(exam)"
         />
       </div>
-      <div v-if="upcoming.length || finished.length" class="grid stagger">
+      <div v-if="upcoming.length" class="grid stagger">
         <UpcomingCard
           v-for="exam in upcoming"
           :key="exam.id"
@@ -95,8 +53,10 @@ function go(exam: StudentExamListItem) {
           :now="now"
           :offline-ready="ready.has(exam.id)"
         />
-        <FinishedList v-if="finished.length" :exams="finished" />
       </div>
+      <RouterLink v-if="finished.length" to="/results" class="to-results press">
+        {{ $t('student.toResults', { n: finished.length }) }} →
+      </RouterLink>
       <p v-if="!exams.length" class="empty muted">{{ $t('student.empty') }}</p>
     </template>
   </main>
@@ -139,5 +99,9 @@ h1 {
 }
 .error {
   color: var(--danger);
+}
+.to-results {
+  justify-self: start;
+  font-weight: 600;
 }
 </style>

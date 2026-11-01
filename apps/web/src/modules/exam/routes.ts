@@ -24,6 +24,11 @@ export const examRoutes: RouteRecordRaw[] = [
     meta: { role: 'student', shell: 'student' },
   },
   {
+    path: '/results',
+    component: () => import('./pages/ResultsPage.vue'),
+    meta: { role: 'student', shell: 'student' },
+  },
+  {
     path: '/exams/:examId/preflight',
     component: () => import('./pages/PreflightPage.vue'),
     meta: { role: 'student' },

@@ -4,12 +4,13 @@ import { CheckCircle2, Clock } from 'lucide-vue-next'
 import { IconTile } from '@/shared/ui'
 
 /** Exams already taken: still being reviewed, or with a result to open. */
-defineProps<{ exams: StudentExamListItem[] }>()
+/** `titled`: the list names itself (on the home grid); the Results page has its own heading. */
+withDefaults(defineProps<{ exams: StudentExamListItem[]; titled?: boolean }>(), { titled: true })
 </script>
 
 <template>
   <section class="card">
-    <h2>{{ $t('student.finished') }}</h2>
+    <h2 v-if="titled">{{ $t('student.finished') }}</h2>
     <ul>
       <li v-for="exam in exams" :key="exam.id">
         <RouterLink v-if="exam.attempt?.resultReady" :to="`/attempts/${exam.attempt.id}/result`" class="row">

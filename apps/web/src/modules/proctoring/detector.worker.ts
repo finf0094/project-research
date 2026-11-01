@@ -15,8 +15,7 @@ export type WorkerRequest =
 
 /** `ok: false`: the models could not load, so no frame will ever be analysed. */
 export type WorkerResponse =
-  | { type: 'ready'; ok: boolean }
-  | { type: 'report'; id: number; report: FrameReport | null }
+  { type: 'ready'; ok: boolean } | { type: 'report'; id: number; report: FrameReport | null }
 
 declare const self: DedicatedWorkerGlobalScope
 const reply = (response: WorkerResponse) => self.postMessage(response)

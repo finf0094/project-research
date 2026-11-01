@@ -108,7 +108,10 @@ describe('mute while the page is hidden (iPhone in the background)', () => {
   function setup(watch: typeof watchMicrophone) {
     let visibility: DocumentVisibilityState = 'visible'
     vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
-    const track = Object.assign(new EventTarget(), { muted: false, readyState: 'live' as MediaStreamTrackState })
+    const track = Object.assign(new EventTarget(), {
+      muted: false,
+      readyState: 'live' as MediaStreamTrackState,
+    })
     const stream = { getAudioTracks: () => [track], getVideoTracks: () => [track] } as unknown as MediaStream
     const signals: string[] = []
     const stop = watch(stream, (kind, on) => signals.push(`${kind}:${on}`))

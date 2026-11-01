@@ -149,7 +149,7 @@ const short = computed(() => {
   .header {
     min-block-size: var(--exam-bar-height);
     position: sticky;
-    inset-block-start: var(--space-2);
+    inset-block-start: max(var(--space-2), env(safe-area-inset-top));
     z-index: 2;
     flex-wrap: nowrap;
     gap: var(--space-2);

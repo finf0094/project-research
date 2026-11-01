@@ -7,6 +7,48 @@
   .route {
     animation: rise var(--dur-slow) var(--ease) both;
   }
+  /*
+   * Phones move like a native app (nav-direction.ts sets html[data-nav]): a deeper page slides in from the
+   * right, going back from the left, a tab next door glides in from its side.
+   */
+  @media (width < 700px) {
+    html[data-nav='forward'] .route {
+      animation: from-right var(--dur-slow) var(--ease) both;
+    }
+    html[data-nav='back'] .route {
+      animation: from-left var(--dur-slow) var(--ease) both;
+    }
+    html[data-nav='tab-forward'] .route {
+      animation: tab-from-right var(--dur) var(--ease) both;
+    }
+    html[data-nav='tab-back'] .route {
+      animation: tab-from-left var(--dur) var(--ease) both;
+    }
+  }
+  @keyframes from-right {
+    from {
+      opacity: 0;
+      translate: 28% 0;
+    }
+  }
+  @keyframes from-left {
+    from {
+      opacity: 0;
+      translate: -28% 0;
+    }
+  }
+  @keyframes tab-from-right {
+    from {
+      opacity: 0;
+      translate: 24px 0;
+    }
+  }
+  @keyframes tab-from-left {
+    from {
+      opacity: 0;
+      translate: -24px 0;
+    }
+  }
 
   /* Children of .stagger rise one after another (cards, tiles, list rows). */
   .stagger > * {

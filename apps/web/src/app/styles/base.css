@@ -64,6 +64,26 @@
     color: var(--text-2);
   }
 
+  /* Touch: no grey flash on tap, no double-tap zoom delay; a page never bounces sideways. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* A page sliding in (motion.css) must not widen the page: mobile browsers would zoom out to fit it. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+  :is(a, button, input, select, textarea, label, summary, [role='button']) {
+    touch-action: manipulation;
+  }
+  /* Something pressed gives way under the finger, as in a native app. */
+  .press {
+    transition: scale var(--dur-fast) var(--ease);
+    &:active:not(:disabled) {
+      scale: 0.97;
+    }
+  }
+
   .visually-hidden {
     position: absolute;
     width: 1px;

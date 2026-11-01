@@ -1,41 +1,28 @@
 <script setup lang="ts">
-import { FileText, SlidersHorizontal, Users } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/modules/auth'
 import { AppLogo, LocaleSwitch } from '@/shared/ui'
+import { useSections } from './sections'
+import TabBar from './TabBar.vue'
 import UserMenu from './UserMenu.vue'
 
 /**
  * The examiner's and administrator's frame: a dark sidebar with the sections of their role, the page
- * beside it. On narrow screens the sidebar becomes a bar on top.
+ * beside it. Tablets: the sidebar becomes a bar on top. Phones: a slim top bar and the tab bar below.
  */
-const auth = useAuthStore()
-const route = useRoute()
-/** A section stays highlighted on its sub-pages (an exam, an attempt, the editor). */
-const inSection = (to: string) => route.path === to || route.path.startsWith(`${to}/`)
-const nav = computed(() =>
-  auth.role === 'admin'
-    ? [{ to: '/admin', label: 'app.nav.users', icon: Users }]
-    : [
-        { to: '/examiner', label: 'app.nav.exams', icon: FileText },
-        { to: '/calibration', label: 'app.nav.calibration', icon: SlidersHorizontal },
-      ],
-)
+const { sections, inSection } = useSections()
 </script>
 
 <template>
   <div class="shell">
     <div class="side">
       <RouterLink to="/" class="home" :aria-label="$t('app.home')"><AppLogo inverted /></RouterLink>
-      <nav :aria-label="$t('app.nav.label')">
+      <nav class="sections" :aria-label="$t('app.nav.label')">
         <RouterLink
-          v-for="item in nav"
+          v-for="item in sections.filter((s) => s.to !== '/profile')"
           :key="item.to"
           :to="item.to"
           class="item"
           :class="{ active: inSection(item.to) }"
-          :aria-current="route.path === item.to ? 'page' : inSection(item.to) ? 'true' : undefined"
+          :aria-current="inSection(item.to) ? 'page' : undefined"
         >
           <component :is="item.icon" :size="20" aria-hidden="true" />
           <span class="label">{{ $t(item.label) }}</span>
@@ -47,6 +34,7 @@ const nav = computed(() =>
       </div>
     </div>
     <div class="content"><slot /></div>
+    <TabBar />
   </div>
 </template>
 
@@ -75,7 +63,7 @@ const nav = computed(() =>
   color: inherit;
   text-decoration: none;
 }
-nav {
+.sections {
   display: grid;
   gap: var(--space-2);
 }
@@ -128,7 +116,7 @@ nav {
     block-size: auto;
     padding: var(--space-3);
   }
-  nav {
+  .sections {
     grid-column: 1 / -1;
     grid-row: 2;
     display: flex;
@@ -148,6 +136,20 @@ nav {
   }
   .content {
     padding-block: 0 var(--space-12);
+  }
+}
+/* Phones: the sections, language and account move to the tab bar; the top keeps just the logo. */
+@media (width < 700px) {
+  .shell {
+    padding-block: max(var(--space-3), env(safe-area-inset-top))
+      calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  }
+  .sections,
+  .foot {
+    display: none;
+  }
+  .side {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

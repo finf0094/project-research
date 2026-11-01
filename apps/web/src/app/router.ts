@@ -12,8 +12,11 @@ declare module 'vue-router' {
     public?: boolean
     /** Only this role may open the page. */
     role?: Role
-    /** The frame around the page: the student's top bar or the staff sidebar; none for full-screen pages. */
-    shell?: 'student' | 'staff'
+    /**
+     * The frame around the page: the student's top bar or the staff sidebar; `auto` picks by the role
+     * (pages everyone has, like the profile); none for full-screen pages.
+     */
+    shell?: 'student' | 'staff' | 'auto'
   }
 }
 
@@ -25,6 +28,7 @@ export const router = createRouter({
     ...reviewRoutes,
     ...authoringRoutes,
     ...adminRoutes,
+    { path: '/profile', component: () => import('./ProfilePage.vue'), meta: { shell: 'auto' } },
     { path: '/', redirect: () => homeFor(useAuthStore().role) },
     { path: '/:pathMatch(.*)*', component: () => import('./NotFoundPage.vue'), meta: { public: true } },
   ],

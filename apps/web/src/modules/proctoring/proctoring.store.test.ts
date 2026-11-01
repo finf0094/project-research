@@ -24,7 +24,10 @@ const { useProctoringStore } = await import('./proctoring.store')
 
 function fakeMedia() {
   const track = Object.assign(new EventTarget(), { stop: vi.fn() })
-  return { media: { getTracks: () => [track], getVideoTracks: () => [track] } as unknown as MediaStream, track }
+  return {
+    media: { getTracks: () => [track], getVideoTracks: () => [track] } as unknown as MediaStream,
+    track,
+  }
 }
 
 function fakeLog() {

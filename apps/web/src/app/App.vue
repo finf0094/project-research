@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
+import { useAuthStore } from '@/modules/auth'
 import StaffShell from './shell/StaffShell.vue'
 import StudentShell from './shell/StudentShell.vue'
 
 /** Each route says which frame it lives in; full-screen pages (exam, sign-in) have none. */
-const shellOf = (route: RouteLocationNormalizedLoaded) =>
-  route.meta.shell === 'staff' ? StaffShell : route.meta.shell === 'student' ? StudentShell : 'div'
+const auth = useAuthStore()
+function shellOf(route: RouteLocationNormalizedLoaded) {
+  const shell =
+    route.meta.shell === 'auto' ? (auth.role === 'student' ? 'student' : 'staff') : route.meta.shell
+  return shell === 'staff' ? StaffShell : shell === 'student' ? StudentShell : 'div'
+}
 
 /**
  * A new page (a different top-level route or parameters) is mounted afresh and rises in; tabs of the same

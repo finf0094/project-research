@@ -3,7 +3,14 @@ import { defineMessages } from '@/shared/i18n'
 export const appMessages = defineMessages({
   ru: {
     app: {
-      nav: { label: 'Разделы', exams: 'Экзамены', calibration: 'Калибровка', users: 'Пользователи' },
+      nav: {
+        label: 'Разделы',
+        exams: 'Экзамены',
+        results: 'Результаты',
+        calibration: 'Калибровка',
+        users: 'Пользователи',
+        profile: 'Профиль',
+      },
       account: 'Учётная запись: {name}',
       home: 'На главную',
       logout: 'Выйти',
@@ -13,7 +20,14 @@ export const appMessages = defineMessages({
   },
   kk: {
     app: {
-      nav: { label: 'Бөлімдер', exams: 'Емтихандар', calibration: 'Калибрлеу', users: 'Пайдаланушылар' },
+      nav: {
+        label: 'Бөлімдер',
+        exams: 'Емтихандар',
+        results: 'Нәтижелер',
+        calibration: 'Калибрлеу',
+        users: 'Пайдаланушылар',
+        profile: 'Профиль',
+      },
       account: 'Есептік жазба: {name}',
       home: 'Басты бетке',
       logout: 'Шығу',
@@ -23,7 +37,14 @@ export const appMessages = defineMessages({
   },
   en: {
     app: {
-      nav: { label: 'Sections', exams: 'Exams', calibration: 'Calibration', users: 'Users' },
+      nav: {
+        label: 'Sections',
+        exams: 'Exams',
+        results: 'Results',
+        calibration: 'Calibration',
+        users: 'Users',
+        profile: 'Profile',
+      },
       account: 'Account: {name}',
       home: 'Home',
       logout: 'Sign out',

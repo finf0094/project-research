@@ -6,6 +6,7 @@ import { createApp } from 'vue'
 import { useAuthStore } from '@/modules/auth'
 import App from './App.vue'
 import { i18n } from './i18n'
+import { trackNavDirection } from './nav-direction'
 import { router } from './router'
 
 const app = createApp(App).use(createPinia()).use(i18n)
@@ -14,4 +15,5 @@ const auth = useAuthStore()
 // without one there is nothing to show before the server answers.
 if (auth.user) void auth.refresh()
 else await auth.refresh()
+trackNavDirection(router)
 app.use(router).mount('#app')
