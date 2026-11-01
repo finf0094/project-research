@@ -35,7 +35,7 @@ async function tick() {
   while (!stopping && (await analyzeNext(deps))) {
     /* drain the ready attempts */
   }
-  while (!stopping && (await mergeNextAudio(deps))) {
+  while (!stopping && (await mergeNextAudio(deps, halt.signal))) {
     /* merge the analysed oral answers */
   }
   if (!stopping && Date.now() - lastRetention > RETENTION_EVERY_MS) {
@@ -46,8 +46,11 @@ async function tick() {
 }
 
 // The drain loops check `stopping` before every job, so a stop lets the current job finish and then exits.
+// A long audio merge is interrupted instead (it would outlast the grace period); it gives its try back.
+const halt = new AbortController()
 const stop = () => {
   stopping = true
+  halt.abort()
   wake()
 }
 process.once('SIGTERM', stop)

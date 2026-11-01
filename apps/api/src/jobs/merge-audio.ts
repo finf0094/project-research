@@ -26,16 +26,24 @@ const GAP_MS = 500
  * said while the call was down. Gaps between chunks stay as silence, so a position in the file matches the
  * clock. Unreadable chunks are skipped; a failed run is retried a few times. False when there is nothing to do.
  */
-export async function mergeNextAudio(deps: Deps): Promise<boolean> {
+export async function mergeNextAudio(deps: Deps, signal?: AbortSignal): Promise<boolean> {
   const attempt = await claimNext(deps)
   if (!attempt) return false
   try {
-    const audioHash = await merge(deps, attempt.id)
+    const audioHash = await merge(deps, attempt.id, signal)
     await deps.db
       .update(attempts)
       .set({ audioHash, audioMergedAt: new Date(deps.now()), audioClaimedAt: null })
       .where(eq(attempts.id, attempt.id))
   } catch (error) {
+    // The worker is stopping (a deploy): not a failed try. The claim and the try are given back.
+    if (signal?.aborted) {
+      await deps.db
+        .update(attempts)
+        .set({ audioClaimedAt: null, audioTries: sql`${attempts.audioTries} - 1` })
+        .where(eq(attempts.id, attempt.id))
+      return false
+    }
     console.error(`audio of attempt ${attempt.id} could not be merged`, error)
     // The claim stays as the pause before the next try (a fixed lease); after the last try it is released,
     // so the examiner sees "failed" at once instead of "pending".
@@ -80,7 +88,11 @@ async function claimNext({ db, now }: Deps) {
 /** A long merge renews its claim this often, so no other worker takes it over while it runs. */
 const RENEW_EVERY_MS = 5 * 60_000
 
-async function merge({ db, storage, now }: Deps, attemptId: string): Promise<string | null> {
+async function merge(
+  { db, storage, now }: Deps,
+  attemptId: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
   const chunks = await chunksInOrder(db, attemptId)
   let renewedAt = now()
   const renew = async () => {
@@ -99,6 +111,7 @@ async function merge({ db, storage, now }: Deps, attemptId: string): Promise<str
     const room = () => Math.max(0, MAX_AUDIO_BYTES - size)
     for (const { hash, start } of chunks) {
       if (!room()) break
+      signal?.throwIfAborted()
       await renew()
       const chunk = await storage.get(blobKey(attemptId, hash))
       const sound = chunk ? await decodeAudio(chunk) : null
@@ -113,7 +126,7 @@ async function merge({ db, storage, now }: Deps, attemptId: string): Promise<str
     }
     renewedAt = 0 // the encode (bounded well below the lease) starts on a fresh claim
     await renew()
-  })
+  }, signal)
   if (!audio) return null
   const hash = createHash('sha256').update(audio).digest('hex')
   await storage.put(blobKey(attemptId, hash), audio)

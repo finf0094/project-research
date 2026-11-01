@@ -58,7 +58,10 @@ export async function appendSilence(append: (pcm: Buffer) => Promise<void>, ms: 
  * browser plays. The PCM goes to a temporary file, and the result to a file, not a pipe, so it gets its
  * duration and seek index: a long answer can be scrubbed. Null when `write` wrote nothing.
  */
-export async function encodeOpus(write: (append: (pcm: Buffer) => Promise<void>) => Promise<void>) {
+export async function encodeOpus(
+  write: (append: (pcm: Buffer) => Promise<void>) => Promise<void>,
+  signal?: AbortSignal,
+) {
   const dir = await mkdtemp(join(tmpdir(), 'exam-audio-'))
   try {
     const pcm = join(dir, 'answer.pcm')
@@ -77,7 +80,7 @@ export async function encodeOpus(write: (append: (pcm: Buffer) => Promise<void>)
     await ffmpeg(
       ['-c:a', 'libopus', '-b:a', '32k', '-f', 'webm'],
       createReadStream(pcm),
-      { maxBytes: 1, timeoutMs: ENCODE_TIMEOUT_MS },
+      { maxBytes: 1, timeoutMs: ENCODE_TIMEOUT_MS, signal },
       ['-f', 's16le', '-ar', String(RATE), '-ac', '1'],
       out,
     )

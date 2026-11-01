@@ -114,7 +114,7 @@ circle {
   stroke-dashoffset: var(--to);
   animation: fill 1.1s var(--ease) both;
   &.fail {
-    stroke: #f2a46b;
+    stroke: var(--fail);
   }
 }
 @keyframes fill {

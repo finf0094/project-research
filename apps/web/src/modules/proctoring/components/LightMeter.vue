@@ -43,7 +43,7 @@ const level = computed(() =>
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius);
-  background: rgb(14 14 28 / 0.72);
+  background: var(--scrim-strong);
   backdrop-filter: blur(8px);
   color: var(--on-ink);
   font-size: var(--text-xs);

@@ -1,6 +1,12 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { deletePackage, getPackage, type LocalAttempt, type StoredPackage } from '@/modules/offline'
+import {
+  deletePackage,
+  findOfflineStart,
+  getPackage,
+  type LocalAttempt,
+  type StoredPackage,
+} from '@/modules/offline'
 import { isNetworkError } from '@/shared/lib/http'
 import { useAction } from '@/shared/lib/use-action'
 import { beginAttempt } from './local-attempt'
@@ -15,12 +21,17 @@ export function useExamStart(examId: string, userId: string) {
   const router = useRouter()
   const starting = useAction({ 409: 'exam.preflight.notOpen' as const })
   const unlocking = ref(false)
-  const codeError = ref<'exam.offlineStart.wrongCode' | null>(null)
+  const codeError = ref<'exam.offlineStart.wrongCode' | 'common.error.generic' | null>(null)
   const pkg = ref<StoredPackage | null>(null)
   const offline = ref(false)
-  onMounted(async () => (pkg.value = (await getPackage(userId, examId)) ?? null))
-
   const open = (attempt: LocalAttempt) => router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
+
+  onMounted(async () => {
+    // Started offline earlier (the package is gone by then): go back into it, never start it again.
+    const resumed = await findOfflineStart(userId, examId)
+    if (resumed) return void open(resumed)
+    pkg.value = (await getPackage(userId, examId)) ?? null
+  })
 
   const start = () =>
     starting.run(async () => {
@@ -43,7 +54,11 @@ export function useExamStart(examId: string, userId: string) {
       await open(await startOffline(pkg.value, code))
     } catch (error) {
       if (error instanceof WrongStartCode) codeError.value = 'exam.offlineStart.wrongCode'
-      else throw error
+      else {
+        // Anything else (the device refused to store it): said, not swallowed by the click.
+        console.error('offline start failed', error)
+        codeError.value = 'common.error.generic'
+      }
     } finally {
       unlocking.value = false
     }

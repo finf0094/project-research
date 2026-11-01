@@ -75,6 +75,8 @@ export function useDeviceProbe() {
     let started: Sensors
     try {
       started = await createSensors(media, 'full', { yaw: 0, pitch: 0 })
+      // A detector that could not load (a stale file after an update) is a failure here, not "no face".
+      if (started.dead()) throw (started.dispose(), new Error('the detectors did not load'))
     } catch (error) {
       console.error('camera analysis did not start', error)
       if (mine !== run) return
@@ -115,6 +117,7 @@ export function useDeviceProbe() {
       .analyze(withObjects)
       .catch(() => null)
       .finally(() => (measuring = false))
+    if (sensors?.dead() && state.value === 'running') return void ((state.value = 'failed'), release())
     if (!frame || disposed || state.value !== 'running') return
     timings.push(frame.ms)
     if (timings.length >= 6) saveTier(tierFromTiming(median(timings.slice(-6))))

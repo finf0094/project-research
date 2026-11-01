@@ -12,6 +12,13 @@ import {
 // The only way other modules touch local data: plain functions over the tables, no Dexie leaking out.
 
 export const getAttempt = (id: string) => db.attempts.get(id)
+/** An attempt this user started offline for this exam and has not finished: reopened, not started again. */
+export const findOfflineStart = (userId: string, examId: string) =>
+  db.attempts
+    .filter(
+      (a) => a.status === 'active' && a.offlineStart?.examId === examId && a.offlineStart.userId === userId,
+    )
+    .first()
 
 export async function saveAttempt(attempt: LocalAttempt, answers: Record<string, AnswerValue>) {
   await db.transaction('rw', db.attempts, db.answers, async () => {

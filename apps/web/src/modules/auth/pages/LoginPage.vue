@@ -14,7 +14,7 @@ const route = useRoute()
 const email = ref('')
 const password = ref('')
 /** A message key, so the text follows a language switch. */
-const error = ref<'auth.badCredentials' | 'auth.offline' | null>(null)
+const error = ref<'auth.badCredentials' | 'auth.tooMany' | 'auth.offline' | null>(null)
 const loading = ref(false)
 
 async function submit() {
@@ -27,7 +27,8 @@ async function submit() {
       typeof route.query.next === 'string' && /^\/(?!\/)/.test(route.query.next) ? route.query.next : null
     await router.replace(next ?? homeFor(auth.role))
   } catch (e) {
-    error.value = e instanceof ApiError && e.status === 401 ? 'auth.badCredentials' : 'auth.offline'
+    const status = e instanceof ApiError ? e.status : 0
+    error.value = status === 401 ? 'auth.badCredentials' : status === 429 ? 'auth.tooMany' : 'auth.offline'
   } finally {
     loading.value = false
   }

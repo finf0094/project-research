@@ -9,7 +9,7 @@ import type { Readable } from 'node:stream'
 export function ffmpeg(
   args: string[],
   input: Buffer | Readable,
-  limits: { maxBytes: number; timeoutMs: number },
+  limits: { maxBytes: number; timeoutMs: number; signal?: AbortSignal },
   inputArgs: string[] = [],
   /** Where the output goes: stdout by default; a file path when the format needs a seekable output. */
   output = 'pipe:1',
@@ -36,6 +36,7 @@ export function ffmpeg(
       reject(error)
     }
     const timer = setTimeout(() => fail(new FfmpegTimeout()), limits.timeoutMs)
+    limits.signal?.addEventListener('abort', () => fail(new Error('stopped')), { once: true })
     child.stdout.on('data', (d: Buffer) => {
       size += d.length
       if (size > limits.maxBytes) return fail(new Error('ffmpeg output too large'))

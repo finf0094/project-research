@@ -36,11 +36,15 @@ onMounted(() =>
 function end() {
   ending.value = false
   return action.run(async () => {
-    await sendCommand(attemptId, { type: 'terminate' })
-    await call.leave()
-    camera.stop()
-    local.value = null
-    detail.value = await getAttempt(attemptId)
+    try {
+      await sendCommand(attemptId, { type: 'terminate' })
+    } finally {
+      // Ended either way (also when the student had already finished and the command is refused).
+      await call.leave()
+      camera.stop()
+      local.value = null
+      detail.value = await getAttempt(attemptId)
+    }
   })
 }
 </script>

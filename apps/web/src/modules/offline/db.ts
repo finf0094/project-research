@@ -27,7 +27,8 @@ export interface LocalAttempt {
   /** Set once answers are locked; submission completes as soon as the network allows. */
   endedBy: EndReason | null
   /** Begun without network from a downloaded package: the server hears of it at the first sync. */
-  offlineStart?: { examId: string; startedAt: number } | null
+  /** `userId`: whose package started it, so a shared device resumes it only for them. */
+  offlineStart?: { examId: string; startedAt: number; userId?: string } | null
   /** Signals not watched for this student (an individual exception, section 25.3). */
   disabledSignals?: SignalKind[]
 }

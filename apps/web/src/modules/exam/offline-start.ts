@@ -29,7 +29,7 @@ export async function startOffline(pkg: StoredPackage, code: string): Promise<Lo
     status: 'active',
     clockOffset: pkg.clockOffset,
     endedBy: null,
-    offlineStart: { examId: pkg.examId, startedAt: now },
+    offlineStart: { examId: pkg.examId, userId: pkg.userId, startedAt: now },
     // A plain copy: the package may come from a reactive ref, and IndexedDB cannot store a proxy.
     disabledSignals: [...pkg.disabledSignals],
   }

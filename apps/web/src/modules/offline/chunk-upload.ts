@@ -1,5 +1,5 @@
 import Dexie from 'dexie'
-import { isNetworkError, upload } from '@/shared/lib/http'
+import { ApiError, isNetworkError, upload } from '@/shared/lib/http'
 import { db } from './db'
 
 /** A few chunks per sync tick, so uploads never hold back answers for long. */
@@ -20,9 +20,12 @@ export async function uploadChunks(attemptId: string, signal: AbortSignal, runni
     try {
       await upload(`/attempts/${attemptId}/chunks/${chunk.hash}`, chunk.blob, signal)
     } catch (error) {
-      if (isNetworkError(error) || !running()) return
+      // No network, or no session (it expired; the student signs in again): the chunk waits, not lost.
+      if (isNetworkError(error) || isSignedOut(error) || !running()) return
       console.error('chunk refused, dropping it', chunk.hash, error)
     }
     await db.chunks.delete([attemptId, chunk.hash])
   }
 }
+
+const isSignedOut = (error: unknown) => error instanceof ApiError && [401, 403].includes(error.status)

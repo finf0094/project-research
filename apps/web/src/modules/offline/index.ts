@@ -7,6 +7,7 @@ export {
   countChunks,
   deletePackage,
   deletePin,
+  findOfflineStart,
   getAttempt,
   getPackage,
   listPackages,

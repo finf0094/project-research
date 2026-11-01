@@ -19,6 +19,8 @@
     --on-ink-2: rgb(255 255 255 / 0.72);
     /* Light layers on ink (and on video): a faint fill, a stronger one, a dashed outline, a bright edge. */
     --on-ink-tint: rgb(255 255 255 / 0.08);
+    /* A dark veil over video, so text on it stays readable. */
+    --scrim-strong: rgb(14 14 28 / 0.72);
     --on-ink-tint-2: rgb(255 255 255 / 0.12);
     --on-ink-tint-3: rgb(255 255 255 / 0.2);
     --on-ink-line: rgb(255 255 255 / 0.14);

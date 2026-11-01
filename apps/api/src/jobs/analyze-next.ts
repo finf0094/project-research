@@ -12,14 +12,11 @@ import { buildMarkers, riskScore } from './analysis.ts'
 
 /** A claim older than this belongs to a worker that died; another worker may take the attempt. */
 const CLAIM_LEASE_MS = 15 * 60_000
-
 /**
- * Analyzes one submitted attempt whose fragments have all arrived (or whose upload window is over):
- * rebuilds the final answers, turns the log into markers and scores the risk.
- * Three short steps, so the slow part never holds a lock: claim the attempt (SKIP LOCKED lets several
- * workers run side by side), run the server's models on its recordings without a transaction, then write
- * the results under the row lock. If analysis fails, the attempt still goes to review (without a score),
- * so one bad attempt can never block the queue. Returns false when there is nothing to do.
+ * Analyzes one submitted attempt whose fragments have all arrived (or whose upload window is over): final
+ * answers, markers, risk score. Claim it (SKIP LOCKED: workers side by side), run the models with no
+ * transaction, write the results under the row lock. A failed analysis still sends the attempt to review
+ * (without a score), so one bad attempt never blocks the queue. False when there is nothing to do.
  */
 export async function analyzeNext(deps: Deps): Promise<boolean> {
   const attempt = await claimNext(deps)
@@ -33,8 +30,7 @@ export async function analyzeNext(deps: Deps): Promise<boolean> {
       // Keeps the claim alive while a long recording is analyzed, so no second worker takes it.
       () => renewClaim(deps, attempt.id),
     )
-    // The examiner's past decisions weigh the kinds (section 25.4); read before the row lock, not under it.
-    // They only refine the score, so a failed read scores with neutral factors instead of failing again.
+    // The examiner's past decisions weigh the kinds (25.4), read outside the lock; a failed read is neutral.
     const [owner] = await deps.db
       .select({ id: exams.ownerId })
       .from(exams)
@@ -96,12 +92,16 @@ async function claimNext({ db, config, now }: Deps) {
   })
 }
 
-async function renewClaim({ db, now }: Deps, attemptId: string) {
-  await db
+// A missed renewal only risks a second worker later: it must never throw away the findings so far.
+const renewClaim = ({ db, now }: Deps, attemptId: string) =>
+  db
     .update(attempts)
     .set({ analysisClaimedAt: new Date(now()) })
     .where(eq(attempts.id, attemptId))
-}
+    .then(
+      () => undefined,
+      (error: unknown) => console.error(`could not renew the analysis claim of ${attemptId}`, error),
+    )
 
 /** `partial` when some uploaded chunk was not looked at (undecodable, or uploaded while the models ran). */
 function analysisStatus(report: RecordingsReport, uploaded: ReadonlySet<string>): ServerAnalysis {

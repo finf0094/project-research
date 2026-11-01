@@ -7,7 +7,8 @@ type QuestionRow = Pick<typeof questions.$inferSelect, 'type' | 'correct' | 'poi
 export function autoScore(question: QuestionRow, value: AnswerValue | null): number | null {
   if (question.type === 'text') return null
   if (value === null) return 0
-  const given = Array.isArray(value) ? value : [value]
+  // Each option once: ["a", "a"] must not pass for {a, b}.
+  const given = [...new Set(Array.isArray(value) ? value : [value])]
   const correct = new Set(question.correct)
   const exact = given.length === correct.size && given.every((id) => correct.has(id))
   return exact ? question.points : 0
