@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { CameraStage, useDeviceProbe } from '@/modules/proctoring'
 import { AppButton, LocaleSwitch } from '@/shared/ui'
 import { listExams } from '../api'
+import CameraHelp from '../components/CameraHelp.vue'
 import CheckCard from '../components/CheckCard.vue'
 import DataConsent from '../components/DataConsent.vue'
 import PreflightSteps from '../components/PreflightSteps.vue'
@@ -34,6 +35,14 @@ onMounted(() => {
     .catch(() => {})
 })
 
+/** The heading follows the state: getting ready, something to fix, or all set. */
+const heading = computed(() =>
+  ready.value
+    ? 'ready'
+    : checks.value.some((c) => c.status === 'bad' && c.id !== 'online')
+      ? 'fix'
+      : 'prepare',
+)
 const step = computed(() => (!ready.value ? 0 : !consent.value ? 1 : 2))
 const startLabel = computed(
   () => ['exam.preflight.needChecks', 'exam.preflight.needConsent', 'exam.preflight.start'][step.value]!,
@@ -54,7 +63,9 @@ const startLabel = computed(
       <PreflightSteps :current="step" class="steps" />
       <LocaleSwitch />
     </header>
-    <h1>{{ $t('exam.preflight.title') }}</h1>
+    <Transition name="rise" mode="out-in">
+      <h1 :key="heading">{{ $t(`exam.preflight.titles.${heading}`) }}</h1>
+    </Transition>
 
     <div class="grid">
       <CameraStage
@@ -85,7 +96,8 @@ const startLabel = computed(
         >
         <p v-if="starting.error.value" class="error" role="alert">{{ $t(starting.error.value) }}</p>
       </div>
-      <p class="timer"><Timer :size="18" aria-hidden="true" /> {{ $t('exam.preflight.timerHint') }}</p>
+      <CameraHelp v-if="probe.state.value === 'blocked'" class="help" @retry="probe.start" />
+      <p v-else class="timer"><Timer :size="18" aria-hidden="true" /> {{ $t('exam.preflight.timerHint') }}</p>
       <DataConsent v-model="consent" class="data" />
     </div>
   </main>
@@ -134,7 +146,8 @@ h1 {
 .camera {
   grid-area: camera;
 }
-.timer {
+.timer,
+.help {
   grid-area: timer;
 }
 .data {

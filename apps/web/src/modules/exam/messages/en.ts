@@ -102,7 +102,19 @@ export const en: typeof ru = {
       wrongCode: 'The code does not fit. Check the letters and digits or ask your examiner.',
       ready: 'Can start without network',
     },
+    cameraHelp: {
+      title: 'Allow the camera',
+      text: 'The browser did not let the camera start. This takes a minute to fix:',
+      camera: 'Camera',
+      allowWord: 'Allow',
+      steps: {
+        lock: 'Click the lock icon to the left of the site address.',
+        allow: 'Find “Camera” and “Microphone” and choose “Allow”.',
+        retry: 'Click “Check again”.',
+      },
+    },
     preflight: {
+      titles: { prepare: 'Let’s get ready for the exam', fix: 'A few things to fix', ready: 'All set' },
       needChecks: 'Pass the check first',
       needConsent: 'Confirm your consent',
       steps: { label: 'Preparation steps', check: 'Check', consent: 'Consent', start: 'Start' },

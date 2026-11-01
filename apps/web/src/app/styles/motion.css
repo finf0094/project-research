@@ -39,6 +39,17 @@
     }
   }
 
+  /* <Transition name="rise">: what replaces something rises in; what leaves just fades. */
+  .rise-enter-active {
+    animation: rise var(--dur) var(--ease) both;
+  }
+  .rise-leave-active {
+    transition: opacity var(--dur-fast) var(--ease);
+  }
+  .rise-leave-to {
+    opacity: 0;
+  }
+
   /* A live status (online, recording, running exam): a soft ring that keeps breathing. */
   .live {
     position: relative;
