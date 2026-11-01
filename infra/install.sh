@@ -25,7 +25,11 @@ fi
 command -v git >/dev/null || { apt-get update && apt-get install -y git; }
 # Docker's own script first; a release it does not know yet gets Ubuntu's own packages instead.
 if ! command -v docker >/dev/null; then
-  curl -fsSL https://get.docker.com | sh || { apt-get update && apt-get install -y docker.io docker-compose-v2; }
+  # Its half-added repository for the unknown release would break apt-get update: it goes first.
+  curl -fsSL https://get.docker.com | sh || {
+    rm -f /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/docker.sources
+    apt-get update && apt-get install -y docker.io docker-compose-v2 docker-buildx
+  }
 fi
 
 if [ -d "$DIR/.git" ]; then git -C "$DIR" pull --ff-only; else git clone -b "$BRANCH" "$REPO" "$DIR"; fi
