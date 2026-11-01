@@ -9,8 +9,8 @@ import {
   MAX_AUDIO_BYTES,
   MAX_AUDIO_TRIES,
   decodeAudio,
+  appendSilence,
   encodeOpus,
-  silence,
 } from '../media/audio.ts'
 import { blobKey } from '../shared/storage.ts'
 
@@ -40,7 +40,11 @@ export async function mergeNextAudio(deps: Deps): Promise<boolean> {
     // The claim stays as the pause before the next try (a fixed lease); after the last try it is released,
     // so the examiner sees "failed" at once instead of "pending".
     if (attempt.audioTries + 1 >= MAX_AUDIO_TRIES)
-      await deps.db.update(attempts).set({ audioClaimedAt: null }).where(eq(attempts.id, attempt.id))
+      await deps.db
+        .update(attempts)
+        .set({ audioClaimedAt: null })
+        .where(eq(attempts.id, attempt.id))
+        .catch((e: unknown) => console.error('could not release the audio claim', e)) // the lease ends it
   }
   return true
 }
@@ -74,26 +78,26 @@ async function claimNext({ db, now }: Deps) {
 }
 
 async function merge({ db, storage }: Deps, attemptId: string): Promise<string | null> {
-  const parts: Buffer[] = []
-  let size = 0
-  let endsAt: number | null = null // when the sound so far ends, on the recording's clock
-  for (const { hash, start } of await chunksInOrder(db, attemptId)) {
-    if (size >= MAX_AUDIO_BYTES) break // the rest would be cut anyway: do not hold it in memory
-    const chunk = await storage.get(blobKey(attemptId, hash))
-    const sound = chunk ? await decodeAudio(chunk) : null
-    if (!sound?.length) continue
-    // Silence and sound both count towards the cap, so memory stays bounded whatever the gaps.
-    if (endsAt !== null && start - endsAt > GAP_MS) {
-      const gap = silence(Math.min(start - endsAt, ((MAX_AUDIO_BYTES - size) / BYTES_PER_SECOND) * 1000))
-      parts.push(gap)
-      size += gap.length
+  const chunks = await chunksInOrder(db, attemptId)
+  const audio = await encodeOpus(async (append) => {
+    let size = 0
+    let endsAt: number | null = null // when the sound so far ends, on the recording's clock
+    const room = () => Math.max(0, MAX_AUDIO_BYTES - size)
+    for (const { hash, start } of chunks) {
+      if (!room()) break
+      const chunk = await storage.get(blobKey(attemptId, hash))
+      const sound = chunk ? await decodeAudio(chunk) : null
+      if (!sound?.length) continue
+      if (endsAt !== null && start - endsAt > GAP_MS) {
+        size += await appendSilence(append, Math.min(start - endsAt, (room() / BYTES_PER_SECOND) * 1000))
+      }
+      const piece = sound.subarray(0, room())
+      await append(piece)
+      size += piece.length
+      endsAt = start + (sound.length / BYTES_PER_SECOND) * 1000
     }
-    parts.push(sound.subarray(0, Math.max(0, MAX_AUDIO_BYTES - size)))
-    size += Math.min(sound.length, Math.max(0, MAX_AUDIO_BYTES - size))
-    endsAt = start + (sound.length / BYTES_PER_SECOND) * 1000
-  }
-  if (!size) return null
-  const audio = await encodeOpus(Buffer.concat(parts))
+  })
+  if (!audio) return null
   const hash = createHash('sha256').update(audio).digest('hex')
   await storage.put(blobKey(attemptId, hash), audio)
   await db

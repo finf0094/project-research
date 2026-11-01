@@ -12,14 +12,14 @@ export const authRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, { de
     '/auth/login',
     {
       schema: { body: LoginBody, response: { 200: User } },
-      // Per address and account: guessing one password is slowed, a room behind one address is not.
-      config: {
-        rateLimit: {
-          max: 10,
-          timeWindow: '1 minute',
-          keyGenerator: (request) => `${request.ip}|${(request.body as { email?: unknown } | null)?.email}`,
-        },
-      },
+      // Per address, loose: a classroom behind one address signs in at once, password spraying is slowed.
+      config: { rateLimit: { max: 300, timeWindow: '1 minute' } },
+      // Per account, tight, from any address: guessing one student's password is slowed.
+      preHandler: app.rateLimit({
+        max: 10,
+        timeWindow: '1 minute',
+        keyGenerator: (request) => `login:${(request.body as LoginBody).email.toLowerCase()}`,
+      }),
     },
     async (request, reply) => {
       const result = await login(

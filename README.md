@@ -115,7 +115,8 @@ Deliberate simplifications (KISS) and things not built yet — stated here so th
   exams. LiveKit's webhooks (signed with the API secret, stored once per event id) record who joined and left the
   call; the review shows the student's time on the call with every drop. After analysis the worker's
   `merge-audio` job joins the sound of all recorded chunks, in recording order with gaps kept as silence, into
-  one seekable Opus file (served with byte ranges), so the examiner can hear what was said while the call was down. Tested against LiveKit server 1.9.11 (`--dev`) with two browsers: `e2e/oral-call.spec.ts` checks that both
+  one seekable Opus file (served with byte ranges), so the examiner can hear what was said while the call was
+  down; the sound streams through a temporary file, so any exam length (up to 10 h) merges in bounded memory. Tested against LiveKit server 1.9.11 (`--dev`) with two browsers: `e2e/oral-call.spec.ts` checks that both
   sides receive live video and play live sound, that the call comes back after the student reloads, and that ending the
   exam closes it (run with `E2E_LIVEKIT=1` on a fresh seed while LiveKit and the API's `LIVEKIT_*` settings are up).
   Without `LIVEKIT_*` settings the API answers 503 and both sides see "video call unavailable".

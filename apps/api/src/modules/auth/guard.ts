@@ -21,7 +21,7 @@ export function installAuth(app: FastifyInstance, { db, now }: Pick<Deps, 'db' |
   })
 }
 
-/** preHandler that admits only signed-in users with the given role. */
+/** A route hook (used as onRequest) that admits only signed-in users with the given role. */
 export function requireRole(role: Role) {
   return async (request: FastifyRequest, _reply: FastifyReply) => {
     if (!request.user) throw unauthorized()

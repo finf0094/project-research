@@ -1,13 +1,14 @@
 import { spawn } from 'node:child_process'
+import type { Readable } from 'node:stream'
 
 /**
- * Runs ffmpeg on one in-memory input and returns its output. Only pipes are allowed (no demuxer may open
+ * Runs ffmpeg on one input (in memory, or streamed so a long one is never held) and returns its output. Only pipes are allowed (no demuxer may open
  * files or URLs named inside an upload); output above `maxBytes` or a run longer than `timeoutMs` is killed,
  * so a crafted file cannot exhaust memory or time. `inputArgs` describe the input (e.g. raw PCM's format).
  */
 export function ffmpeg(
   args: string[],
-  input: Buffer,
+  input: Buffer | Readable,
   limits: { maxBytes: number; timeoutMs: number },
   inputArgs: string[] = [],
   /** Where the output goes: stdout by default; a file path when the format needs a seekable output. */
@@ -45,7 +46,8 @@ export function ffmpeg(
       resolve(Buffer.concat(out))
     })
     child.stdin.on('error', () => undefined) // ffmpeg may close stdin early on a broken file; 'close' reports it
-    child.stdin.end(input)
+    if (Buffer.isBuffer(input)) child.stdin.end(input)
+    else input.on('error', (error) => fail(error)).pipe(child.stdin)
   })
 }
 
