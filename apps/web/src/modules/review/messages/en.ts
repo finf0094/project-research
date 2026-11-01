@@ -93,6 +93,14 @@ export const en: typeof ru = {
       partial: 'AI checked the recording partly',
       unchecked: 'AI did not check the recording',
       uncheckedHint: 'Some markers may be missing: AI did not look at these recordings',
+      device: {
+        full: 'On-device analysis: full',
+        lite: 'On-device analysis: light',
+        slow: 'On-device analysis: face only',
+        minimal: 'On-device analysis: off',
+        none: 'On-device analysis did not work',
+        hint: "What the student's device checked itself. If it did not work, only the AI marks the recording.",
+      },
       ai: {
         live: 'AI is checking the recording during the exam: {checked} of {recorded}',
         running: 'AI is analysing the recording: {checked} of {recorded}',

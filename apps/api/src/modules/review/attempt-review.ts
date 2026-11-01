@@ -1,4 +1,10 @@
-import type { AttemptDetail, DecisionBody, ExaminerCommandBody, UpdateMarkerBody } from '@exam/contracts'
+import type {
+  AttemptDetail,
+  DeviceTier,
+  DecisionBody,
+  ExaminerCommandBody,
+  UpdateMarkerBody,
+} from '@exam/contracts'
 import { isEmptyAnswer } from '@exam/contracts'
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Tx } from '../../db/client.ts'
@@ -49,6 +55,13 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
     .where(eq(decisions.attemptId, attemptId))
     .orderBy(desc(decisions.seq))
     .limit(1)
+  // The device's own analysis: its last word (a weak device lowers it during the exam).
+  const [mode] = await db
+    .select({ data: events.data })
+    .from(events)
+    .where(and(eq(events.attemptId, attemptId), eq(events.type, 'proctoring.mode')))
+    .orderBy(desc(events.seq))
+    .limit(1)
   // Recording chunks only (an oral exam's merged audio is a blob too, but no chunk of a fragment).
   const uploaded = await uploadedOf(db, attemptId)
   const chunks = new Set((await fragmentsOf(db, attemptId)).flatMap((f) => f.chunks))
@@ -89,6 +102,7 @@ export async function attemptDetail(deps: Deps, ownerId: string, attemptId: stri
     })),
     serverAnalysis: attempt.serverAnalysis,
     serverCheck: { recorded: recorded.length, checked: checked?.n ?? 0 },
+    deviceTier: (mode?.data as { tier?: DeviceTier } | undefined)?.tier ?? null,
     ...(exam.profile.mode === 'oral'
       ? await oralRecordingOf(db, attempt, deps.now())
       : { call: [], audio: null }),

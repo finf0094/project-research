@@ -76,6 +76,12 @@ const aiCheck = computed(() => {
           <Sparkles :size="14" aria-hidden="true" />
           {{ $t(`review.attempt.ai.${aiCheck}`, detail.serverCheck) }}
         </StatusPill>
+        <StatusPill
+          v-if="detail.deviceTier"
+          :tone="['none', 'minimal'].includes(detail.deviceTier) ? 'warn' : 'off'"
+          :title="$t('review.attempt.device.hint')"
+          >{{ $t(`review.attempt.device.${detail.deviceTier}`) }}</StatusPill
+        >
       </div>
       <RouterLink v-if="queue?.next" :to="`/examiner/attempts/${queue.next.id}`" class="next">
         {{ $t('review.attempt.next', { name: queue.next.name }) }}

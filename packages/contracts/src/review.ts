@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Id, Sha256, Timestamp, safeText } from './common.ts'
 import { AttemptStatus } from './attempts.ts'
-import { AnswerValue, NetState, SignalKind } from './events.ts'
+import { AnswerValue, DeviceTier, NetState, SignalKind } from './events.ts'
 import { ExamMode, Question, RecordingMode } from './exams.ts'
 
 /** `page_closed`: the exam page was closed or reloaded and opened again (from the log, on the server). */
@@ -150,6 +150,8 @@ export const AttemptDetail = z.object({
    * at (during the exam and after it). Shows the examiner that the check is running and where it is.
    */
   serverCheck: z.object({ recorded: z.number().int(), checked: z.number().int() }),
+  /** What the student's device said it analyses itself (its latest word); null before proctoring started. */
+  deviceTier: DeviceTier.nullable(),
   /** Oral exams: who joined and left the call, in order. */
   call: z.array(CallEvent),
   /**
