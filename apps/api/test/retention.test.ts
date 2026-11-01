@@ -92,22 +92,21 @@ describe('retention', () => {
     expect(await ctx.deps.db.select().from(events)).toHaveLength(1)
   })
 
-  it('deletes recordings of attempts nobody ever decided', async () => {
+  it('keeps the recordings of an attempt still waiting for a decision, however long', async () => {
     const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
     const { attemptId } = await analysedWithChunk()
     const [row] = await ctx.deps.db.select().from(attempts).where(eq(attempts.id, attemptId))
     expect(row!.status).toBe('ready_for_review')
-    ctx.clock.now += 29 * DAY
+    ctx.clock.now += 90 * DAY
     expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
-    ctx.clock.now += 2 * DAY
-    expect(await removeExpiredRecordings(ctx.deps)).toBe(1)
   })
 
-  it('counts the period from the latest decision, also one that sent the attempt back to review', async () => {
+  it('counts the period from the latest decision', async () => {
     const { removeExpiredRecordings } = await import('../src/jobs/jobs.ts')
     const { attemptId } = await analysedWithChunk()
+    await decide(attemptId, 'clean')
     ctx.clock.now += 20 * DAY
-    await decide(attemptId, 'needs_review')
+    await decide(attemptId, 'violation') // reconsidered: the period starts again
     ctx.clock.now += 20 * DAY
     expect(await removeExpiredRecordings(ctx.deps)).toBe(0)
     ctx.clock.now += 11 * DAY

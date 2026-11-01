@@ -1,7 +1,7 @@
 import type { MarkerKind, MarkerSource, MarkerStatus, SignalKind } from '@exam/contracts'
 import type { Interval } from '../ml/observations.ts'
 import type { Fragment } from '../ml/recordings.ts'
-import { confirmedByDevice, reconcile } from './reconcile.ts'
+import { confirmedByDevice, overlaps, reconcile } from './reconcile.ts'
 
 export interface StoredEvent {
   seq: number
@@ -143,10 +143,19 @@ export function buildMarkers(
 }
 
 /**
- * `calibration`: per-kind factors from the examiner's past decisions (section 25.4), 1 when unknown.
- * A server finding that confirms a device signal adds no score of its own: the device's marker already
- * counts that moment, and the model marker stays on the timeline only to show the examiner the confirmation.
+ * How long a marker counts. A server finding the device also reported confirms it: only its part beyond
+ * what the device reported counts on top, so it is neither counted twice nor worth less than alone.
  */
+function scoredMinutes(m: MarkerDraft, markers: MarkerDraft[]) {
+  const minutes = (x: MarkerDraft) => Math.max((x.endAt - x.startAt) / 60_000, 0.25)
+  if (m.source !== 'model' || !confirmedByDevice(m, markers)) return minutes(m)
+  const reported = markers
+    .filter((d) => d.source === 'client' && d.kind === m.kind && overlaps(d, m))
+    .reduce((sum, d) => sum + minutes(d), 0)
+  return Math.max(0, minutes(m) - reported)
+}
+
+/** `calibration`: per-kind factors from the examiner's past decisions (section 25.4), 1 when unknown. */
 export function riskScore(
   markers: MarkerDraft[],
   calibration: Partial<Record<MarkerKind, number>> = {},
@@ -154,8 +163,8 @@ export function riskScore(
   let score = 0
   for (const m of markers) {
     if (m.status === 'context') continue
-    if (m.source === 'model' && confirmedByDevice(m, markers)) continue
-    const minutes = Math.max((m.endAt - m.startAt) / 60_000, 0.25)
+    const minutes = scoredMinutes(m, markers)
+    if (minutes === 0) continue
     const weight = (WEIGHTS[m.kind] ?? 0) * (calibration[m.kind] ?? 1)
     score += weight * Math.min(minutes, 3) * (m.discrepancy ? 2 : 1)
   }

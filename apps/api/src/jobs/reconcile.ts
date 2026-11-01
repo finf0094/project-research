@@ -11,7 +11,7 @@ const MEASURED: Record<DeviceTier, ReadonlySet<MarkerKind>> = {
 }
 
 type Span = { startAt: number; endAt: number }
-const overlaps = (a: Span, b: Span) => a.startAt <= b.endAt && a.endAt >= b.startAt
+export const overlaps = (a: Span, b: Span) => a.startAt <= b.endAt && a.endAt >= b.startAt
 
 /** True when the device reported the same kind at an overlapping time: the server confirms that signal. */
 export const confirmedByDevice = (finding: Interval, markers: MarkerDraft[]) =>

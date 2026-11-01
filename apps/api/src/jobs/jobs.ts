@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, notInArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import { attempts, blobs, decisions, sessions } from '../db/schema.ts'
 import type { Deps } from '../deps.ts'
 import { blobKey } from '../shared/storage.ts'
@@ -21,10 +21,9 @@ export async function closeExpired({ db, config, now }: Deps): Promise<number> {
 const RETENTION_BATCH = 500
 
 /**
- * Deletes recordings once the attempt ended longer ago than the retention period, whatever its review
- * state: an attempt nobody ever decided must not keep its video forever. A decision restarts the period
- * (section 18: "N days after the decision"), so an attempt that was decided, or sent back for another
- * review, recently keeps its recordings. The event log itself is kept.
+ * Deletes recordings N days after the decision (section 18), the event log itself is kept. Only decided
+ * attempts: one still waiting for review keeps its evidence however long the examiner's backlog is, and
+ * a later decision (another review) restarts the period.
  */
 export async function removeExpiredRecordings({ db, storage, config, now }: Deps): Promise<number> {
   const cutoff = new Date(now() - config.RETENTION_DAYS * 86_400_000)
@@ -36,11 +35,8 @@ export async function removeExpiredRecordings({ db, storage, config, now }: Deps
       .innerJoin(attempts, eq(attempts.id, blobs.attemptId))
       .where(
         and(
-          // Active attempts are still recording; submittedAt is when every other attempt ended.
-          notInArray(attempts.status, ['active', 'terminated']),
-          lt(attempts.submittedAt, cutoff),
-          sql`not exists (select 1 from ${decisions} where ${decisions.attemptId} = ${attempts.id}
-            and ${decisions.decidedAt} >= ${cutoff.toISOString()}::timestamptz)`,
+          eq(attempts.status, 'decided'),
+          sql`(select max(${decisions.decidedAt}) from ${decisions} where ${decisions.attemptId} = ${attempts.id}) < ${cutoff.toISOString()}::timestamptz`,
         ),
       )
       .limit(RETENTION_BATCH)

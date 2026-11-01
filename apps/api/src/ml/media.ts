@@ -43,8 +43,12 @@ export function halve(rgb: Buffer): Buffer {
   return out
 }
 
-/** Below this mean brightness (0..255) a frame is too dark to judge; the device uses the same threshold. */
-const DARK_BRIGHTNESS = 45
+/**
+ * Below this mean brightness (0..255) a frame is too dark to judge. The device uses 45; the server allows a
+ * margin above it, as decoded frames measure a little differently: a dim room near the device's threshold
+ * must not turn the device's honest silence into a discrepancy.
+ */
+const DARK_BRIGHTNESS = 55
 
 export function isDark(rgb: Buffer): boolean {
   let sum = 0

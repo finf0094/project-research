@@ -24,7 +24,13 @@ export async function watchEndedCalls(deps: Deps, log: FastifyBaseLogger) {
       if (attemptId) end(attemptId)
     },
     // Announcements made while the connection was down are lost: end every call that may have ended then.
-    () => void (liveKitOf(deps) && endedOralAttempts(deps).then((ids) => ids.forEach(end))),
+    () =>
+      void (
+        liveKitOf(deps) &&
+        endedOralAttempts(deps)
+          .then((ids) => ids.forEach(end))
+          .catch((error: unknown) => log.error({ err: error }, 'could not check calls after a reconnect'))
+      ),
   )
 }
 
