@@ -35,13 +35,21 @@ export function startRecorder(
     // `done` settles only after onstop has handed the chunk over, so stop() never races a chunk in flight.
     const done = new Promise<void>((resolve) => {
       recorder.onstop = () => {
-        onChunk({ tStart, tEnd: now(), blob: new Blob(parts, { type: recorder.mimeType }) })
+        onChunk({ tStart, tEnd: now(), blob: new Blob(parts, { type: recorder.mimeType || mimeType }) })
         resolve()
         if (running) cycle()
       }
     })
-    recorder.start()
     current = { recorder, done }
+    try {
+      recorder.start()
+    } catch (error) {
+      // iOS may refuse to start while the page is in the background: the next chunk tries again.
+      console.warn('recording paused', error)
+      current = null
+      if (running) setTimeout(() => running && cycle(), CHUNK_MS)
+      return
+    }
     setTimeout(() => recorder.state === 'recording' && recorder.stop(), CHUNK_MS)
   }
 

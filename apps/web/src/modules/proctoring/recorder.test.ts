@@ -63,4 +63,28 @@ describe('recorder', () => {
     await vi.advanceTimersByTimeAsync(20_000)
     expect(chunks).toHaveLength(1) // no new cycle after stop
   })
+
+  it('keeps trying when the browser refuses to start a chunk (iOS in the background)', async () => {
+    let refuse = 1
+    vi.stubGlobal(
+      'MediaRecorder',
+      class extends FakeRecorder {
+        override start() {
+          if (refuse-- > 0) throw new DOMException('', 'InvalidStateError')
+          super.start()
+        }
+      },
+    )
+    const chunks: RecordedChunk[] = []
+    const recorder = startRecorder(
+      {} as MediaStream,
+      () => 0,
+      (c) => chunks.push(c),
+    )
+    await vi.advanceTimersByTimeAsync(20_010)
+    expect(chunks).toHaveLength(1)
+    const stopped = recorder.stop()
+    await vi.advanceTimersByTimeAsync(10)
+    await stopped
+  })
 })

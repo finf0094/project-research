@@ -8,11 +8,17 @@ const BLUR_GRACE_MS = 2000
 /** Browser signals: leaving the tab, pasting or copying text, a second screen. Returns a stop function. */
 export function watchBrowser(setSignal: SetSignal) {
   // Away from the exam: its tab hidden, or another window or app in front while the tab stays visible.
-  const away = () => setSignal('tab_hidden', document.visibilityState === 'hidden' || !document.hasFocus())
+  // `document.hasFocus()` is asked only after a blur: on iPhone it can still read false after the student
+  // came back (the `focus` event may come late or never), which would keep a false "tab hidden" on.
+  let unfocused = false
+  const away = () => setSignal('tab_hidden', document.visibilityState === 'hidden' || unfocused)
   // Clicking the browser's own controls blurs the page for a moment; only staying away counts.
   let blurred: ReturnType<typeof setTimeout> | undefined
-  const onBlur = () => (clearTimeout(blurred), (blurred = setTimeout(away, BLUR_GRACE_MS)))
-  const onFocus = () => (clearTimeout(blurred), away())
+  const stillBlurred = () => ((unfocused = !document.hasFocus()), away())
+  const onBlur = () => (clearTimeout(blurred), (blurred = setTimeout(stillBlurred, BLUR_GRACE_MS)))
+  const back = () => (clearTimeout(blurred), (unfocused = false), away())
+  // The page shown again means the student is back, whatever the focus says.
+  const onVisibility = () => (document.visibilityState === 'visible' ? back() : away())
   // Only substantial text matters; moving a word around is normal editing.
   const substantial = (text: string | undefined) => (text ?? '').trim().length >= 20
   const pulse = (kind: SignalKind) => (setSignal(kind, true), setSignal(kind, false))
@@ -28,17 +34,17 @@ export function watchBrowser(setSignal: SetSignal) {
   const display = screen as unknown as Partial<EventTarget> & { isExtended?: boolean }
   const onScreen = () => display.isExtended !== undefined && setSignal('second_screen', display.isExtended)
   onScreen()
-  document.addEventListener('visibilitychange', away)
+  document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('blur', onBlur)
-  window.addEventListener('focus', onFocus)
+  window.addEventListener('focus', back)
   document.addEventListener('paste', onPaste)
   document.addEventListener('copy', onCopy)
   display.addEventListener?.('change', onScreen)
   return () => {
     clearTimeout(blurred)
-    document.removeEventListener('visibilitychange', away)
+    document.removeEventListener('visibilitychange', onVisibility)
     window.removeEventListener('blur', onBlur)
-    window.removeEventListener('focus', onFocus)
+    window.removeEventListener('focus', back)
     document.removeEventListener('paste', onPaste)
     document.removeEventListener('copy', onCopy)
     display.removeEventListener?.('change', onScreen)

@@ -42,18 +42,28 @@ export function watchDevices(stream: MediaStream, setSignal: SetSignal) {
 }
 
 const TRACK_EVENTS = ['mute', 'unmute', 'ended']
+/**
+ * iOS Safari reports a microphone track muted for a moment at the start and around audio-session changes;
+ * only a mute that lasts counts. An ended track counts at once.
+ */
+const MUTE_GRACE_MS = 2000
 
 /** A muted or disconnected microphone (the system's mute, an unplugged headset) is a signal of its own. */
 export function watchMicrophone(stream: MediaStream, setSignal: SetSignal) {
   const tracks = stream.getAudioTracks()
-  const update = () =>
-    setSignal(
-      'mic_off',
-      tracks.some((t) => t.muted || t.readyState === 'ended'),
-    )
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const ended = () => tracks.some((t) => t.readyState === 'ended')
+  const muted = () => tracks.some((t) => t.muted)
+  const update = () => {
+    clearTimeout(timer)
+    if (ended()) return setSignal('mic_off', true)
+    if (!muted()) return setSignal('mic_off', false)
+    timer = setTimeout(() => setSignal('mic_off', muted() || ended()), MUTE_GRACE_MS)
+  }
   for (const track of tracks) for (const type of TRACK_EVENTS) track.addEventListener(type, update)
   update() // muted already when the exam starts
   return () => {
+    clearTimeout(timer)
     for (const track of tracks) for (const type of TRACK_EVENTS) track.removeEventListener(type, update)
   }
 }

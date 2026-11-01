@@ -2,7 +2,7 @@ import type { DeviceTier } from '@exam/contracts'
 import type { Pose } from './calibration'
 import type { FrameReport } from './detectors'
 import type { WorkerRequest, WorkerResponse } from './detector.worker'
-import { createLoudnessMeter } from './loudness'
+import { listenToMicrophone } from './loudness'
 
 /** Models are large; on a slow link they may take a while, but a fetch that stalls must not wait forever. */
 const READY_TIMEOUT_MS = 60_000
@@ -31,11 +31,13 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
   video.muted = true
   video.playsInline = true
   video.srcObject = stream
-  await video.play()
+  // iOS may refuse to start playback (Low Power Mode, no gesture yet): analysis waits, the camera stays on.
+  const play = () => video.play().catch((error: unknown) => console.warn('camera preview paused', error))
+  await play()
 
-  const worker = new Worker(new URL('./detector.worker.ts', import.meta.url), { type: 'module' })
+  const worker = startWorker()
   const post = (request: WorkerRequest, transfer: Transferable[] = []) =>
-    worker.postMessage(request, transfer)
+    worker?.postMessage(request, transfer)
   const pending = new Map<number, (report: FrameReport | null) => void>()
   let nextId = 0
   /** No more analysis: the page left, or the worker could not run at all. */
@@ -46,11 +48,6 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
   }
   let markReady = () => {}
   const ready = new Promise<void>((resolve) => (markReady = resolve))
-  worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
-    if (data.type === 'ready') return markReady()
-    pending.get(data.id)?.(data.report)
-    pending.delete(data.id)
-  }
   // A worker that cannot load (e.g. a stale chunk after a deploy) or loads too slowly (a phone on a weak
   // network) analyses nothing; the exam goes on, still recorded, with signals that read "not measured".
   const giveUp = () => {
@@ -58,33 +55,32 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
     settleAll()
     markReady()
   }
-  worker.onerror = (event) => {
-    console.error('detector worker failed', event.message)
-    giveUp()
-  }
+  if (worker) {
+    worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+      if (data.type === 'ready') return markReady()
+      pending.get(data.id)?.(data.report)
+      pending.delete(data.id)
+    }
+    worker.onerror = (event) => {
+      console.error('detector worker failed', event.message)
+      giveUp()
+    }
+  } else giveUp()
   const timeout = setTimeout(() => {
     console.error('detectors did not load in time; analysing nothing on this device')
-    worker.terminate()
+    worker?.terminate()
     giveUp()
   }, READY_TIMEOUT_MS)
   post({ type: 'init', tier })
   await ready
   clearTimeout(timeout)
 
-  const audio = new AudioContext()
-  // Without a user gesture (e.g. after a reload) the context starts suspended and hears nothing.
-  const resume = () => void audio.resume()
-  if (audio.state === 'suspended') {
-    window.addEventListener('pointerdown', resume, { once: true })
-    window.addEventListener('keydown', resume, { once: true })
-  }
-  const analyser = audio.createAnalyser()
-  analyser.fftSize = 2048 // ~43 ms at 48 kHz: sampled every 50 ms, the samples cover most of the second
-  audio.createMediaStreamSource(stream).connect(analyser)
-  const meter = createLoudnessMeter(analyser)
+  const microphone = listenToMicrophone(stream)
 
   return {
     async analyze(withObjects) {
+      // iOS pauses the video while the page is in the background and does not always resume it.
+      if (video.paused) void play()
       if (dead || video.readyState < 2) return null
       const frame = await createImageBitmap(video).catch(() => null)
       if (!frame || dead) return (frame?.close(), null)
@@ -94,18 +90,25 @@ export async function createSensors(stream: MediaStream, tier: DeviceTier, basel
       return report
     },
     lower: (next) => post({ type: 'lower', tier: next }),
-    loudness: meter.level,
+    loudness: microphone.level,
     dead: () => dead,
     dispose() {
-      window.removeEventListener('pointerdown', resume)
-      window.removeEventListener('keydown', resume)
-      meter.stop()
+      microphone.stop()
       dead = true
       settleAll()
-      worker.terminate()
-      void audio.close()
+      worker?.terminate()
       video.srcObject = null
     },
+  }
+}
+
+/** The detector worker, or null where the browser refuses to start one (no module workers, a policy). */
+function startWorker(): Worker | null {
+  try {
+    return new Worker(new URL('./detector.worker.ts', import.meta.url), { type: 'module' })
+  } catch (error) {
+    console.error('detector worker cannot start in this browser', error)
+    return null
   }
 }
 

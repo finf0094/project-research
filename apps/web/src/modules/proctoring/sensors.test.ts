@@ -47,8 +47,10 @@ const baseline = { yaw: 0, pitch: 0 }
 const report = { faces: 1, lookingAway: false, pose: null, object: null, brightness: 120, ms: 12 }
 
 async function started() {
+  const before = FakeWorker.last
   const sensors = createSensors(stream, 'lite', baseline)
-  await vi.waitFor(() => expect(FakeWorker.last?.posted[0]?.type).toBe('init'))
+  // A new worker, not the one an earlier test left behind.
+  await vi.waitFor(() => expect(FakeWorker.last !== before && FakeWorker.last.posted[0]?.type).toBe('init'))
   FakeWorker.last.reply({ type: 'ready' })
   return { sensors: await sensors, worker: FakeWorker.last }
 }
@@ -90,6 +92,51 @@ describe('createSensors', () => {
     const { sensors, worker } = await started()
     expect(sensors.dead()).toBe(false)
     worker.onerror?.({ message: 'out of memory' })
+    expect(sensors.dead()).toBe(true)
+    expect(await sensors.analyze(false)).toBeNull()
+  })
+
+  it('keeps the camera when iOS refuses another AudioContext: the level just reads quiet', async () => {
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        constructor() {
+          throw new DOMException('too many contexts', 'NotSupportedError')
+        }
+      },
+    )
+    const { sensors } = await started()
+    expect(sensors.loudness()).toBe(0)
+    expect(() => sensors.dispose()).not.toThrow()
+  })
+
+  it('resumes a suspended or interrupted (iPhone) context at the end of a touch', async () => {
+    const resume = vi.fn(async () => undefined)
+    vi.stubGlobal(
+      'AudioContext',
+      class extends FakeAudio {
+        override state = 'interrupted'
+        resume = resume
+      },
+    )
+    const { sensors } = await started()
+    resume.mockClear()
+    window.dispatchEvent(new Event('touchend'))
+    expect(resume).toHaveBeenCalled()
+    sensors.dispose()
+  })
+
+  it('starts when iOS refuses to play the preview, and when no worker can be made', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new DOMException('', 'NotAllowedError'))
+    vi.stubGlobal(
+      'Worker',
+      class {
+        constructor() {
+          throw new TypeError('module workers are not supported')
+        }
+      },
+    )
+    const sensors = await createSensors(stream, 'full', baseline)
     expect(sensors.dead()).toBe(true)
     expect(await sensors.analyze(false)).toBeNull()
   })

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { watchDevices } from './devices'
+import { watchDevices, watchMicrophone } from './devices'
 
 function setup(camera: string, microphone: string, output = 'Default - Speakers') {
   const events = new EventTarget()
@@ -60,6 +60,42 @@ describe('devices in use', () => {
     await vi.waitFor(() => expect(signals).toHaveLength(2))
     events.dispatchEvent(new Event('devicechange'))
     await vi.waitFor(() => expect(signals).toHaveLength(4))
+    stop()
+  })
+})
+
+describe('microphone muted', () => {
+  function microphone(muted: boolean) {
+    const track = Object.assign(new EventTarget(), { muted, readyState: 'live' as MediaStreamTrackState })
+    const stream = { getAudioTracks: () => [track] } as unknown as MediaStream
+    const signals: boolean[] = []
+    const stop = watchMicrophone(stream, (_, on) => signals.push(on))
+    return { track, signals, stop }
+  }
+  afterEach(() => vi.useRealTimers())
+
+  it('ignores the short mute iOS reports at the start', () => {
+    vi.useFakeTimers()
+    const { track, signals, stop } = microphone(true)
+    vi.advanceTimersByTime(500)
+    track.muted = false
+    track.dispatchEvent(new Event('unmute'))
+    vi.advanceTimersByTime(5000)
+    expect(signals).not.toContain(true)
+    stop()
+  })
+
+  it('counts a mute that lasts, and an ended track at once', () => {
+    vi.useFakeTimers()
+    const { track, signals, stop } = microphone(true)
+    vi.advanceTimersByTime(2000)
+    expect(signals.at(-1)).toBe(true)
+    track.muted = false
+    track.dispatchEvent(new Event('unmute'))
+    expect(signals.at(-1)).toBe(false)
+    track.readyState = 'ended'
+    track.dispatchEvent(new Event('ended'))
+    expect(signals.at(-1)).toBe(true)
     stop()
   })
 })
