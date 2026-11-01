@@ -8,6 +8,7 @@ import type { Deps } from '../../deps.ts'
 import { decryptSecret, encryptSecret } from '../../shared/crypto.ts'
 import { conflict, forbidden, notFound } from '../../shared/errors.ts'
 import { examQuestions, isParticipant, studentExam } from '../exams/service.ts'
+import { reservationOf } from '../preload/service.ts'
 
 type AttemptRow = typeof attempts.$inferSelect
 
@@ -15,13 +16,24 @@ type AttemptRow = typeof attempts.$inferSelect
 export const OPEN_STATUSES: readonly AttemptStatus[] = ['active', 'terminated']
 
 /** Control fragments are requested at random moments between these bounds. */
+/** Device clocks drift; an offline start a little "in the future" is still the present. */
+const CLOCK_SKEW_MS = 60_000
 const CAPTURE_MIN_MS = 4 * 60_000
 const CAPTURE_MAX_MS = 12 * 60_000
 export const nextCaptureTime = (now: number, random = Math.random) =>
   new Date(now + CAPTURE_MIN_MS + random() * (CAPTURE_MAX_MS - CAPTURE_MIN_MS))
 
 /** Starts an attempt, or returns the running one so a student who lost local data can resume. */
-export async function startAttempt(deps: Deps, userId: string, examId: string): Promise<AttemptSession> {
+/**
+ * Starts (or resumes) the student's attempt. `offlineStartedAt`: the attempt was begun without network from
+ * a downloaded package at that (client) time; it is trusted within the same window as answers written offline.
+ */
+export async function startAttempt(
+  deps: Deps,
+  userId: string,
+  examId: string,
+  offlineStartedAt?: number,
+): Promise<AttemptSession> {
   const now = deps.now()
   return deps.db.transaction(async (tx) => {
     // Locks the exam against a concurrent edit (authoring takes FOR UPDATE): the attempt is built from the
@@ -33,9 +45,14 @@ export async function startAttempt(deps: Deps, userId: string, examId: string): 
     if (existing) return resume(deps, tx, existing)
 
     if (!exam) throw notFound('Exam not found')
-    if (now < exam.opensAt.getTime() || now >= exam.closesAt.getTime()) throw conflict('Exam is not open')
+    // A downloaded package reserved the attempt's id and key: the events written offline are sealed with them.
+    const reserved = await reservationOf(tx, examId, userId)
+    const startedAt =
+      offlineStartedAt === undefined ? now : checkOfflineStart(deps, exam, reserved, offlineStartedAt)
+    if (startedAt < exam.opensAt.getTime() || startedAt >= exam.closesAt.getTime())
+      throw conflict('Exam is not open')
 
-    const id = randomUUID()
+    const id = reserved?.attemptId ?? randomUUID()
     // An oral exam draws a random ticket from the question pool; written exams use every question.
     const ticket =
       exam.profile.mode === 'oral'
@@ -49,9 +66,9 @@ export async function startAttempt(deps: Deps, userId: string, examId: string): 
         examId,
         userId,
         status: 'active',
-        startedAt: new Date(now),
-        deadline: new Date(Math.min(now + exam.durationMin * 60_000, exam.closesAt.getTime())),
-        hmacKeyEnc: encryptSecret(deps.masterKey, randomBytes(32)),
+        startedAt: new Date(startedAt),
+        deadline: new Date(Math.min(startedAt + exam.durationMin * 60_000, exam.closesAt.getTime())),
+        hmacKeyEnc: reserved?.hmacKeyEnc ?? encryptSecret(deps.masterKey, randomBytes(32)),
         lastHash: await genesisHash(id),
         lastSeenAt: new Date(now),
         ticket,
@@ -63,6 +80,23 @@ export async function startAttempt(deps: Deps, userId: string, examId: string): 
     if (!row) return resume(deps, tx, (await findAttempt(tx, examId, userId))!)
     return toSession(deps, tx, row)
   })
+}
+
+/**
+ * An offline start counts only with a package (its reservation) and a start time the server can believe:
+ * not in the future, and recent enough that the attempt and its offline window are not over yet.
+ */
+function checkOfflineStart(
+  { config, now }: Deps,
+  exam: { durationMin: number },
+  reserved: unknown,
+  startedAt: number,
+): number {
+  if (!reserved) throw conflict('No downloaded package for an offline start')
+  const oldest = now() - exam.durationMin * 60_000 - config.OFFLINE_WINDOW_MIN * 60_000
+  if (startedAt > now() + CLOCK_SKEW_MS || startedAt < oldest)
+    throw conflict('Offline start time is not plausible')
+  return Math.min(startedAt, now())
 }
 
 async function findAttempt(tx: Tx, examId: string, userId: string) {

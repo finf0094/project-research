@@ -5,7 +5,8 @@ import { formatDateTime } from '@/shared/lib/format'
 import { timeLeft } from '../time-left'
 
 /** An exam that opens later: how soon, big; oral ones peach, written ones sky. */
-const props = defineProps<{ exam: StudentExamListItem; now: number }>()
+/** `offlineReady`: the exam's package is on this device, so it can start without network. */
+const props = defineProps<{ exam: StudentExamListItem; now: number; offlineReady?: boolean }>()
 const left = computed(() => timeLeft(props.exam.opensAt - props.now))
 </script>
 
@@ -18,10 +19,20 @@ const left = computed(() => timeLeft(props.exam.opensAt - props.now))
       {{ formatDateTime(exam.opensAt) }} ·
       {{ $t('exam.list.minutes', { n: exam.durationMin }, exam.durationMin) }}
     </p>
+    <p v-if="offlineReady" class="offline">{{ $t('exam.offlineStart.ready') }}</p>
   </article>
 </template>
 
 <style scoped>
+.offline {
+  justify-self: start;
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--ok-tint);
+  color: var(--ok);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
 .card {
   display: grid;
   gap: var(--space-2);

@@ -4,15 +4,14 @@ import { ArrowLeft, Timer } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CameraStage, useDeviceProbe } from '@/modules/proctoring'
-import { useAction } from '@/shared/lib/use-action'
 import { AppButton, LocaleSwitch } from '@/shared/ui'
 import { listExams } from '../api'
 import CheckCard from '../components/CheckCard.vue'
 import DataConsent from '../components/DataConsent.vue'
 import PreflightSteps from '../components/PreflightSteps.vue'
-import { beginAttempt } from '../local-attempt'
-import { attemptPath } from '../paths'
+import OfflineStartCard from '../components/OfflineStartCard.vue'
 import { usePreflightChecks } from '../preflight-checks'
+import { useExamStart } from '../use-exam-start'
 
 /**
  * Before the exam: the camera with a guide to sit right, every check in one list, what happens to the
@@ -24,7 +23,7 @@ const examId = String(route.params.examId)
 const probe = useDeviceProbe()
 const { checks, ready } = usePreflightChecks(probe)
 const consent = ref(false)
-const starting = useAction({ 409: 'exam.preflight.notOpen' as const })
+const { starting, start, pkg, offline, unlocking, codeError, startWithCode } = useExamStart(examId)
 
 // The title is a courtesy: the check works without it.
 const exam = ref<StudentExamListItem | null>(null)
@@ -39,12 +38,6 @@ const step = computed(() => (!ready.value ? 0 : !consent.value ? 1 : 2))
 const startLabel = computed(
   () => ['exam.preflight.needChecks', 'exam.preflight.needConsent', 'exam.preflight.start'][step.value]!,
 )
-
-const start = () =>
-  starting.run(async () => {
-    const attempt = await beginAttempt(examId)
-    await router.replace(attemptPath(attempt.id, attempt.exam.profile.mode))
-  })
 </script>
 
 <template>
@@ -57,7 +50,7 @@ const start = () =>
         @click="router.push('/exams')"
         ><ArrowLeft :size="20"
       /></AppButton>
-      <span class="exam">{{ exam?.title }}</span>
+      <span class="exam">{{ exam?.title ?? pkg?.title }}</span>
       <PreflightSteps :current="step" class="steps" />
       <LocaleSwitch />
     </header>
@@ -74,7 +67,15 @@ const start = () =>
       />
       <CheckCard class="side" :checks="checks" />
       <div class="start">
+        <!-- No network at the start, but the package is here: the proctor's code begins the exam. -->
+        <OfflineStartCard
+          v-if="offline && step === 2"
+          :busy="unlocking"
+          :error="codeError"
+          @start="startWithCode"
+        />
         <AppButton
+          v-else
           block
           :icon="step === 2 ? 'arrow' : undefined"
           :disabled="step < 2"

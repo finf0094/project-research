@@ -24,6 +24,7 @@ export const studentMessages = defineMessages({
       resultReady: 'Результат готов',
       awaitingResult: 'Ждём публикации',
       empty: 'Пока нет назначенных экзаменов. Когда преподаватель добавит вас, экзамен появится здесь.',
+      cached: 'Нет сети: показан список, сохранённый на этом устройстве.',
       result: {
         title: {
           high: 'Отличный результат',
@@ -89,6 +90,7 @@ export const studentMessages = defineMessages({
       resultReady: 'Нәтиже дайын',
       awaitingResult: 'Жариялауды күтуде',
       empty: 'Әзірге тағайындалған емтихан жоқ. Оқытушы сізді қосқанда, емтихан осында шығады.',
+      cached: 'Желі жоқ: осы құрылғыда сақталған тізім көрсетілген.',
       result: {
         title: {
           high: 'Керемет нәтиже',
@@ -149,6 +151,7 @@ export const studentMessages = defineMessages({
       resultReady: 'Result ready',
       awaitingResult: 'Awaiting publication',
       empty: 'No exams assigned yet. When an examiner adds you, the exam appears here.',
+      cached: 'No network: showing the list saved on this device.',
       result: {
         title: {
           high: 'Excellent result',

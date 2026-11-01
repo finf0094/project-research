@@ -1,4 +1,4 @@
-import type { AnswerValue, AttemptStatus, FragmentReason, StudentExam } from '@exam/contracts'
+import type { AnswerValue, AttemptStatus, ExamPackage, FragmentReason, StudentExam } from '@exam/contracts'
 import type { ChainHead, SealedEvent } from '@exam/integrity'
 import Dexie, { type EntityTable, type Table } from 'dexie'
 
@@ -19,6 +19,14 @@ export interface LocalAttempt {
   clockOffset: number
   /** Set once answers are locked; submission completes as soon as the network allows. */
   endedBy: EndReason | null
+  /** Begun without network from a downloaded package: the server hears of it at the first sync. */
+  offlineStart?: { examId: string; startedAt: number } | null
+}
+
+/** A downloaded exam package (see @exam/contracts ExamPackage), kept until the attempt is started. */
+export interface StoredPackage extends ExamPackage {
+  /** serverTime - Date.now() at download, so an offline start keeps the server's clock. */
+  clockOffset: number
 }
 
 export interface LocalEvent extends SealedEvent {
@@ -65,6 +73,7 @@ export const db = new Dexie('exam') as Dexie & {
   chunks: Table<LocalChunk, [string, string]>
   ring: Table<RingChunk, [string, number]>
   pins: Table<PendingPin, number>
+  packages: EntityTable<StoredPackage, 'examId'>
 }
 
 db.version(1).stores({
@@ -78,3 +87,5 @@ db.version(2).stores({
   ring: '[attemptId+tStart]',
   pins: '++id, attemptId',
 })
+// Version 3: downloaded exam packages for starting without network.
+db.version(3).stores({ packages: 'examId' })

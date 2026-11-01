@@ -5,7 +5,8 @@ import { countdownParts } from '@/shared/lib/format'
 import { AppButton } from '@/shared/ui'
 
 /** The exam to take now: big, dark, with the time left and one button. */
-const props = defineProps<{ exam: StudentExamListItem; now: number }>()
+/** `offlineReady`: the exam's package is on this device, so it can start without network. */
+const props = defineProps<{ exam: StudentExamListItem; now: number; offlineReady?: boolean }>()
 defineEmits<{ go: [] }>()
 const running = computed(() => props.exam.attempt?.status === 'active')
 const left = computed(() => countdownParts(props.exam.closesAt - props.now))
@@ -25,6 +26,7 @@ const left = computed(() => countdownParts(props.exam.closesAt - props.now))
         <li>{{ $t('exam.list.minutes', { n: exam.durationMin }, exam.durationMin) }}</li>
         <li>{{ $t('student.questions', { n: exam.questionCount }, exam.questionCount) }}</li>
         <li>{{ $t('student.camera') }}</li>
+        <li v-if="offlineReady" class="offline">{{ $t('exam.offlineStart.ready') }}</li>
       </ul>
     </div>
     <div class="side">
@@ -129,6 +131,11 @@ h2 {
     background: rgb(255 255 255 / 0.08);
     color: var(--on-ink-2);
     font-size: var(--text-sm);
+    &.offline {
+      background: var(--lime);
+      color: var(--on-lime);
+      font-weight: 700;
+    }
   }
 }
 .side {

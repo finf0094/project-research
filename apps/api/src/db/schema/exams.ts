@@ -17,6 +17,8 @@ export const exams = pgTable('exams', {
     .references(() => users.id),
   /** When the examiner let students see their results (scores and per-question review). */
   publishedAt: timestamp('published_at', { withTimezone: true }),
+  /** The start code that unlocks downloaded packages (offline start), encrypted with MASTER_KEY. */
+  startCodeEnc: text('start_code_enc'),
   createdAt: createdAt(),
 })
 

@@ -52,7 +52,12 @@ export async function updateExam(db: Db, ownerId: string, examId: string, defini
     await ownedExam(tx, ownerId, examId, true)
     if (await hasAttempts(tx, examId))
       throw conflict('Students have started this exam; it can no longer change')
-    await tx.update(exams).set(examColumns(definition)).where(eq(exams.id, examId))
+    // Questions are recreated with new ids: downloaded packages are outdated, so their code stops working
+    // (a new one is made on the next download).
+    await tx
+      .update(exams)
+      .set({ ...examColumns(definition), startCodeEnc: null })
+      .where(eq(exams.id, examId))
     await tx.delete(questions).where(eq(questions.examId, examId))
     await insertQuestions(tx, examId, definition)
   })

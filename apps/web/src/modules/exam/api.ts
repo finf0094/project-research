@@ -1,5 +1,6 @@
 import {
   AttemptSession,
+  ExamPackage,
   AttemptStatus,
   StudentExamListItem,
   StudentResult,
@@ -19,3 +20,5 @@ export const submitAttempt = (attemptId: string, body: SubmitBody) =>
   request(`/attempts/${attemptId}/submit`, { method: 'POST', body }, z.object({ status: AttemptStatus }))
 
 export const fetchResult = (attemptId: string) => request(`/attempts/${attemptId}/result`, {}, StudentResult)
+
+export const fetchPackage = (examId: string) => request(`/exams/${examId}/package`, {}, ExamPackage)

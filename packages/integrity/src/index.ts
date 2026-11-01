@@ -12,3 +12,12 @@ export {
   type SealedEvent,
 } from './chain.ts'
 export { verifyChain, verifyEvent, type BreakReason, type ChainResult, type VerifyResult } from './verify.ts'
+export {
+  PACKAGE_ITERATIONS,
+  formatStartCode,
+  newStartCode,
+  normalizeStartCode,
+  openPackage,
+  sealPackage,
+  type SealedPackage,
+} from './exam-package.ts'

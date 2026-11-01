@@ -94,6 +94,14 @@ export const en: typeof ru = {
       allSent: 'Everything is sent. You can close this page.',
       back: 'Back to my exams',
     },
+    offlineStart: {
+      title: 'No network — you can start without it',
+      text: 'The exam is already on this device. Type the start code your examiner announces: answers are kept here and sent once the network is back.',
+      code: 'Start code',
+      start: 'Start without network',
+      wrongCode: 'The code does not fit. Check the letters and digits or ask your examiner.',
+      ready: 'Can start without network',
+    },
     preflight: {
       needChecks: 'Pass the check first',
       needConsent: 'Confirm your consent',

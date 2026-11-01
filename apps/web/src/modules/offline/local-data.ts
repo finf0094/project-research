@@ -1,6 +1,13 @@
 import type { AnswerValue } from '@exam/contracts'
 import Dexie from 'dexie'
-import { db, type LocalAttempt, type LocalChunk, type PendingPin, type RingChunk } from './db'
+import {
+  db,
+  type LocalAttempt,
+  type LocalChunk,
+  type PendingPin,
+  type RingChunk,
+  type StoredPackage,
+} from './db'
 
 // The only way other modules touch local data: plain functions over the tables, no Dexie leaking out.
 
@@ -66,3 +73,8 @@ export async function clearRecording(attemptId: string) {
 export const addPin = (pin: PendingPin) => db.pins.add(pin)
 export const listPins = (attemptId: string) => db.pins.where('attemptId').equals(attemptId).toArray()
 export const deletePin = (id: number) => db.pins.delete(id)
+
+export const savePackage = (pkg: StoredPackage) => db.packages.put(pkg)
+export const getPackage = (examId: string) => db.packages.get(examId)
+export const deletePackage = (examId: string) => db.packages.delete(examId)
+export const listPackageIds = () => db.packages.toCollection().primaryKeys()

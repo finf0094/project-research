@@ -3,6 +3,7 @@ import CountdownCard from '../components/CountdownCard.vue'
 import ExamFacts from '../components/ExamFacts.vue'
 import ObservationCard from '../components/ObservationCard.vue'
 import ReadinessCard from '../components/ReadinessCard.vue'
+import StartCodeCard from '../components/StartCodeCard.vue'
 import { useExamHub } from '../exam-hub'
 
 /** The exam before and around its time: countdown, readiness, facts and what supervision means. */
@@ -16,6 +17,7 @@ const { exam, now } = useExamHub()
       <ReadinessCard :exam="exam" />
     </div>
     <ExamFacts :exam="exam" />
+    <StartCodeCard v-if="exam.mode === 'written' && now < exam.closesAt" :exam-id="exam.id" />
     <ObservationCard :exam="exam" />
   </div>
 </template>

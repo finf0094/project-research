@@ -5,6 +5,7 @@ import {
   type DecisionBody,
   type ExaminerCommandBody,
   type UpdateMarkerBody,
+  StartCode,
 } from '@exam/contracts'
 import { z } from 'zod'
 import { request } from '@/shared/lib/http'
@@ -32,3 +33,5 @@ export const decide = (attemptId: string, body: DecisionBody) =>
 
 export const chunkUrl = (attemptId: string, hash: string) =>
   `/api/examiner/attempts/${attemptId}/chunks/${hash}`
+
+export const getStartCode = (examId: string) => request(`/examiner/exams/${examId}/start-code`, {}, StartCode)

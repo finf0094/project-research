@@ -2,6 +2,12 @@ import type { ru } from './ru'
 
 export const en: typeof ru = {
   hub: {
+    startCode: {
+      title: 'Start code for no network',
+      text: 'Students download the exam to their device in advance. If the room loses the network, read out this code and the exam starts without internet.',
+      show: 'Show code',
+      note: 'The code changes whenever the exam is edited.',
+    },
     crumbs: 'Path to the exam',
     count: {
       questions: '{n} question | {n} questions',

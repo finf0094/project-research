@@ -84,6 +84,15 @@ export function startSync(options: SyncOptions): SyncHandle {
     const startedAt = performance.now()
     let response: SyncResponse
     try {
+      // An attempt begun without network: the server creates it (from the package's reservation) first.
+      if (attempt.offlineStart) {
+        await request('/attempts', {
+          method: 'POST',
+          body: { examId: attempt.offlineStart.examId, offlineStartedAt: attempt.offlineStart.startedAt },
+          signal: aborter.signal,
+        })
+        await db.attempts.update(attemptId, { offlineStart: null })
+      }
       response = await request(
         `/attempts/${attemptId}/sync`,
         {

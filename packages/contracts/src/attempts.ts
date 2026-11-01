@@ -7,7 +7,11 @@ import { ExamMode, QuestionType, StudentExam } from './exams.ts'
 export const AttemptStatus = z.enum(['active', 'terminated', 'submitted', 'ready_for_review', 'decided'])
 export type AttemptStatus = z.infer<typeof AttemptStatus>
 
-export const StartAttemptBody = z.object({ examId: Id })
+export const StartAttemptBody = z.object({
+  examId: Id,
+  /** Set when the attempt was started without network from a downloaded package (client time). */
+  offlineStartedAt: Timestamp.optional(),
+})
 export type StartAttemptBody = z.infer<typeof StartAttemptBody>
 
 /** Everything the client needs to run (or resume) an attempt offline. */

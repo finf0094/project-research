@@ -5,7 +5,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth'
 import { useAction } from '@/shared/lib/use-action'
 import { AppButton } from '@/shared/ui'
+import { listPackageIds } from '@/modules/offline'
+import { isNetworkError } from '@/shared/lib/http'
+import { useStored } from '@/shared/lib/stored'
 import { listExams } from '../api'
+import { preloadPackages } from '../preload'
 import FinishedList from '../components/FinishedList.vue'
 import HomeHero from '../components/HomeHero.vue'
 import UpcomingCard from '../components/UpcomingCard.vue'
@@ -19,7 +23,26 @@ const load = useAction()
 const now = ref(Date.now())
 const clock = setInterval(() => (now.value = Date.now()), 1000)
 onScopeDispose(() => clearInterval(clock))
-onMounted(() => load.run(async () => (exams.value = await listExams())))
+// The last list is kept on the device: with no network the student still finds the exam and starts it
+// from its downloaded package. `ready`: exams that can start without network here.
+const cached = useStored<StudentExamListItem[] | null>(`exams:list:${auth.user?.id}`, null)
+const fromCache = ref(false)
+const ready = ref(new Set<string>())
+const refresh = () =>
+  load.run(async () => {
+    try {
+      exams.value = await listExams()
+      cached.value = exams.value
+      fromCache.value = false
+      ready.value = await preloadPackages(exams.value)
+    } catch (error) {
+      if (!isNetworkError(error) || !cached.value) throw error
+      exams.value = cached.value
+      fromCache.value = true
+      ready.value = new Set(await listPackageIds())
+    }
+  })
+onMounted(refresh)
 
 const firstName = computed(() => auth.user?.name.split(' ')[0] ?? '')
 const running = (e: StudentExamListItem) => e.attempt && ['active', 'terminated'].includes(e.attempt.status)
@@ -48,17 +71,29 @@ function go(exam: StudentExamListItem) {
     </header>
     <p v-if="load.error.value" class="error" role="alert">
       {{ $t(load.error.value) }}
-      <AppButton variant="ghost" @click="load.run(async () => (exams = await listExams()))">{{
-        $t('common.retry')
-      }}</AppButton>
+      <AppButton variant="ghost" @click="refresh">{{ $t('common.retry') }}</AppButton>
     </p>
 
+    <p v-if="fromCache" class="cached" role="status">{{ $t('student.cached') }}</p>
     <template v-if="exams">
       <div class="stagger heroes">
-        <HomeHero v-for="exam in open" :key="exam.id" :exam="exam" :now="now" @go="go(exam)" />
+        <HomeHero
+          v-for="exam in open"
+          :key="exam.id"
+          :exam="exam"
+          :now="now"
+          :offline-ready="ready.has(exam.id)"
+          @go="go(exam)"
+        />
       </div>
       <div v-if="upcoming.length || finished.length" class="grid stagger">
-        <UpcomingCard v-for="exam in upcoming" :key="exam.id" :exam="exam" :now="now" />
+        <UpcomingCard
+          v-for="exam in upcoming"
+          :key="exam.id"
+          :exam="exam"
+          :now="now"
+          :offline-ready="ready.has(exam.id)"
+        />
         <FinishedList v-if="finished.length" :exams="finished" />
       </div>
       <p v-if="!exams.length" class="empty muted">{{ $t('student.empty') }}</p>
@@ -67,6 +102,14 @@ function go(exam: StudentExamListItem) {
 </template>
 
 <style scoped>
+.cached {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--warn-tint);
+  color: var(--warn);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
 .home,
 .heroes {
   display: grid;

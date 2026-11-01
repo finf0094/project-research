@@ -13,7 +13,8 @@ export const attemptsRoutes: FastifyPluginAsyncZod<ModuleOptions> = async (app, 
   app.post(
     '/attempts',
     { schema: { body: StartAttemptBody, response: { 200: AttemptSession } } },
-    async (request) => startAttempt(deps, currentUser(request).id, request.body.examId),
+    async (request) =>
+      startAttempt(deps, currentUser(request).id, request.body.examId, request.body.offlineStartedAt),
   )
 
   app.get(
